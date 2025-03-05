@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.5.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
       <PrivateAssets>all</PrivateAssets>
@@ -16,11 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ModelErrors\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
+    <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

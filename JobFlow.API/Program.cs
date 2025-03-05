@@ -1,3 +1,7 @@
+using FluentValidation;
+using JobFlow.Business.Services;
+using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Business.Validators;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,8 +15,11 @@ var configuration = new ConfigurationBuilder()
 
 var connectionStrings = builder.Configuration.GetSection("ConnectionString");
 var appConnectionString = connectionStrings["JobFlowDB"].ToString();
-// Add services to the container.
 
+// Register FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator> ();
+
+// Add services to the container.
 builder.Services.AddControllers()
         .ConfigureApiBehaviorOptions(options =>
         {
@@ -51,6 +58,10 @@ builder.Services.AddCors(op =>
         });
 });
 
+builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
+builder.Services.AddScoped<IOrganizationService, OrganizationalService>();
+
+builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
