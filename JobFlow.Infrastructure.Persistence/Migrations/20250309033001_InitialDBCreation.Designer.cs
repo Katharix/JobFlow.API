@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    [Migration("20250303001644_ChangeColumnNameToHasFreeAccount")]
-    partial class ChangeColumnNameToHasFreeAccount
+    [Migration("20250309033001_InitialDBCreation")]
+    partial class InitialDBCreation
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -139,12 +139,20 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("State")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ZipCode")
-                        .HasColumnType("int");
+                    b.Property<string>("StripeConnectedAccountId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("StripeCustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ZipCode")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationTypeId");
+
+                    b.HasIndex("StripeCustomerId");
 
                     b.ToTable("Organization", (string)null);
 
@@ -168,7 +176,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                             OrganizationTypeId = new Guid("1921d982-22f8-4ed5-b4e3-fca82c5767eb"),
                             PhoneNumber = "304-731-1952",
                             State = "WV",
-                            ZipCode = 25801
+                            ZipCode = "25801"
                         });
                 });
 
@@ -180,46 +188,43 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Address1")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Address2")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("City")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmailAddress")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PhoneNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ZipCode")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("StripeCustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ZipCode")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId");
+
+                    b.HasIndex("StripeCustomerId");
 
                     b.ToTable("OrganizationClient", (string)null);
                 });
@@ -357,6 +362,27 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("JobFlow.Domain.Models.StripeCustomer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<bool>("Delinqent")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StripeCustomer", "payment");
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.Job", b =>
                 {
                     b.HasOne("JobFlow.Domain.Models.JobStatus", "JobStatus")
@@ -376,7 +402,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("JobFlow.Domain.Models.StripeCustomer", "StripeCustomer")
+                        .WithMany()
+                        .HasForeignKey("StripeCustomerId");
+
                     b.Navigation("OrganizationType");
+
+                    b.Navigation("StripeCustomer");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationClient", b =>
@@ -387,7 +419,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("JobFlow.Domain.Models.StripeCustomer", "StripeCustomer")
+                        .WithMany()
+                        .HasForeignKey("StripeCustomerId");
+
                     b.Navigation("Organization");
+
+                    b.Navigation("StripeCustomer");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationClientJob", b =>

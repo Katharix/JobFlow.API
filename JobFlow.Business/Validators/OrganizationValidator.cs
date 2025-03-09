@@ -17,9 +17,10 @@ namespace JobFlow.Business.Validators
                 .WithMessage("Organization Name is required.");
 
             RuleFor(x => x.ZipCode)
-                .InclusiveBetween(10000, 99999)
-                .When(x => x.ZipCode.HasValue)
-                .WithMessage("Zip Code must be a 5-digit number.");
+                .NotEmpty()
+                .Matches(@"^\d{5}(-\d{4})?$") // Allows 5-digit or ZIP+4 format
+                .WithMessage("Zip Code must be a 5-digit number or ZIP+4 format.");
+
 
             RuleFor(x => x.EmailAddress)
                 .NotEmpty()

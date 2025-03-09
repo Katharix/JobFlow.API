@@ -1,9 +1,12 @@
 using FluentValidation;
+using JobFlow.Business.Models.ConfigurationInterfaces;
+using JobFlow.Business.Models.ConfigurationModels;
 using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 var deploymentEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -14,6 +17,7 @@ var configuration = new ConfigurationBuilder()
               .Build();
 
 var connectionStrings = builder.Configuration.GetSection("ConnectionString");
+var stripeApiKey = builder.Configuration.GetSection("StripeSettings").Get<StripeSettings>();
 var appConnectionString = connectionStrings["JobFlowDB"].ToString();
 
 // Register FluentValidation
@@ -58,12 +62,14 @@ builder.Services.AddCors(op =>
         });
 });
 
+builder.Services.AddScoped<IStripeSettings, StripeSettings>();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IOrganizationService, OrganizationalService>();
 
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
+StripeConfiguration.ApiKey = stripeApiKey.ApiKey;
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
