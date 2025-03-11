@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.Services.ServiceInterfaces
 {
-    interface IOrganizationTypeService
+    public interface IOrganizationTypeService
     {
-        Task<IEnumerable<OrganizationType>> GetTypes();
-        Task<OrganizationType> GetTypeById(Guid organizationTypeId);
-        Task<OrganizationType> UpsertOrganizationType(OrganizationType model);
-        Task<IEnumerable<OrganizationType>> UpsertOrganizationList(IEnumerable<OrganizationType> modelList);
-        Task DeleteOrganizationType(Guid organizationTypeId);
-        Task DeleteMultipleOrganizationTypes(IEnumerable<OrganizationType> idList);
+        Task<Result<IEnumerable<OrganizationType>>> GetTypes();
+        Task<Result<OrganizationType>> GetTypeById(Guid organizationTypeId);
+        Task<Result<OrganizationType>> UpsertOrganizationType(OrganizationType model);
+        Task<Result<IEnumerable<OrganizationType>>> UpsertOrganizationList(IEnumerable<OrganizationType> modelList);
+        Task<Result> DeleteOrganizationType(Guid organizationTypeId);
+        Task<Result> DeleteMultipleOrganizationTypes(IEnumerable<Guid> idList);
     }
 }

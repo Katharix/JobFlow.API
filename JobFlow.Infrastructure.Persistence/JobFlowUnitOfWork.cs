@@ -24,7 +24,6 @@ namespace JobFlow.Infrastructure.Persistence
         public IRepository<TEntity> RepositoryOf<TEntity>() where TEntity : class
         {
             EnsureDbContext();
-            //return new Repository<TEntity>(_context.Set<TEntity>(), _context);
             return new Repository<TEntity>(_context);
         }
         public void SaveChanges()

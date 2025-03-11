@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace JobFlow.Domain.Models
 {
     public class OrganizationClient
@@ -24,5 +19,10 @@ namespace JobFlow.Domain.Models
         public virtual StripeCustomer StripeCustomer { get; set; }
         public virtual Organization Organization { get; set; }
         public virtual ICollection<OrganizationClientJob> OrganizationClientJobs { get; set; }
+
+        public string ClientFullName()
+        {
+            return $"{this.FirstName} {this.LastName}";
+        }
     }
 }
