@@ -6,11 +6,11 @@ namespace JobFlow.API.Controllers
 {
     [Route("api/organizations/")]
     [ApiController]
-    public class OrganziationController : ControllerBase
+    public class OrganizationController : ControllerBase
     {
         private IOrganizationService _organizationService;
 
-        public OrganziationController(IOrganizationService organizationService)
+        public OrganizationController(IOrganizationService organizationService)
         {
             _organizationService = organizationService;
         }

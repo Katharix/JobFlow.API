@@ -8,11 +8,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDbCreation : Migration
+    public partial class InitialDBCreation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "payment");
+
             migrationBuilder.CreateTable(
                 name: "JobStatus",
                 columns: table => new
@@ -35,6 +38,21 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrganizationType", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StripeCustomer",
+                schema: "payment",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    StripeCustomerId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PaymentMethod = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Delinqent = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StripeCustomer", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -64,7 +82,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     OrganizationTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ZipCode = table.Column<int>(type: "int", nullable: true),
+                    StripeCustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    StripeConnectedAccountId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ZipCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     OrganizationName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address1 = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Address2 = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -72,7 +92,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     State = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     EmailAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    HasFreeLifetimeAccount = table.Column<bool>(type: "bit", nullable: false)
+                    HasFreeAccount = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -83,6 +103,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         principalTable: "OrganizationType",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Organization_StripeCustomer_StripeCustomerId",
+                        column: x => x.StripeCustomerId,
+                        principalSchema: "payment",
+                        principalTable: "StripeCustomer",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -91,15 +117,16 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Address1 = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Address2 = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    City = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    State = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EmailAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ZipCode = table.Column<int>(type: "int", nullable: false)
+                    StripeCustomerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Address1 = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Address2 = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    City = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    State = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EmailAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ZipCode = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -110,6 +137,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         principalTable: "Organization",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrganizationClient_StripeCustomer_StripeCustomerId",
+                        column: x => x.StripeCustomerId,
+                        principalSchema: "payment",
+                        principalTable: "StripeCustomer",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -195,11 +228,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             migrationBuilder.InsertData(
                 table: "Organization",
-                columns: new[] { "Id", "Address1", "Address2", "City", "EmailAddress", "HasFreeLifetimeAccount", "OrganizationName", "OrganizationTypeId", "PhoneNumber", "State", "ZipCode" },
+                columns: new[] { "Id", "Address1", "Address2", "City", "EmailAddress", "HasFreeAccount", "OrganizationName", "OrganizationTypeId", "PhoneNumber", "State", "StripeConnectedAccountId", "StripeCustomerId", "ZipCode" },
                 values: new object[,]
                 {
-                    { new Guid("b3b20208-07ae-40a2-971e-adf3bb93fc8c"), "116 Terrill St", null, "Beckley", "vonbrown230@gmail.com", true, "Browns Cleaning Services", new Guid("1921d982-22f8-4ed5-b4e3-fca82c5767eb"), "304-731-1952", "WV", 25801 },
-                    { new Guid("d464b178-a52d-440b-a064-42246f7e0756"), null, null, null, "jerry.daniel.phillips@gmail.com", true, "Katharix", new Guid("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"), null, null, null }
+                    { new Guid("b3b20208-07ae-40a2-971e-adf3bb93fc8c"), "116 Terrill St", null, "Beckley", "vonbrown230@gmail.com", true, "Browns Cleaning Services", new Guid("1921d982-22f8-4ed5-b4e3-fca82c5767eb"), "304-731-1952", "WV", null, null, "25801" },
+                    { new Guid("d464b178-a52d-440b-a064-42246f7e0756"), null, null, null, "jerry.daniel.phillips@gmail.com", true, "Katharix", new Guid("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"), null, null, null, null, null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -213,9 +246,19 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 column: "OrganizationTypeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Organization_StripeCustomerId",
+                table: "Organization",
+                column: "StripeCustomerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrganizationClient_OrganizationId",
                 table: "OrganizationClient",
                 column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrganizationClient_StripeCustomerId",
+                table: "OrganizationClient",
+                column: "StripeCustomerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrganizationClientJob_OrganizationClientId",
@@ -251,6 +294,10 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrganizationType");
+
+            migrationBuilder.DropTable(
+                name: "StripeCustomer",
+                schema: "payment");
         }
     }
 }

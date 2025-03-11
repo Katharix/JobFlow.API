@@ -64,6 +64,7 @@ namespace JobFlow.Business.Services
             if (model.Id == Guid.Empty)
             {
                 _unitOfWork.RepositoryOf<Organization>().Add(model);
+                await _unitOfWork.SaveChangesAsync();
             }
             else
             {

@@ -45,7 +45,7 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                         Address1 = "116 Terrill St",
                         City = "Beckley",
                         State = "WV",
-                        ZipCode = 25801,
+                        ZipCode = "25801",
                         HasFreeAccount = true,
                         PhoneNumber = "304-731-1952",
                         EmailAddress = "vonbrown230@gmail.com",
