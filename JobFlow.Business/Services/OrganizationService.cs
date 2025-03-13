@@ -12,13 +12,13 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.Services
 {
-    public class OrganizationalService : IOrganizationService
+    public class OrganizationService : IOrganizationService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private ILogger<OrganizationalService> _logger;
+        private ILogger<OrganizationService> _logger;
         private IQueryable<Organization> _organizations;
 
-        public OrganizationalService(IUnitOfWork unitOfWork, ILogger<OrganizationalService> logger)
+        public OrganizationService(IUnitOfWork unitOfWork, ILogger<OrganizationService> logger)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;

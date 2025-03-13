@@ -64,9 +64,10 @@ builder.Services.AddCors(op =>
 
 builder.Services.AddScoped<IStripeSettings, StripeSettings>();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
-builder.Services.AddScoped<IOrganizationService, OrganizationalService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
+builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
 
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();

@@ -72,26 +72,36 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<IEnumerable<OrganizationType>>> UpsertOrganizationList(IEnumerable<OrganizationType> modelList)
         {
-            var modelsToInsert = modelList.Where(org => org.Id == Guid.Empty);
-            var modelsToUpdate = modelList.Where(org => org.Id != Guid.Empty);
-
-            if (!modelList.Any())
+            if (modelList == null || !modelList.Any())
             {
                 return Result.Failure<IEnumerable<OrganizationType>>(OrganizationTypeErrors.NoOrganizationTypesToUpsert);
             }
 
-            if (modelsToInsert.Any())
+            var modelsToInsert = new List<OrganizationType>();
+            var modelsToUpdate = new List<OrganizationType>();
+
+            foreach (var org in modelList)
+            {
+                if (org.Id == Guid.Empty)
+                    modelsToInsert.Add(org);
+                else
+                    modelsToUpdate.Add(org);
+            }
+
+            if (modelsToInsert.Count > 0)
             {
                 organizationTypes.AddRange(modelsToInsert);
             }
-            if (modelsToUpdate.Any())
+
+            if (modelsToUpdate.Count > 0)
             {
                 organizationTypes.UpdateRange(modelsToUpdate);
             }
 
-            await this.unitOfWork.SaveChangesAsync();
-            return Result.Success<IEnumerable<OrganizationType>>(modelList);
+            await unitOfWork.SaveChangesAsync();
+            return Result.Success(modelList);
         }
+
 
         public async Task<Result<OrganizationType>> UpsertOrganizationType(OrganizationType model)
         {
