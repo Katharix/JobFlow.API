@@ -21,7 +21,6 @@ namespace JobFlow.Business.Validators
                 .Matches(@"^\d{5}(-\d{4})?$") // Allows 5-digit or ZIP+4 format
                 .WithMessage("Zip Code must be a 5-digit number or ZIP+4 format.");
 
-
             RuleFor(x => x.EmailAddress)
                 .NotEmpty()
                 .EmailAddress()

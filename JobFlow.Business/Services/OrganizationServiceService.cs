@@ -26,6 +26,10 @@ namespace JobFlow.Business.Services
         }
         public async Task<Result> DeleteOrganizationService(Guid serviceId)
         {
+            if (serviceId == Guid.Empty)
+            {
+                return Result.Failure(OrganizationServiceErrors.NullOrEmptyId);
+            }
             var organizationToDelete = await this.organizationService.Query().FirstOrDefaultAsync(ser => ser.Id == serviceId);
             if (organizationToDelete == null)
             {

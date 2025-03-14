@@ -3,6 +3,8 @@ namespace JobFlow.Business.ModelErrors
 {
     public static class OrganizationClientErrors
     {
+        public static Error NullOrEmptyId => Error.Failure(
+            "Clients", "The client Id is null or empty.");
         public static Error NoClientsToShow => Error.NotFound(
             "Clients", "No clients to show.");
         public static Error FailedToCreateClient => Error.Failure(
