@@ -4,7 +4,11 @@ using JobFlow.Business.Models.ConfigurationModels;
 using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
+using JobFlow.Domain.Enums;
+using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 
@@ -64,10 +68,44 @@ builder.Services.AddCors(op =>
 
 builder.Services.AddScoped<IStripeSettings, StripeSettings>();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
-builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
 builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
 builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
+
+// Configure Identity
+builder.Services.AddIdentity<User, IdentityRole<Guid>>()
+    .AddEntityFrameworkStores<JobFlowDbContext>()
+    .AddDefaultTokenProviders();
+
+// Configure JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole(UserRoles.OrganizationAdmin));
+    options.AddPolicy("OrgaizationEmployeeOnly", policy => policy.RequireRole(UserRoles.OrganizationEmployee));
+    options.AddPolicy("OrgaizationClientOnly", policy => policy.RequireRole(UserRoles.OrganizationClient));
+    options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole(UserRoles.SuperAdmin));
+    options.AddPolicy("KatharixAdminOnly", policy => policy.RequireRole(UserRoles.KatharixAdmin));
+    options.AddPolicy("KatharixEmployeeOnly", policy => policy.RequireRole(UserRoles.KatharixEmployee));
+});
 
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
