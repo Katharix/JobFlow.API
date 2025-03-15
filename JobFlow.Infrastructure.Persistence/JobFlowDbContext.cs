@@ -1,11 +1,13 @@
 ﻿using JobFlow.Domain.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Reflection;
 
 namespace JobFlow.Infrastructure.Persistence
 {
-    public class JobFlowDbContext : DbContext
+    public class JobFlowDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     {
         public JobFlowDbContext(DbContextOptions options) : base(options)
         {        
