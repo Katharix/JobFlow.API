@@ -1,4 +1,5 @@
 using FluentValidation;
+using JobFlow.Business.ExternalServices.Twilio;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
 using JobFlow.Business.Services;
@@ -10,6 +11,8 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,8 +25,9 @@ var configuration = new ConfigurationBuilder()
 
 var connectionStrings = builder.Configuration.GetSection("ConnectionString");
 var stripeApiKey = builder.Configuration.GetSection("StripeSettings").Get<StripeSettings>();
+var twilioSettings = builder.Configuration.GetSection("TwilioSettings").Get<TwilioSettings>();
 var appConnectionString = connectionStrings["JobFlowDB"].ToString();
-
+var jwtKey = builder.Configuration.GetSection("JWTKey").Value;
 // Register FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator> ();
 
@@ -45,7 +49,32 @@ builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSql
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "JobFlow API", Version = "v1" });
+
+    // Enable JWT authentication in Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter 'Bearer' [space] and then your valid JWT token."
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var apiAllowOrigins = "JobFlowAPIAllowOrigins";
 builder.Services.AddCors(op =>
@@ -66,12 +95,24 @@ builder.Services.AddCors(op =>
         });
 });
 
+builder.Services.Configure<TwilioSettings>(
+    builder.Configuration.GetSection("TwilioSettings")
+);
+builder.Services.AddSingleton<ITwilioSettings>(sp =>
+    sp.GetRequiredService<IOptions<TwilioSettings>>().Value
+);
+
+
 builder.Services.AddScoped<IStripeSettings, StripeSettings>();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
 builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
 builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
+builder.Services.AddScoped<ITwilioService, TwilioService>();
+builder.Services.AddScoped<RoleManager<IdentityRole<Guid>>>();
+builder.Services.AddScoped<UserManager<User>>();
+builder.Services.AddScoped<SignInManager<User>>();
 
 // Configure Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>()
@@ -93,7 +134,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = false,
         ValidateAudience = false,
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            System.Text.Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
@@ -108,6 +149,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 var app = builder.Build();
 
 StripeConfiguration.ApiKey = stripeApiKey.ApiKey;

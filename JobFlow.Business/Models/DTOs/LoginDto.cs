@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.Models.DTOs
 {
-    public class RegisterDto
+    public class LoginDto
     {
         public string Email { get; set; }
         public string Password { get; set; }
-        public Guid OrganizationId { get; set; }
-        public string Role { get; set; } 
     }
 
 }

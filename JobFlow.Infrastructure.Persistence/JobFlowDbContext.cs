@@ -17,10 +17,13 @@ namespace JobFlow.Infrastructure.Persistence
         public DbSet<OrganizationType> OrganizationTypes { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            //Calling this first prevents EF Core from overriding custom Identity table names
+            base.OnModelCreating(modelBuilder);
+
             // Automatically applies all IEntityTypeConfiguration<T> implementations in the assembly
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(JobFlowDbContext).Assembly);
 
-            base.OnModelCreating(modelBuilder);
+            
         }
 
     }
