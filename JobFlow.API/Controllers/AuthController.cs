@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.Models.DTOs;
+﻿using FirebaseAdmin.Auth;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.Persistence;
@@ -33,6 +34,44 @@ public class AuthController : ControllerBase
         _roleManager = roleManager;
         _dbContext = dbContext;
         _configuration = configuration;
+    }
+
+    [HttpPost, Route("login-with-firebase")]
+    public async Task<IActionResult> LoginWithFirebase([FromBody] TokenDto model)
+    {
+        try
+        {
+            var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(model.Token);
+            var firebaseUid = decodedToken.Uid;
+            var email = decodedToken.Claims.ContainsKey("email") ? decodedToken.Claims["email"].ToString() : null;
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            if (user == null)
+            {
+                // ✅ Create new user in the database
+                user = new User
+                {
+                    FirebaseUid = firebaseUid,
+                    Email = email,
+                    UserName = email
+                };
+                await _userManager.CreateAsync(user);
+
+                // ✅ Assign default role (e.g., "User")
+                await _userManager.AddToRoleAsync(user, "User");
+            }
+
+            // ✅ Get user roles
+            var roles = await _userManager.GetRolesAsync(user);
+
+            // ✅ Generate JWT token with role claims
+            var token = GenerateJwtToken(user, roles);
+            return Ok(new { Token = token, Email = user.Email, Roles = roles });
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new { Message = "Invalid Firebase token.", Error = ex.Message });
+        }
     }
 
     /// <summary>
@@ -106,4 +145,39 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private string GenerateJwtToken(User user, IList<string> roles)
+    {
+        var jwtKey = _configuration.GetSection("JWTKey").Value;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim("FirebaseUid", user.FirebaseUid),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        // ✅ Add role claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        var token = new JwtSecurityToken(
+            issuer: null,
+            audience: null,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(2),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+}
+public class TokenDto
+{
+    public string Token { get; set; }
 }
