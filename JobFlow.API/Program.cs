@@ -1,4 +1,6 @@
+using FirebaseAdmin;
 using FluentValidation;
+using Google.Apis.Auth.OAuth2;
 using JobFlow.Business.ExternalServices.Twilio;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
@@ -28,6 +30,14 @@ var stripeApiKey = builder.Configuration.GetSection("StripeSettings").Get<Stripe
 var twilioSettings = builder.Configuration.GetSection("TwilioSettings").Get<TwilioSettings>();
 var appConnectionString = connectionStrings["JobFlowDB"].ToString();
 var jwtKey = builder.Configuration.GetSection("JWTKey").Value;
+
+var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
+
+FirebaseApp.Create(new AppOptions
+{
+    Credential = GoogleCredential.FromFile(firebaseCredentialPath)
+});
+
 // Register FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator> ();
 
