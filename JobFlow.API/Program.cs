@@ -9,6 +9,7 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -120,15 +121,7 @@ builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
 builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
 builder.Services.AddScoped<ITwilioService, TwilioService>();
-builder.Services.AddScoped<RoleManager<IdentityRole<Guid>>>();
-builder.Services.AddScoped<UserManager<User>>();
-builder.Services.AddScoped<SignInManager<User>>();
 builder.Services.AddScoped<IUserService, UserService>();
-
-// Configure Identity
-builder.Services.AddIdentity<User, IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<JobFlowDbContext>()
-    .AddDefaultTokenProviders();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -183,9 +176,10 @@ else
     app.UseExceptionHandler("/error");
 }
 
+app.UseCors(apiAllowOrigins);
+app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthorization();
-app.UseCors(apiAllowOrigins);
 app.MapControllers();
 
 app.Run();

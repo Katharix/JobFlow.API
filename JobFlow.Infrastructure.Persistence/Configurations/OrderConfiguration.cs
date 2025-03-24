@@ -1,6 +1,5 @@
 ﻿using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 using System.Collections.Generic;
@@ -10,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
-    internal class UserConfiguration : IEntityTypeConfiguration<User>
+    internal class OrderConfiguration : IEntityTypeConfiguration<Order>
     {
-        public void Configure(EntityTypeBuilder<User> builder)
+        public void Configure(EntityTypeBuilder<Order> builder)
         {
-            builder.ToTable("Users");
+            builder.ToTable("Order", "payment");
+            builder.HasKey(e => e.Id);
             builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
         }
     }

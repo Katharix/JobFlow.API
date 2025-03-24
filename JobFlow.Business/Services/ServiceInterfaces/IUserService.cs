@@ -11,6 +11,7 @@ namespace JobFlow.Business.Services.ServiceInterfaces
     {
         Task<Result<IEnumerable<User>>> GetAllUsers();
         Task<Result<User>> GetUserById(Guid userId);
+        Task<Result<User>> GetUserByFirebaseUid(string uid);
         Task<Result<User>> UpsertUser(User model);
         Task<Result> DeleteUser(Guid userId);
         Task<Result<User>> GetUserByEmail(string email);

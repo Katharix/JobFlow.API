@@ -9,6 +9,8 @@ namespace JobFlow.Business.Models.ConfigurationModels
 {
     public class StripeSettings : IStripeSettings
     {
-        public string ApiKey {get; set;}
+        public string ApiKey { get; set; }
+        public string ReturnUrl { get; set; }
+        public string RefreshUrl { get; set; }
     }
 }

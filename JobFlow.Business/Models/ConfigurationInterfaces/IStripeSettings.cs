@@ -9,5 +9,7 @@ namespace JobFlow.Business.Models.ConfigurationInterfaces
     public interface IStripeSettings
     {
         string ApiKey { get; set; }
+        string ReturnUrl { get; set; }
+        string RefreshUrl { get; set; }
     }
 }
