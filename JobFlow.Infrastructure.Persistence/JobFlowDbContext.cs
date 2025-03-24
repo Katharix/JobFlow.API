@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace JobFlow.Infrastructure.Persistence
 {
-    public class JobFlowDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
+    public class JobFlowDbContext : DbContext
     {
         public JobFlowDbContext(DbContextOptions options) : base(options)
         {        

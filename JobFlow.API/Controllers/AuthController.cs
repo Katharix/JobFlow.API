@@ -1,5 +1,6 @@
 ﻿using FirebaseAdmin.Auth;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.Persistence;
@@ -16,23 +17,15 @@ using System.Text;
 [Route("api/auth/")]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
-    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
+    private readonly IUserService _userService;
     private readonly IConfiguration _configuration;
-    private readonly JobFlowDbContext _dbContext;
 
     public AuthController(
-        UserManager<User> userManager,
-        SignInManager<User> signInManager,
-        RoleManager<IdentityRole<Guid>> roleManager,
+        IUserService userService,
         JobFlowDbContext dbContext,
         IConfiguration configuration)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _roleManager = roleManager;
-        _dbContext = dbContext;
+        _userService = userService;
         _configuration = configuration;
     }
 
@@ -45,28 +38,30 @@ public class AuthController : ControllerBase
             var firebaseUid = decodedToken.Uid;
             var email = decodedToken.Claims.ContainsKey("email") ? decodedToken.Claims["email"].ToString() : null;
 
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+            var userInfo = await _userService.GetUserByFirebaseUid(firebaseUid);
+            var user = userInfo?.Value;
             if (user == null)
             {
+                
                 // ✅ Create new user in the database
                 user = new User
                 {
                     FirebaseUid = firebaseUid,
                     Email = email,
-                    UserName = email
+                    CreatedAt = DateTime.Now
                 };
-                await _userManager.CreateAsync(user);
+                await _userService.UpsertUser(user);
 
                 // ✅ Assign default role (e.g., "User")
-                await _userManager.AddToRoleAsync(user, "User");
+                await _userService.AssignRole(user.Id, "User");
             }
 
             // ✅ Get user roles
-            var roles = await _userManager.GetRolesAsync(user);
+            //var roles = await _userManager.GetRolesAsync(user);
 
             // ✅ Generate JWT token with role claims
-            var token = GenerateJwtToken(user, roles);
-            return Ok(new { Token = token, Email = user.Email, Roles = roles });
+            //var token = GenerateJwtToken(user, roles);
+            return Ok(new { Email = user.Email});
         }
         catch (Exception ex)
         {
@@ -77,60 +72,60 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Register a new user (Admin or Employee)
     /// </summary>
-    [HttpPost, Route("register")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] RegisterDto model)
-    {
-        // Check if user already exists
-        var existingUser = await _userManager.FindByEmailAsync(model.Email);
-        if (existingUser != null)
-            return BadRequest("User already exists.");
+    //[HttpPost, Route("register")]
+    //[AllowAnonymous]
+    //public async Task<IActionResult> Register([FromBody] RegisterDto model)
+    //{
+    //    // Check if user already exists
+    //    var existingUser = await _userManager.FindByEmailAsync(model.Email);
+    //    if (existingUser != null)
+    //        return BadRequest("User already exists.");
 
-        // Create new user
-        var user = new User
-        {
-            UserName = model.Email,
-            Email = model.Email,
-            OrganizationId = model.OrganizationId
-        };
+    //    // Create new user
+    //    var user = new User
+    //    {
+    //        UserName = model.Email,
+    //        Email = model.Email,
+    //        OrganizationId = model.OrganizationId
+    //    };
 
-        var result = await _userManager.CreateAsync(user, model.Password);
-        if (!result.Succeeded)
-            return BadRequest(result.Errors);
+    //    var result = await _userManager.CreateAsync(user, model.Password);
+    //    if (!result.Succeeded)
+    //        return BadRequest(result.Errors);
 
-        // Assign role
-        var roleExists = await _roleManager.RoleExistsAsync(model.Role);
-        if (!roleExists)
-            return BadRequest("Invalid role specified.");
+    //    // Assign role
+    //    var roleExists = await _roleManager.RoleExistsAsync(model.Role);
+    //    if (!roleExists)
+    //        return BadRequest("Invalid role specified.");
 
-        await _userManager.AddToRoleAsync(user, model.Role);
+    //    await _userManager.AddToRoleAsync(user, model.Role);
 
-        return Ok("User registered successfully!");
-    }
+    //    return Ok("User registered successfully!");
+    //}
 
     /// <summary>
     /// User login endpoint - Returns JWT token
     /// </summary>
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto model)
-    {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
-            return Unauthorized("Invalid credentials");
+    //[HttpPost("login")]
+    //public async Task<IActionResult> Login([FromBody] LoginDto model)
+    //{
+    //    var user = await _userManager.FindByEmailAsync(model.Email);
+    //    if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
+    //        return Unauthorized("Invalid credentials");
 
-        var userRoles = await _userManager.GetRolesAsync(user);
-        var authClaims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Email),
-            new Claim("OrganizationId", user.OrganizationId.ToString())
-        };
+    //    var userRoles = await _userManager.GetRolesAsync(user);
+    //    var authClaims = new List<Claim>
+    //    {
+    //        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+    //        new Claim(ClaimTypes.Name, user.Email),
+    //        new Claim("OrganizationId", user.OrganizationId.ToString())
+    //    };
 
-        authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+    //    authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var token = GenerateJwtToken(authClaims);
-        return Ok(new { token, role = userRoles.FirstOrDefault(), organizationId = user.OrganizationId });
-    }
+    //    var token = GenerateJwtToken(authClaims);
+    //    return Ok(new { token, role = userRoles.FirstOrDefault(), organizationId = user.OrganizationId });
+    //}
 
     private string GenerateJwtToken(List<Claim> claims)
     {

@@ -11,7 +11,7 @@ namespace JobFlow.Business.Services.ServiceInterfaces
     {
         Task<Result<Organization>> GetOrganiztionById(Guid OrgId);
         Task<Result<IEnumerable<Organization>>> GetAllOrganizations();
-        Task<Result<Organization>> UpsertOrganizatiom(Organization model);
+        Task<Result<Organization>> UpsertOrganization(Organization model);
         Task<Result> DeleteOrganization(Guid organizationId);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using JobFlow.Domain.Enums;
+using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -10,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
-    internal class RoleConfiguration : IEntityTypeConfiguration<IdentityRole<Guid>>
+    internal class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
-        public void Configure(EntityTypeBuilder<IdentityRole<Guid>> builder)
+        public void Configure(EntityTypeBuilder<Role> builder)
         {
             builder.ToTable("Roles");
             builder.Property(u => u.Id).HasDefaultValueSql("NEWID()");

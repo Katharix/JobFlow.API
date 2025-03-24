@@ -44,17 +44,15 @@ namespace JobFlow.API.Controllers
                     EmailAddress = model.EmailAddress
                 };
 
-                var result = await _organizationService.UpsertOrganizatiom(org);
+                var result = await _organizationService.UpsertOrganization(org);
                 if (!result.IsSuccess)
                     return result.ToProblemDetails();
 
                 var user = new User
                 {
-                    Email = model.EmailAddress,
-                    UserName = model.EmailAddress,
+                    Email = model.EmailAddress, 
                     OrganizationId = org.Id,
                     FirebaseUid = model.FireBaseUid
-
                 };
 
                 var userResult = await _userService.UpsertUser(user);

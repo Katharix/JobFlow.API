@@ -59,7 +59,7 @@ namespace JobFlow.Business.Services
             return Result.Success(organization);
         }
 
-        public async Task<Result<Organization>> UpsertOrganizatiom(Organization model)
+        public async Task<Result<Organization>> UpsertOrganization(Organization model)
         {
             if (model.Id == Guid.Empty)
             {
