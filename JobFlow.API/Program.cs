@@ -123,6 +123,7 @@ builder.Services.AddScoped<ITwilioService, TwilioService>();
 builder.Services.AddScoped<RoleManager<IdentityRole<Guid>>>();
 builder.Services.AddScoped<UserManager<User>>();
 builder.Services.AddScoped<SignInManager<User>>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Configure Identity
 builder.Services.AddIdentity<User, IdentityRole<Guid>>()

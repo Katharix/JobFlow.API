@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250316035736_IgnoreColumnsInUsersTable")]
+    partial class IgnoreColumnsInUsersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -451,38 +454,38 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("e88fbbe6-8bdf-4aca-b941-912785a94f0b"),
-                            Name = "OrganizationAdmin",
-                            NormalizedName = "ORGANIZATIONADMIN"
+                            Name = "Organization Admin",
+                            NormalizedName = "ORGANIZATION ADMIN"
                         },
                         new
                         {
                             Id = new Guid("079e4277-0eb2-4222-82e4-5a751ede48f6"),
-                            Name = "OrganizationEmployee",
-                            NormalizedName = "ORGANIZATIONEMPLOYEE"
+                            Name = "Organization Employee",
+                            NormalizedName = "ORGANIZATION EMPLOYEE"
                         },
                         new
                         {
                             Id = new Guid("3da14c58-562a-437a-a2a6-47706b40eb70"),
-                            Name = "OrganizationClient",
-                            NormalizedName = "ORGANIZATIONCLIENT"
+                            Name = "Organization Client",
+                            NormalizedName = "ORGANIZATION CLIENT"
                         },
                         new
                         {
                             Id = new Guid("5bc0d325-a915-4e17-8184-428ee533cf89"),
-                            Name = "KatharixAdmin",
-                            NormalizedName = "KATHARIXADMIN"
+                            Name = "Katharix Admin",
+                            NormalizedName = "KATHARIX ADMIN"
                         },
                         new
                         {
                             Id = new Guid("92193eb2-dba0-433c-814e-9fca95bde016"),
-                            Name = "KatharixEmployee",
-                            NormalizedName = "KATHARIXEMPLOYEE"
+                            Name = "Katharix Employee",
+                            NormalizedName = "KATHARIX EMPLOYEE"
                         },
                         new
                         {
                             Id = new Guid("dfe36ebc-bfb5-4583-b68e-59be8ba60fa9"),
-                            Name = "SuperAdmin",
-                            NormalizedName = "SUPERADMIN"
+                            Name = "Super Admin",
+                            NormalizedName = "SUPER ADMIN"
                         });
                 });
 

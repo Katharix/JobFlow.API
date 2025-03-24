@@ -37,7 +37,7 @@ namespace JobFlow.API.Controllers
         /// Get all users (Admin only)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Super Admin, Organization Admin")]
+        [Authorize(Roles = "SuperAdmin, OrganizationAdmin")]
         public async Task<IActionResult> GetUsers()
         {
             var users = await _userManager.Users
@@ -86,7 +86,7 @@ namespace JobFlow.API.Controllers
         /// Update user role (Admin only)
         /// </summary>
         [HttpPost("{id}/update-role")]
-        [Authorize(Roles = "Super Admin, Organization Admin")]
+        [Authorize(Roles = "SuperAdmin, OrganizationAdmin")]
         public async Task<IActionResult> UpdateUserRole(Guid id, [FromBody] UpdateRoleDto model)
         {
             var user = await _userManager.FindByIdAsync(id.ToString());
@@ -108,7 +108,7 @@ namespace JobFlow.API.Controllers
         /// Delete a user (Admin only)
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Super Admin, Organization Admin")]
+        [Authorize(Roles = "SuperAdmin, OrganizationAdmin")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             var user = await _userManager.FindByIdAsync(id.ToString());
@@ -122,7 +122,7 @@ namespace JobFlow.API.Controllers
         /// Invite a user to an organization (Admin only)
         /// </summary>
         [HttpPost("invite")]
-        [Authorize(Roles = "Super Admin, Organization Admin")]
+        [Authorize(Roles = "SuperAdmin, OrganizationAdmin")]
         public async Task<IActionResult> InviteUser([FromBody] InviteUserDto model)
         {
             var admin = await _userManager.FindByEmailAsync(User.FindFirstValue(ClaimTypes.Email));

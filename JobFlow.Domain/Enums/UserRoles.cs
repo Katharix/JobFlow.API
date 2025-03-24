@@ -8,11 +8,11 @@ namespace JobFlow.Domain.Enums
 {
     public static class UserRoles
     {
-        public const string OrganizationAdmin = "Organization Admin";
-        public const string OrganizationEmployee = "Organization Employee";
-        public const string OrganizationClient = "Organization Client";
-        public const string SuperAdmin = "Super Admin";
-        public const string KatharixAdmin = "Katharix Admin";
-        public const string KatharixEmployee = "Katharix Employee";
+        public const string OrganizationAdmin = "OrganizationAdmin";
+        public const string OrganizationEmployee = "OrganizationEmployee";
+        public const string OrganizationClient = "OrganizationClient";
+        public const string SuperAdmin = "SuperAdmin";
+        public const string KatharixAdmin = "KatharixAdmin";
+        public const string KatharixEmployee = "KatharixEmployee";
     }
 }
