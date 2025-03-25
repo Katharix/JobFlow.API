@@ -2,11 +2,7 @@
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
-using JobFlow.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace JobFlow.API.Controllers
 {
