@@ -1,3 +1,4 @@
+using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
@@ -25,18 +26,23 @@ var configuration = new ConfigurationBuilder()
               .AddJsonFile($"appsettings.{deploymentEnvironment}.json", optional: true)
               .AddEnvironmentVariables()
               .Build();
+var keyVaultValue = builder.Configuration.GetSection("KeyVaultUri").Value;
+var keyVaultUri = new Uri(keyVaultValue);
 
-var connectionStrings = builder.Configuration.GetSection("ConnectionString");
-var stripeApiKey = builder.Configuration.GetSection("StripeSettings").Get<StripeSettings>();
-var twilioSettings = builder.Configuration.GetSection("TwilioSettings").Get<TwilioSettings>();
-var appConnectionString = connectionStrings["JobFlowDB"].ToString();
-var jwtKey = builder.Configuration.GetSection("JWTKey").Value;
+builder.Configuration.AddAzureKeyVault(keyVaultUri, new DefaultAzureCredential());
 
+var appConnectionString = builder.Configuration["SqlConnectionString"];
+
+var jwtKey = builder.Configuration["JWTKey"];
+var firebaseJson = builder.Configuration["Firebase-adminsdk"];
 var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
+
+
+
 
 FirebaseApp.Create(new AppOptions
 {
-    Credential = GoogleCredential.FromFile(firebaseCredentialPath)
+    Credential = GoogleCredential.FromJson(firebaseJson)
 });
 
 // Register FluentValidation
@@ -53,8 +59,8 @@ builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSql
              b =>
              {
                  b.MigrationsAssembly("JobFlow.Infrastructure.Persistence");
-                 b.CommandTimeout(150);
-                 b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                 b.CommandTimeout(170);
+                 b.EnableRetryOnFailure(8, TimeSpan.FromSeconds(10), null);
              })
 );
 
@@ -106,21 +112,34 @@ builder.Services.AddCors(op =>
         });
 });
 
-builder.Services.Configure<TwilioSettings>(
-    builder.Configuration.GetSection("TwilioSettings")
-);
+
+builder.Services.Configure<StripeSettings>(options =>
+{
+    options.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
+    options.ReturnUrl = builder.Configuration[$"StripeSettings-ReturnUrl"];
+    options.RefreshUrl = builder.Configuration[$"StripeSettings-RefreshUrl"];
+});
+
+builder.Services.Configure<TwilioSettings>(options =>
+{
+    options.SenderPhoneNumber = builder.Configuration[$"Twilio-SenderPhoneNumber"];
+    options.AccountSId = builder.Configuration[$"Twilio-AccountSId"];
+    options.AuthToken = builder.Configuration[$"Twilio-AuthToken"];
+});
+
 builder.Services.AddSingleton<ITwilioSettings>(sp =>
     sp.GetRequiredService<IOptions<TwilioSettings>>().Value
 );
+builder.Services.AddSingleton<IStripeSettings>(sp =>
+    sp.GetRequiredService<IOptions<StripeSettings>>().Value
+);
 
 
-builder.Services.AddScoped<IStripeSettings, StripeSettings>();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
 builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
 builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
-builder.Services.AddScoped<ITwilioService, TwilioService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 // Configure JWT Authentication
@@ -158,7 +177,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 var app = builder.Build();
 
-StripeConfiguration.ApiKey = stripeApiKey.ApiKey;
+StripeConfiguration.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
