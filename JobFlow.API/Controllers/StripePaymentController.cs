@@ -14,45 +14,55 @@ namespace JobFlow.API.Controllers
             try
             {
                 var service = new AccountService();
-                var options = new AccountCreateOptions();
+                var options = new AccountCreateOptions
+                {
+                    Type = "express",
+                    Country = "US",
+                    Capabilities = new AccountCapabilitiesOptions
+                    {
+                        CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true },
+                        Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
+                    }
+                };
+
                 Account account = service.Create(options);
+
+                // Store account.Id in your DB here
+
                 return Ok(new { accountId = account.Id });
             }
             catch (StripeException stripeEx)
             {
                 return StatusCode(500, new { error = stripeEx.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { error = "An unexpected error occurred." });
             }
         }
 
-        [HttpPost]
-        public ActionResult Create([FromBody] AccountLinkPostBody accountLinkPostBody)
+        [HttpPost, Route("generate-account-link")]
+        public ActionResult GenerateAccountLink([FromBody] AccountLinkPostBody accountLinkPostBody)
         {
             try
             {
                 var connectedAccountId = accountLinkPostBody.Account;
                 var service = new AccountLinkService();
 
-                AccountLink accountLink = service.Create(
-                    new AccountLinkCreateOptions
-                    {
-                        Account = connectedAccountId,
-                        ReturnUrl = $"http://localhost/return/{connectedAccountId}",
-                        RefreshUrl = $"http://localhost/refresh/{connectedAccountId}",
-                        Type = "account_onboarding",
-                    }
-                );
+                AccountLink accountLink = service.Create(new AccountLinkCreateOptions
+                {
+                    Account = connectedAccountId,
+                    ReturnUrl = $"http://localhost:4200/dashboard/stripe-success/{connectedAccountId}",
+                    RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{connectedAccountId}",
+                    Type = "account_onboarding"
+                });
 
                 return Ok(new { url = accountLink.Url });
             }
             catch (Exception ex)
             {
-                Console.Write("An error occurred when calling the Stripe API to create an account link:  " + ex.Message);
-                Response.StatusCode = 500;
-                return Ok(new { error = ex.Message });
+                Console.WriteLine("Stripe error: " + ex.Message);
+                return StatusCode(500, new { error = ex.Message });
             }
         }
 
