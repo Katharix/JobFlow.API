@@ -2,6 +2,8 @@ using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
+using JobFlow.Business.ExternalServices.Brevo;
+using JobFlow.Business.ExternalServices.ReCAPTCHA;
 using JobFlow.Business.ExternalServices.Twilio;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
@@ -10,6 +12,8 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.Extensions;
+using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -127,13 +131,29 @@ builder.Services.Configure<TwilioSettings>(options =>
     options.AuthToken = builder.Configuration[$"Twilio-AuthToken"];
 });
 
+builder.Services.Configure<BrevoSettings>(options =>
+{
+    options.ApiKey = builder.Configuration[$"BrevoSettings-ApiKey"];
+});
+builder.Services.Configure<ReCAPTCHASettings>(options =>
+{
+    options.SecretKey = builder.Configuration[$"reCAPTCHA-Api"];
+});
+
 builder.Services.AddSingleton<ITwilioSettings>(sp =>
     sp.GetRequiredService<IOptions<TwilioSettings>>().Value
 );
 builder.Services.AddSingleton<IStripeSettings>(sp =>
     sp.GetRequiredService<IOptions<StripeSettings>>().Value
 );
+builder.Services.AddSingleton<IBrevoSettings>(sp =>
+    sp.GetRequiredService<IOptions<BrevoSettings>>().Value
+);
+builder.Services.AddSingleton<IReCAPTCHASettings>(sp =>
+    sp.GetRequiredService<IOptions<ReCAPTCHASettings>>().Value
+);
 
+builder.Services.AddJobFlowHttpClients();
 
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
@@ -141,6 +161,10 @@ builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
 builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
 builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReCAPTCHAService, ReCAPTCHAService>();
+builder.Services.AddSingleton<IBrevoService, BrevoService>();
+builder.Services.AddSingleton<IJobFlowHttpClientFactory, JobFlowHttpClientFactory>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
