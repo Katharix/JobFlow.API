@@ -22,6 +22,11 @@
   <ItemGroup>
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
     <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
+    <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ExternalServices\ReCAPTCHA\Models\" />
   </ItemGroup>
 
 </Project>
