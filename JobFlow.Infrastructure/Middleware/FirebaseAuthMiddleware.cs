@@ -27,14 +27,20 @@ namespace JobFlow.Infrastructure.Middleware
                 try
                 {
                     var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
-                    var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
-                };
 
-                    if (decodedToken.Claims.ContainsKey("role"))
+                    var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
+            };
+
+                    if (decodedToken.Claims.TryGetValue("role", out var role))
                     {
-                        claims.Add(new Claim(ClaimTypes.Role, decodedToken.Claims["role"].ToString()));
+                        claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+                    }
+
+                    if (decodedToken.Claims.TryGetValue("email", out var email))
+                    {
+                        claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
                     }
 
                     var identity = new ClaimsIdentity(claims, "Firebase");
@@ -42,12 +48,13 @@ namespace JobFlow.Infrastructure.Middleware
                 }
                 catch
                 {
-                    context.Response.StatusCode = 401;
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     return;
                 }
             }
 
             await _next(context);
         }
+
     }
 }
