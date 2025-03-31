@@ -1,6 +1,7 @@
 ﻿using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.Services
 {
+    [ScopedService]
     public class OrganizationService : IOrganizationService
     {
         private readonly IUnitOfWork _unitOfWork;

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using JobFlow.Infrastructure.DI;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using System;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence
 {
+    [ScopedService]
     public class JobFlowUnitOfWork : IUnitOfWork
     {
         private readonly ILogger<JobFlowUnitOfWork> _logger;

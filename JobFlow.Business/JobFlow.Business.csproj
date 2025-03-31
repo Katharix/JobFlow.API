@@ -7,12 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ExternalServices\ReCAPTCHA\Models\**" />
+    <EmbeddedResource Remove="ExternalServices\ReCAPTCHA\Models\**" />
+    <None Remove="ExternalServices\ReCAPTCHA\Models\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Square" Version="40.1.0" />
     <PackageReference Include="Stripe.net" Version="47.4.0" />
     <PackageReference Include="Twilio" Version="7.9.0" />
     <PackageReference Include="Twilio.AspNet.Core" Version="8.1.1" />
@@ -23,10 +30,6 @@
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
     <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="ExternalServices\ReCAPTCHA\Models\" />
   </ItemGroup>
 
 </Project>
