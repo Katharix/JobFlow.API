@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.ExternalServices.Brevo.Models;
 using JobFlow.Business.Models.ConfigurationModels;
+using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.HttpClients;
 using Microsoft.Extensions.Options;
 using System;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.ExternalServices.Brevo
 {
+    [SingletonService]
     public class BrevoService : IBrevoService
     {
         private readonly BrevoSettings _settings;

@@ -12,6 +12,7 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Extensions;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
@@ -22,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 var deploymentEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -50,7 +52,7 @@ FirebaseApp.Create(new AppOptions
 });
 
 // Register FluentValidation
-builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator> ();
+builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -154,16 +156,11 @@ builder.Services.AddSingleton<IReCAPTCHASettings>(sp =>
 );
 
 builder.Services.AddJobFlowHttpClients();
-
-builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
-builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
-builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
-builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
-builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IReCAPTCHAService, ReCAPTCHAService>();
-builder.Services.AddSingleton<IBrevoService, BrevoService>();
-builder.Services.AddSingleton<IJobFlowHttpClientFactory, JobFlowHttpClientFactory>();
+builder.Services.AddAttributedServices(
+    typeof(IUserService).Assembly,
+    typeof(JobFlowDbContext).Assembly,
+    typeof(IUnitOfWork).Assembly
+);
 
 
 // Configure JWT Authentication
@@ -183,6 +180,7 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+
 var app = builder.Build();
 
 StripeConfiguration.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
