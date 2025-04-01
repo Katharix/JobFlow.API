@@ -36,7 +36,7 @@ namespace JobFlow.Business.ExternalServices.Twilio
             catch (Exception ex)
             {
 
-                throw;
+                throw ex;
             }
          
         }  

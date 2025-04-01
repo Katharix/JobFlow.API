@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JobFlow.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Principal;
@@ -22,8 +23,10 @@ namespace JobFlow.Domain.Models
         public string? PhoneNumber { get; set; }
         public string? EmailAddress { get; set; }
         public bool HasFreeAccount { get; set; }
+        public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
 
-        public virtual StripeCustomer StripeCustomer { get; set; }
-        public virtual OrganizationType OrganizationType { get; set; }
+
+        public virtual StripeCustomer? StripeCustomer { get; set; }
+        public virtual OrganizationType? OrganizationType { get; set; }
     }
 }

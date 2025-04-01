@@ -6,6 +6,8 @@ using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.DI;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Business.PaymentGateways;
+using JobFlow.Business.Models.ConfigurationInterfaces;
+using Square.Authentication;
 
 namespace JobFlow.Business.Services.PaymentProcessors
 {
@@ -15,15 +17,18 @@ namespace JobFlow.Business.Services.PaymentProcessors
         private readonly SquareClient _client;
         private readonly string _locationId;
 
-        public SquarePaymentProcessor(IConfiguration configuration)
+        public SquarePaymentProcessor(ISquareSettings settings)
         {
+            var bearerAuth = new BearerAuthModel.Builder(settings.AccessToken).Build();
+
             _client = new SquareClient.Builder()
                 .Environment(Square.Environment.Sandbox)
-                .AccessToken(configuration["Square:AccessToken"])
+                .BearerAuthCredentials(bearerAuth)
                 .Build();
 
-            _locationId = configuration["Square:LocationId"];
+            _locationId = settings.LocationId ?? "";
         }
+
 
         public async Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request)
         {
