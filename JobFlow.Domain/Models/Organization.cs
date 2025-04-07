@@ -12,8 +12,7 @@ namespace JobFlow.Domain.Models
     {
         public Guid Id { get; set; }
         public Guid OrganizationTypeId { get; set; }
-        public Guid? StripeCustomerId { get; set; }
-        public string? StripeConnectedAccountId { get; set; }
+
         public string? ZipCode { get; set; }
         public string? OrganizationName { get; set; }
         public string? Address1 { get; set; }
@@ -26,7 +25,8 @@ namespace JobFlow.Domain.Models
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
 
 
-        public virtual StripeCustomer? StripeCustomer { get; set; }
+        public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
+
         public virtual OrganizationType? OrganizationType { get; set; }
     }
 }

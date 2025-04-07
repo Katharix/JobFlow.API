@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250406155947_RefactorPaymentClients")]
+    partial class RefactorPaymentClients
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -130,46 +133,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("JobStatusId");
 
                     b.ToTable("Job", (string)null);
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.JobFlow.Domain.Models.SubscriptionRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CanceledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PaymentProfileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Provider")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ProviderPriceId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("ProviderSubscriptionId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaymentProfileId");
-
-                    b.ToTable("SubscriptionRecord", "payment");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.JobStatus", b =>
@@ -669,17 +632,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("JobStatus");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.JobFlow.Domain.Models.SubscriptionRecord", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.CustomerPaymentProfile", "PaymentProfile")
-                        .WithMany()
-                        .HasForeignKey("PaymentProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PaymentProfile");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Order", b =>

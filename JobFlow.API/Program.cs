@@ -2,30 +2,21 @@ using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
-using JobFlow.Business.ExternalServices.Brevo;
-using JobFlow.Business.ExternalServices.ReCAPTCHA;
-using JobFlow.Business.ExternalServices.Twilio;
 using JobFlow.Business.Models;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
-using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
-using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Extensions;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,15 +28,15 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
-if (env.IsDevelopment())
-{
-    builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
-    var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
-    FirebaseApp.Create(new AppOptions
-    {
-        Credential = GoogleCredential.FromFile(firebaseCredentialPath)
-    });
-}
+//if (env.IsDevelopment())
+//{
+//    builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+//    var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
+//    FirebaseApp.Create(new AppOptions
+//    {
+//        Credential = GoogleCredential.FromFile(firebaseCredentialPath)
+//    });
+//}
 
 // Build a temporary config just to get KeyVaultUri
 var tempConfig = new ConfigurationBuilder()
@@ -56,20 +47,18 @@ var tempConfig = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-if (env.IsProduction())
-{
-    var firebaseJson = builder.Configuration["Firebase-adminsdk"];
-    FirebaseApp.Create(new AppOptions
-    {
-        Credential = GoogleCredential.FromJson(firebaseJson)
-    });
+
     var keyVaultUri = tempConfig["KeyVaultUri"];
     if (!string.IsNullOrEmpty(keyVaultUri))
     {
         builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
     }
-}
 
+var firebaseJson = builder.Configuration["Firebase-adminsdk"];
+FirebaseApp.Create(new AppOptions
+{
+    Credential = GoogleCredential.FromJson(firebaseJson)
+});
 // Always add environment variables last
 builder.Configuration.AddEnvironmentVariables();
 var jwtKey = builder.Configuration["JWTKey"];
@@ -150,6 +139,7 @@ builder.Services.Configure<StripeSettings>(options =>
     options.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"] ?? "";
     options.ReturnUrl = builder.Configuration[$"StripeSettings-ReturnUrl"] ?? "";
     options.RefreshUrl = builder.Configuration[$"StripeSettings-RefreshUrl"] ?? "";
+    options.WebhookKey = builder.Configuration[$"StripeSettings-WebhookKey"] ?? "";
 });
 
 builder.Services.Configure<TwilioSettings>(options =>
@@ -192,8 +182,8 @@ builder.Services.AddSingleton<ISquareSettings>(sp =>
 
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(
+    typeof(IJobFlowHttpClientFactory).Assembly,
     typeof(IUserService).Assembly,
-    typeof(JobFlowDbContext).Assembly,
     typeof(IUnitOfWork).Assembly
 );
 

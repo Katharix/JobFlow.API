@@ -11,5 +11,6 @@ namespace JobFlow.Business.Models.ConfigurationInterfaces
         string ApiKey { get; set; }
         string ReturnUrl { get; set; }
         string RefreshUrl { get; set; }
+        string WebhookKey { get; set; }
     }
 }
