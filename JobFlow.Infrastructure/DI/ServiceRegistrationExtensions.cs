@@ -23,25 +23,46 @@ namespace JobFlow.Infrastructure.DI
             foreach (var type in serviceTypes)
             {
                 var interfaces = type.GetInterfaces();
-                if (!interfaces.Any()) continue;
 
+                bool isScoped = type.GetCustomAttribute<ScopedServiceAttribute>() != null;
+                bool isSingleton = type.GetCustomAttribute<SingletonServiceAttribute>() != null;
+                bool isTransient = type.GetCustomAttribute<TransientServiceAttribute>() != null;
+
+                // Register each interface
                 foreach (var iface in interfaces)
                 {
-                    if (type.GetCustomAttribute<ScopedServiceAttribute>() != null)
+                    if (isScoped)
                     {
                         services.AddScoped(iface, type);
                         Console.WriteLine($"[DI] Registered Scoped: {iface.Name} → {type.Name}");
                     }
-                    else if (type.GetCustomAttribute<SingletonServiceAttribute>() != null)
+                    else if (isSingleton)
                     {
                         services.AddSingleton(iface, type);
                         Console.WriteLine($"[DI] Registered Singleton: {iface.Name} → {type.Name}");
                     }
-                    else if (type.GetCustomAttribute<TransientServiceAttribute>() != null)
+                    else if (isTransient)
                     {
                         services.AddTransient(iface, type);
                         Console.WriteLine($"[DI] Registered Transient: {iface.Name} → {type.Name}");
                     }
+                }
+
+                // Register the concrete class itself
+                if (isScoped)
+                {
+                    services.AddScoped(type);
+                    Console.WriteLine($"[DI] Registered Scoped (concrete): {type.Name}");
+                }
+                else if (isSingleton)
+                {
+                    services.AddSingleton(type);
+                    Console.WriteLine($"[DI] Registered Singleton (concrete): {type.Name}");
+                }
+                else if (isTransient)
+                {
+                    services.AddTransient(type);
+                    Console.WriteLine($"[DI] Registered Transient (concrete): {type.Name}");
                 }
             }
 

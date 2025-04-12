@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Business.PaymentGateways
 {
-    [SingletonService]
+    [ScopedService]
     public class PaymentProcessorFactory : IPaymentProcessorFactory
     {
         private readonly IServiceProvider _serviceProvider;

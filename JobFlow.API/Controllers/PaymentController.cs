@@ -4,6 +4,7 @@ using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
+using Stripe;
 
 
 namespace JobFlow.API.Controllers
@@ -29,17 +30,27 @@ namespace JobFlow.API.Controllers
             _subscriptionRecordService = subscriptionRecordService;
         }
 
-        [HttpPost("{orgId}/checkout")]
-        public async Task<IActionResult> Checkout(Guid orgId, [FromBody] PaymentSessionRequest request)
+        [HttpPost("checkout")]
+        public async Task<IActionResult> Checkout([FromBody] PaymentSessionRequest request)
         {
-            var org = await _organizationService.GetOrganiztionById(orgId);
+            var org = await _organizationService.GetOrganiztionById(request.OrgId.Value);
             if (org == null) return NotFound("Organization not found.");
 
             var processor = _processorFactory.GetProcessor(org.Value.PaymentProvider.ToString());
-            var url = await processor.CreateCheckoutSessionAsync(request);
 
-            return Ok(new { url });
+            string checkoutUrl;
+            if (request.Mode == "subscription")
+            {
+                checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
+            }
+            else
+            {
+                checkoutUrl = await processor.CreateCheckoutSessionAsync(request);
+            }
+
+            return Ok(new { url = checkoutUrl });
         }
+
 
         [HttpPost("{orgId}/create-connected-account")]
         public async Task<IActionResult> CreateConnectedAccount(Guid orgId)
@@ -109,5 +120,65 @@ namespace JobFlow.API.Controllers
 
             return result.IsSuccess ? Ok() : BadRequest(result.Error);
         }
+
+        [HttpPost("webhook")]
+        public async Task<IActionResult> HandleStripeWebhook()
+        {
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+            try
+            {
+                var stripeEvent = EventUtility.ConstructEvent(
+                    json,
+                    Request.Headers["Stripe-Signature"],
+                    "whsec_449239427e6f306629fdd3cf4a2d4e8157b1817c8ae85de887bd76380a12bf9a" // Securely store this in config
+                );
+
+                switch (stripeEvent.Type)
+                {
+                    case "customer.subscription.created":
+                        var subscriptionCreated = stripeEvent.Data.Object as Subscription;
+                        var profileIdCreated = subscriptionCreated.Metadata["paymentProfileId"];
+
+                        await _subscriptionRecordService.CreateAsync(
+                            Guid.Parse(profileIdCreated),
+                            subscriptionCreated.Id,
+                            subscriptionCreated.Items.Data.First().Price.Id,
+                            subscriptionCreated.Status
+                        );
+                        break;
+
+                    case "customer.subscription.deleted":
+                        var subscriptionDeleted = stripeEvent.Data.Object as Subscription;
+
+                        await _subscriptionRecordService.CancelAsync(
+                            subscriptionDeleted.Id,
+                            DateTime.UtcNow
+                        );
+                        break;
+
+                    case "invoice.payment_failed":
+                        var invoiceFailed = stripeEvent.Data.Object as Invoice;
+                        var customerId = invoiceFailed.CustomerId;
+
+                        // You could notify your customer or mark their status in DB
+                        break;
+                }
+
+                return Ok();
+            }
+            catch (StripeException ex)
+            {
+                Console.WriteLine($"Stripe error: {ex.Message}");
+                return BadRequest();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unhandled error: {ex.Message}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+
     }
 }

@@ -61,5 +61,9 @@ namespace JobFlow.Business.Services.PaymentProcessors
             }
         }
 
+        public Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

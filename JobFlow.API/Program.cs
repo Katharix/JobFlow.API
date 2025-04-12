@@ -5,6 +5,8 @@ using Google.Apis.Auth.OAuth2;
 using JobFlow.Business.Models;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
+using JobFlow.Business.PaymentGateways;
+using JobFlow.Business.PaymentGateways.Stripe;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
@@ -184,7 +186,9 @@ builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(
     typeof(IJobFlowHttpClientFactory).Assembly,
     typeof(IUserService).Assembly,
-    typeof(IUnitOfWork).Assembly
+    typeof(IUnitOfWork).Assembly,
+    typeof(IPaymentProcessorFactory).Assembly,
+    typeof(StripePaymentProcessor).Assembly
 );
 
 
@@ -207,7 +211,11 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var test = scope.ServiceProvider.GetRequiredService<StripePaymentProcessor>();
+    Console.WriteLine($"Resolved StripePaymentProcessor: {test.GetType().Name}");
+}
 StripeConfiguration.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -227,6 +235,7 @@ else
 }
 
 app.UseCors(apiAllowOrigins);
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthorization();

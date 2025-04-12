@@ -28,6 +28,13 @@ namespace JobFlow.API.Controllers
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
+        [HttpPost, Route("create")]
+        public async Task<IResult> CreateOrganizationAccount(Organization model)
+        {
+            var result = await _organizationService.UpsertOrganization(model);
+            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        }
+
         [HttpPost, Route("register")]
         public async Task<IResult> RegisterOrganization(OrganizationRegisterDto model)
         {

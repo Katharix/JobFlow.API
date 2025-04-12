@@ -8,6 +8,7 @@ namespace JobFlow.Domain.Enums
 {
     public enum PaymentEntityType
     {
+        None,
         Organization,
         Client
     }
