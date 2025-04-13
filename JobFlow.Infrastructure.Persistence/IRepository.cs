@@ -15,7 +15,7 @@ namespace JobFlow.Infrastructure.Persistence
         IQueryable<TEntity> QueryWithNoTracking();
 
         void Add(TEntity item);
-
+        Task AddAsync(TEntity item);
         void Update(TEntity item);
 
         void AddRange(IEnumerable<TEntity> items);

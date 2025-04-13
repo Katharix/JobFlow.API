@@ -5,7 +5,6 @@ namespace JobFlow.Domain.Models
     {
         public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
-        public Guid? StripeCustomerId { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? Address1 { get; set; }
@@ -16,9 +15,10 @@ namespace JobFlow.Domain.Models
         public string? EmailAddress { get; set; }
         public string? ZipCode { get; set; }
 
-        public virtual StripeCustomer StripeCustomer { get; set; }
         public virtual Organization Organization { get; set; }
         public virtual ICollection<OrganizationClientJob> OrganizationClientJobs { get; set; }
+        public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
+
 
         public string ClientFullName()
         {

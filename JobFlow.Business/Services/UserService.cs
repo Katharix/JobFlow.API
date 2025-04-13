@@ -1,12 +1,14 @@
 ﻿using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace JobFlow.Business.Services
 {
+    [ScopedService]
     public class UserService : IUserService
     {
         private readonly ILogger<UserService> logger;

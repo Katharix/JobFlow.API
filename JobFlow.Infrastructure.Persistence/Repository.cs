@@ -39,6 +39,11 @@ namespace JobFlow.Infrastructure.Persistence
             _dbSet.Add(item);
 
         }
+        public async Task AddAsync(T item)
+        {
+            await _dbSet.AddAsync(item);
+
+        }
 
         public void AddRange(IEnumerable<T> items)
         {

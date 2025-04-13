@@ -17,5 +17,6 @@ namespace JobFlow.Domain.Models
 
         public virtual OrganizationClient OrganizationClient { get; set; }
         public virtual ICollection<Invoice> Invoices { get; set; }
+        public virtual ICollection<JobOrder> JobOrders { get; set; } = new List<JobOrder>();
     }
 }

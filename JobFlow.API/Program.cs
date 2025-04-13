@@ -2,55 +2,71 @@ using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
-using JobFlow.Business.ExternalServices.Brevo;
-using JobFlow.Business.ExternalServices.ReCAPTCHA;
-using JobFlow.Business.ExternalServices.Twilio;
+using JobFlow.Business.Models;
 using JobFlow.Business.Models.ConfigurationInterfaces;
 using JobFlow.Business.Models.ConfigurationModels;
-using JobFlow.Business.Services;
+using JobFlow.Business.PaymentGateways;
+using JobFlow.Business.PaymentGateways.Stripe;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain.Enums;
-using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Extensions;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
-var deploymentEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var configuration = new ConfigurationBuilder()
-              .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-              .AddJsonFile($"appsettings.{deploymentEnvironment}.json", optional: true)
-              .AddEnvironmentVariables()
-              .Build();
-var keyVaultValue = builder.Configuration.GetSection("KeyVaultUri").Value;
-var keyVaultUri = new Uri(keyVaultValue);
 
-builder.Configuration.AddAzureKeyVault(keyVaultUri, new DefaultAzureCredential());
+var env = builder.Environment;
 
-var appConnectionString = builder.Configuration["SqlConnectionString"];
+// Start building config from files and env vars
+builder.Configuration
+    .SetBasePath(env.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
-var jwtKey = builder.Configuration["JWTKey"];
+//if (env.IsDevelopment())
+//{
+//    builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+//    var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
+//    FirebaseApp.Create(new AppOptions
+//    {
+//        Credential = GoogleCredential.FromFile(firebaseCredentialPath)
+//    });
+//}
+
+// Build a temporary config just to get KeyVaultUri
+var tempConfig = new ConfigurationBuilder()
+    .SetBasePath(env.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+    .AddJsonFile("appsettings.local.json", optional: true)
+    .AddEnvironmentVariables()
+    .Build();
+
+
+    var keyVaultUri = tempConfig["KeyVaultUri"];
+    if (!string.IsNullOrEmpty(keyVaultUri))
+    {
+        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+    }
+
 var firebaseJson = builder.Configuration["Firebase-adminsdk"];
-var firebaseCredentialPath = Path.Combine(builder.Environment.ContentRootPath, "job-flow-firebase-adminsdk.json");
-
-
-
-
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromJson(firebaseJson)
 });
+// Always add environment variables last
+builder.Configuration.AddEnvironmentVariables();
+var jwtKey = builder.Configuration["JWTKey"];
 
 // Register FluentValidation
-builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator> ();
+builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -59,6 +75,9 @@ builder.Services.AddControllers()
             options.SuppressMapClientErrors = false;
         });
 builder.Services.AddProblemDetails();
+
+var appConnectionString = builder.Configuration["SqlConnectionString"];
+
 builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSqlServer(appConnectionString,
              b =>
              {
@@ -119,25 +138,32 @@ builder.Services.AddCors(op =>
 
 builder.Services.Configure<StripeSettings>(options =>
 {
-    options.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
-    options.ReturnUrl = builder.Configuration[$"StripeSettings-ReturnUrl"];
-    options.RefreshUrl = builder.Configuration[$"StripeSettings-RefreshUrl"];
+    options.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"] ?? "";
+    options.ReturnUrl = builder.Configuration[$"StripeSettings-ReturnUrl"] ?? "";
+    options.RefreshUrl = builder.Configuration[$"StripeSettings-RefreshUrl"] ?? "";
+    options.WebhookKey = builder.Configuration[$"StripeSettings-WebhookKey"] ?? "";
 });
 
 builder.Services.Configure<TwilioSettings>(options =>
 {
-    options.SenderPhoneNumber = builder.Configuration[$"Twilio-SenderPhoneNumber"];
-    options.AccountSId = builder.Configuration[$"Twilio-AccountSId"];
-    options.AuthToken = builder.Configuration[$"Twilio-AuthToken"];
+    options.SenderPhoneNumber = builder.Configuration[$"Twilio-SenderPhoneNumber"] ?? "";
+    options.AccountSId = builder.Configuration[$"Twilio-AccountSId"] ?? "";
+    options.AuthToken = builder.Configuration[$"Twilio-AuthToken"] ?? "";
 });
 
 builder.Services.Configure<BrevoSettings>(options =>
 {
-    options.ApiKey = builder.Configuration[$"BrevoSettings-ApiKey"];
+    options.ApiKey = builder.Configuration[$"BrevoSettings-ApiKey"] ?? "";
 });
 builder.Services.Configure<ReCAPTCHASettings>(options =>
 {
-    options.SecretKey = builder.Configuration[$"reCAPTCHA-Api"];
+    options.SecretKey = builder.Configuration[$"reCAPTCHA-Api"] ?? "";
+});
+builder.Services.Configure<SquareSettings>(options =>
+{
+    options.ApplicationId = builder.Configuration[$"SquareSettings-ApplicationId"];
+    options.AccessToken = builder.Configuration[$"SquareSettings-AccessToken"];
+    options.LocationId = builder.Configuration[$"SquareSettings-LocationId"];
 });
 
 builder.Services.AddSingleton<ITwilioSettings>(sp =>
@@ -152,38 +178,22 @@ builder.Services.AddSingleton<IBrevoSettings>(sp =>
 builder.Services.AddSingleton<IReCAPTCHASettings>(sp =>
     sp.GetRequiredService<IOptions<ReCAPTCHASettings>>().Value
 );
+builder.Services.AddSingleton<ISquareSettings>(sp =>
+    sp.GetRequiredService<IOptions<SquareSettings>>().Value
+);
 
 builder.Services.AddJobFlowHttpClients();
-
-builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
-builder.Services.AddScoped<IOrganizationService, JobFlow.Business.Services.OrganizationService>();
-builder.Services.AddScoped<IOrganizationTypeService, OrganizationTypeService>();
-builder.Services.AddScoped<IOrganizationClientService, OrganizationClientService>();
-builder.Services.AddScoped<IOrganizationServiceService, OrganizationServiceService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IReCAPTCHAService, ReCAPTCHAService>();
-builder.Services.AddSingleton<IBrevoService, BrevoService>();
-builder.Services.AddSingleton<IJobFlowHttpClientFactory, JobFlowHttpClientFactory>();
+builder.Services.AddAttributedServices(
+    typeof(IJobFlowHttpClientFactory).Assembly,
+    typeof(IUserService).Assembly,
+    typeof(IUnitOfWork).Assembly,
+    typeof(IPaymentProcessorFactory).Assembly,
+    typeof(StripePaymentProcessor).Assembly
+);
 
 
 // Configure JWT Authentication
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(jwtKey))
-    };
-});
+builder.Services.AddAuthentication();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -199,8 +209,13 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-var app = builder.Build();
 
+var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var test = scope.ServiceProvider.GetRequiredService<StripePaymentProcessor>();
+    Console.WriteLine($"Resolved StripePaymentProcessor: {test.GetType().Name}");
+}
 StripeConfiguration.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"];
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -220,6 +235,7 @@ else
 }
 
 app.UseCors(apiAllowOrigins);
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthorization();

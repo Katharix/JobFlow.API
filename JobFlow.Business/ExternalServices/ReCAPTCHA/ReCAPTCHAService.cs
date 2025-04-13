@@ -1,4 +1,5 @@
 ﻿using JobFlow.Business.Models.ConfigurationModels;
+using JobFlow.Infrastructure.DI;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace JobFlow.Business.ExternalServices.ReCAPTCHA
     {
         Task<bool> VerifyTokenAsync(string token);
     }
-
+    [ScopedService]
     public class ReCAPTCHAService : IReCAPTCHAService
     {
         private readonly ReCAPTCHASettings _settings;

@@ -9,13 +9,12 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
-    internal class StripeCustomerConfiguration : IEntityTypeConfiguration<StripeCustomer>
+    internal class PaymentProfileConfiguration : IEntityTypeConfiguration<CustomerPaymentProfile>
     {
-        public void Configure(EntityTypeBuilder<StripeCustomer> builder)
+        public void Configure(EntityTypeBuilder<CustomerPaymentProfile> builder)
         {
-            builder.ToTable("StripeCustomer", "payment");
+            builder.ToTable("CustomerPaymentProfile", "payment");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
         }
     }
 }

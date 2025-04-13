@@ -17,5 +17,6 @@ namespace JobFlow.Domain.Models
 
         public virtual JobStatus JobStatus { get; set; }
         public virtual ICollection<OrganizationClientJob> OrganizationClientJobs { get; set; }
+        public virtual ICollection<JobOrder> JobOrders { get; set; } = new List<JobOrder>();
     }
 }

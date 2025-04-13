@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JobFlow.Business.PaymentGateway.StripeModels
+namespace JobFlow.Business.PaymentGateways.Stripe.StripeModels
 {
     public class StripeAccount
     {
