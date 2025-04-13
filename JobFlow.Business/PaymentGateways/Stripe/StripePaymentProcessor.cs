@@ -2,6 +2,8 @@
 using global::Stripe;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Infrastructure.DI;
+using JobFlow.Domain.Enums;
+using System.Security.Cryptography;
 
 
 namespace JobFlow.Business.PaymentGateways.Stripe
@@ -82,44 +84,46 @@ namespace JobFlow.Business.PaymentGateways.Stripe
         public async Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
         {
             string customerId = request.StripeCustomerId;
-            try
+            // If the user is subscribing for the first time, create a new Stripe customer
+            if (string.IsNullOrEmpty(customerId))
             {
-                // If the user is subscribing for the first time, create a new Stripe customer
-                if (string.IsNullOrEmpty(customerId))
-                {
-                    customerId = await CreateStripeCustomerAsync(request.Email);
-                }
+                customerId = await CreateStripeCustomerAsync(request.Email);
+            }
 
-                var options = new SessionCreateOptions
-                {
-                    Mode = "subscription",
-                    LineItems = new List<SessionLineItemOptions>
+            var options = new SessionCreateOptions
+            {
+                Mode = "subscription",
+                LineItems = new List<SessionLineItemOptions>
             {
             new()
             {
-                Price = "price_1RCsrMEKX7voND9YOTQ6qU3g", //"request.StripePriceId",
+                Price = request.StripePriceId,
                 Quantity = request.Quantity
             }
             },
-                    SuccessUrl = "http://localhost:4200/", //request.SuccessUrl,
-                    CancelUrl = "http://localhost:4200/",//request.CancelUrl,
-                    Customer = request.StripeCustomerId,
+                SuccessUrl = $"{request.SuccessUrl}?organizationId={request.OrgId}&session_id={{CHECKOUT_SESSION_ID}}",
+                CancelUrl = request.CancelUrl,
+                Customer = customerId,
+                SubscriptionData = new SessionSubscriptionDataOptions
+                {
                     Metadata = new Dictionary<string, string>
-            {
-            { "paymentProfileId", request.PaymentProfileId.ToString() }
-            }
-                };
+                    {
+                        { "ownerId", request.OrgId.ToString() },
+                        { "ownerType", PaymentEntityType.Organization.ToString() },
+                        { "customerId", request.StripeCustomerId ?? customerId }
+                    }
+                },
+                Metadata = new Dictionary<string, string>
+                {
+                    { "ownerId", request.OrgId.ToString() },
+                    { "ownerType", PaymentEntityType.Organization.ToString() },
+                    { "customerId", customerId.ToString() }
+                }
+            };
 
-                var sessionService = new SessionService();
-                var session = await sessionService.CreateAsync(options);
-                return session.Url;
-            }
-            catch (Exception ex)
-            {
-
-                throw ex;
-            }
-
+            var sessionService = new SessionService();
+            var session = await sessionService.CreateAsync(options);
+            return session.Url;
         }
 
         public async Task<string> CreateStripeCustomerAsync(string email)
@@ -127,12 +131,11 @@ namespace JobFlow.Business.PaymentGateways.Stripe
             var options = new CustomerCreateOptions
             {
                 Email = email,
-                // Add any other information you need for the customer
             };
             var service = new CustomerService();
             var customer = await service.CreateAsync(options);
 
-            return customer.Id;  // This is the StripeCustomerId
+            return customer.Id;
         }
 
     }

@@ -44,7 +44,6 @@ namespace JobFlow.Infrastructure.Persistence
                 throw;
             }
 
-            ResetDbContext();
         }
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
@@ -73,10 +72,6 @@ namespace JobFlow.Infrastructure.Persistence
                 _logger.LogError("An unknown error occured saving changes to the database", e);
 
                 throw;
-            }
-            if (resetDbContext)
-            {
-                ResetDbContext();
             }
 
         }

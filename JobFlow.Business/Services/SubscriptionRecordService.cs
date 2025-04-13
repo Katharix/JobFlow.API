@@ -33,26 +33,34 @@ namespace JobFlow.Business.Services
 
             if (string.IsNullOrWhiteSpace(providerSubscriptionId))
                 return Result.Failure<SubscriptionRecord>(SubscriptionErrors.MissingProviderSubscriptionId);
-
-            var paymentProfile = await paymentProfiles.Query().FirstOrDefaultAsync(p => p.Id == paymentProfileId);
-            if (paymentProfile == null)
-                return Result.Failure<SubscriptionRecord>(SubscriptionErrors.InvalidPaymentProfile);
-
-            var subscription = new SubscriptionRecord
+            try
             {
-                Id = Guid.NewGuid(),
-                PaymentProfileId = paymentProfileId,
-                Provider = paymentProfile.Provider,
-                ProviderSubscriptionId = providerSubscriptionId,
-                ProviderPriceId = providerPriceId,
-                Status = status,
-                StartDate = DateTime.UtcNow
-            };
+                var paymentProfile = await paymentProfiles.Query().FirstOrDefaultAsync(p => p.Id == paymentProfileId);
+                if (paymentProfile == null)
+                    return Result.Failure<SubscriptionRecord>(SubscriptionErrors.InvalidPaymentProfile);
 
-            subscriptions.Add(subscription);
-            await unitOfWork.SaveChangesAsync();
+                var subscription = new SubscriptionRecord
+                {
+                    Id = Guid.NewGuid(),
+                    PaymentProfileId = paymentProfileId,
+                    Provider = paymentProfile.Provider,
+                    ProviderSubscriptionId = providerSubscriptionId,
+                    ProviderPriceId = providerPriceId,
+                    Status = status,
+                    StartDate = DateTime.UtcNow
+                };
 
-            return Result.Success(subscription);
+                unitOfWork.RepositoryOf<SubscriptionRecord>().Add(subscription);
+                await unitOfWork.SaveChangesAsync();
+
+                return Result.Success(subscription);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
         }
 
         public async Task<Result<SubscriptionRecord>> GetByProviderIdAsync(string providerSubscriptionId)

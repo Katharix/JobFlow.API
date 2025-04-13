@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -11,15 +12,18 @@ namespace JobFlow.API.Controllers
     public class OrganizationController : ControllerBase
     {
         private IOrganizationService _organizationService;
+        private IPaymentProfileService _paymentProfileService;
         private IUserService _userService;
 
         public OrganizationController(
             IOrganizationService organizationService, 
-            IUserService userService
+            IUserService userService,
+            IPaymentProfileService paymentProfileService
            )
         {
             _organizationService = organizationService;
             _userService = userService;
+            _paymentProfileService = paymentProfileService;
         }
         [HttpGet, Route("all")]
         public async Task<IResult> GetAllOrganizations()
@@ -32,6 +36,7 @@ namespace JobFlow.API.Controllers
         public async Task<IResult> CreateOrganizationAccount(Organization model)
         {
             var result = await _organizationService.UpsertOrganization(model);
+
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
@@ -40,21 +45,11 @@ namespace JobFlow.API.Controllers
         {
             try
             {
-                var org = new Organization
-                {
-                    OrganizationName = model.OrganizationName,
-                    OrganizationTypeId = model.OrganizationTypeId,
-                    EmailAddress = model.EmailAddress
-                };
-
-                var result = await _organizationService.UpsertOrganization(org);
-                if (!result.IsSuccess)
-                    return result.ToProblemDetails();
 
                 var user = new User
                 {
                     Email = model.EmailAddress, 
-                    OrganizationId = org.Id,
+                    OrganizationId = model.Id.Value,
                     FirebaseUid = model.FireBaseUid
                 };
 
@@ -65,7 +60,7 @@ namespace JobFlow.API.Controllers
                 }
 
                 await _userService.AssignRole(userResult.Value.Id, model.UserRole);
-                return Results.Ok(result.Value);
+                return Results.Ok();
             }
             catch (Exception ex)
             {
@@ -75,6 +70,11 @@ namespace JobFlow.API.Controllers
             }
         }
 
-
+        [HttpPost, Route("retrieve")]
+        public async Task<IResult> GetOrganizationById([FromBody] OrganizationRequest org)
+        { 
+            var result = await _organizationService.GetOrganiztionById(org.OrganizationId);
+            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        }
     }
 }
