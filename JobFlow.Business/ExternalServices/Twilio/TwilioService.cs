@@ -9,9 +9,11 @@ using Twilio.Types;
 using Twilio.Credential;
 using Twilio.TwiML.Messaging;
 using Twilio.AuthStrategies;
+using JobFlow.Infrastructure.DI;
 
 namespace JobFlow.Business.ExternalServices.Twilio
 {
+    [ScopedService]
     public class TwilioService : ITwilioService
     {
         private readonly ITwilioSettings twilioSettings;
@@ -21,17 +23,18 @@ namespace JobFlow.Business.ExternalServices.Twilio
         {
             this.logger = logger;
             this.twilioSettings = twilioSettings;
-            TwilioClient.Init(twilioSettings.AccountSId, twilioSettings.AuthToken,twilioSettings.AccountSId);
+            TwilioClient.Init(twilioSettings.AccountSId, twilioSettings.AuthToken);
         }
         public async Task SendTextMessage(TwilioModel model)
         {
             try
             {
                 var fromPhoneNumber = this.twilioSettings.SenderPhoneNumber;
-                await MessageResource.CreateAsync(
-                    to: new PhoneNumber(model.RecipientPhoneNumber),
-                    from: new PhoneNumber(fromPhoneNumber),
-                    body: model.Message);
+                var messageOptions = new CreateMessageOptions(new PhoneNumber(model.RecipientPhoneNumber));
+                messageOptions.MessagingServiceSid = "MG9caa2be2ffef65685f8a6f4aeb1de725";
+                messageOptions.Body = model.Message;
+
+                var message =  await MessageResource.CreateAsync(messageOptions);
             }
             catch (Exception ex)
             {
