@@ -1,4 +1,5 @@
 ﻿using FirebaseAdmin.Auth;
+using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
@@ -37,14 +38,11 @@ public class AuthController : ControllerBase
             var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(model.Token);
             var firebaseUid = decodedToken.Uid;
             var email = decodedToken.Claims.ContainsKey("email") ? decodedToken.Claims["email"].ToString() : null;
-
+            var user = new User();
             var userInfo = await _userService.GetUserByFirebaseUid(firebaseUid);
-            var user = userInfo?.Value;
-            if (user == null)
+            if (userInfo.Error == UserErrors.UserNotFound && !String.IsNullOrEmpty(email))
             {
-                
-                // ✅ Create new user in the database
-                user = new User
+                 user = new User
                 {
                     FirebaseUid = firebaseUid,
                     Email = email,
@@ -55,13 +53,21 @@ public class AuthController : ControllerBase
                 // ✅ Assign default role (e.g., "User")
                 await _userService.AssignRole(user.Id, "User");
             }
+            else
+            {
+                user = userInfo.Value;
+            }
+                //var authClaims = new List<Claim>
+                //    {
+                //        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                //        new Claim(ClaimTypes.Name, user.Email),
+                //        new Claim("OrganizationId", user.OrganizationId.ToString())
+                //    };
 
-            // ✅ Get user roles
-            //var roles = await _userManager.GetRolesAsync(user);
+                //authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-            // ✅ Generate JWT token with role claims
-            //var token = GenerateJwtToken(user, roles);
-            return Ok(new { Email = user.Email});
+                //var token = GenerateJwtToken(authClaims);
+                return Ok(new { Email = user.Email });
         }
         catch (Exception ex)
         {

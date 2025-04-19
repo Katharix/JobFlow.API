@@ -58,7 +58,7 @@ namespace JobFlow.Business.PaymentGateways.Stripe
                         {
                             Name = request.ProductName,
                         },
-                        UnitAmount = (long)(request.Amount * 100),
+                        UnitAmount = (long)(request.Amount ?? request.DepositAmount) * 100,
                     },
                     Quantity = request.Quantity,
                 },
@@ -69,6 +69,7 @@ namespace JobFlow.Business.PaymentGateways.Stripe
                 },
                 Mode = "payment",
                 SuccessUrl = request.SuccessUrl,
+                CancelUrl = request.CancelUrl
             };
 
             var requestOptions = new RequestOptions

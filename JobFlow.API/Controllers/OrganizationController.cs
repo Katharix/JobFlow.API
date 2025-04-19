@@ -1,4 +1,7 @@
-﻿using JobFlow.Business.Extensions;
+﻿using FirebaseAdmin.Auth;
+using JobFlow.Business.Extensions;
+using JobFlow.Business.ExternalServices.Twilio;
+using JobFlow.Business.ExternalServices.Twilio.Models;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
@@ -14,16 +17,19 @@ namespace JobFlow.API.Controllers
         private IOrganizationService _organizationService;
         private IPaymentProfileService _paymentProfileService;
         private IUserService _userService;
+        private ITwilioService _twilioService;
 
         public OrganizationController(
             IOrganizationService organizationService, 
             IUserService userService,
-            IPaymentProfileService paymentProfileService
+            IPaymentProfileService paymentProfileService,
+            ITwilioService twilioService
            )
         {
             _organizationService = organizationService;
             _userService = userService;
             _paymentProfileService = paymentProfileService;
+            _twilioService = twilioService;
         }
         [HttpGet, Route("all")]
         public async Task<IResult> GetAllOrganizations()
@@ -36,7 +42,15 @@ namespace JobFlow.API.Controllers
         public async Task<IResult> CreateOrganizationAccount(Organization model)
         {
             var result = await _organizationService.UpsertOrganization(model);
-
+            if (result.IsSuccess)
+            {
+                var twilio = new TwilioModel()
+                {
+                    Message = $"The account for {result.Value.OrganizationName}, was successfully created in Job Flow",
+                    RecipientPhoneNumber = $"+1{result.Value.PhoneNumber}"
+                };
+                await this._twilioService.SendTextMessage(twilio);
+            }
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
@@ -60,6 +74,10 @@ namespace JobFlow.API.Controllers
                 }
 
                 await _userService.AssignRole(userResult.Value.Id, model.UserRole);
+                await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(model.FireBaseUid, new Dictionary<string, object>
+                {
+                    { "role", model.UserRole }
+                });
                 return Results.Ok();
             }
             catch (Exception ex)

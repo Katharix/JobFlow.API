@@ -13,5 +13,7 @@ namespace JobFlow.Business.PaymentGateways.Stripe.StripeModels
         public const string InvoicePaymentFailed = "invoice.payment_failed";
         public const string CustomerSubscriptionUpdated = "customer.subscription.updated";
         public const string CustomerSubscriptionDeleted = "customer.subscription.deleted";
+        public const string PaymentIntentSucceeded = "payment_intent.succeeded";
+        public const string PaymentIntentFailed = "payment_intent.payment_failed";
     }
 }

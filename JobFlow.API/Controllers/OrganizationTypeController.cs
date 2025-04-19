@@ -24,12 +24,6 @@ namespace JobFlow.API.Controllers
         public async Task<IResult> GetAllOrganizationTypes()
         { 
             var result = await this.organizationTypeService.GetTypes();
-            var twilio = new TwilioModel()
-            {
-                Message = " This is a test!",
-                RecipientPhoneNumber = "+15406429153"
-            };
-            await  this._twilioService.SendTextMessage(twilio);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 

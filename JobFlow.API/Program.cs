@@ -149,6 +149,7 @@ builder.Services.Configure<TwilioSettings>(options =>
     options.SenderPhoneNumber = builder.Configuration[$"Twilio-SenderPhoneNumber"] ?? "";
     options.AccountSId = builder.Configuration[$"Twilio-AccountSId"] ?? "";
     options.AuthToken = builder.Configuration[$"Twilio-AuthToken"] ?? "";
+    options.MessagingServiceSid = builder.Configuration[$"Twilio-MessagingServiceSid"] ?? "";
 });
 
 builder.Services.Configure<BrevoSettings>(options =>

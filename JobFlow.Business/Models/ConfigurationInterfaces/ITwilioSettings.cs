@@ -11,5 +11,6 @@ namespace JobFlow.Business.Models.ConfigurationInterfaces
         string AccountSId { get; set; }
         string AuthToken { get; set; }
         string SenderPhoneNumber { get; set; }
+        string MessagingServiceSid { get; set; }
     }
 }

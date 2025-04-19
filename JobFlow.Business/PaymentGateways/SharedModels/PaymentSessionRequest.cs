@@ -24,6 +24,7 @@ namespace JobFlow.Business.PaymentGateways.SharedModels
         // Payment-specific
         public string? ProductName { get; set; }
         public decimal? Amount { get; set; }
+        public decimal? DepositAmount { get; set; }
         public int? Quantity { get; set; }
         public decimal? ApplicationFeeAmount { get; set; }
         public string? ConnectedAccountId { get; set; }
