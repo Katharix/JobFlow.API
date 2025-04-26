@@ -1,9 +1,9 @@
 ﻿using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
-using JobFlow.Infrastructure.DI;
-using JobFlow.Infrastructure.Persistence;
+using JobFlow.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using JobFlow.Business.DI;
 
 namespace JobFlow.Business.Services
 {

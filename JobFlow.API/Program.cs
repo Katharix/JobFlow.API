@@ -2,23 +2,26 @@ using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
-using JobFlow.Business.Models;
-using JobFlow.Business.Models.ConfigurationInterfaces;
-using JobFlow.Business.Models.ConfigurationModels;
+using JobFlow.Business.DI;
+using Hangfire;
+using Hangfire.SqlServer;
 using JobFlow.Business.PaymentGateways;
-using JobFlow.Business.PaymentGateways.Stripe;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
+using JobFlow.Domain;
 using JobFlow.Domain.Enums;
-using JobFlow.Infrastructure.DI;
 using JobFlow.Infrastructure.Extensions;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationModels;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
+using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
+using JobFlow.Business.Notifications.Builders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +89,25 @@ builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSql
                  b.EnableRetryOnFailure(8, TimeSpan.FromSeconds(10), null);
              })
 );
+
+// Configure Hangfire to use your SQL Server
+builder.Services.AddHangfire(cfg =>
+    cfg.UseSqlServerStorage(
+        appConnectionString,
+        new SqlServerStorageOptions
+        {
+            SchemaName = "hangfire",
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+            QueuePollInterval = TimeSpan.FromSeconds(15),
+            UseRecommendedIsolationLevel = true,
+            DisableGlobalLocks = true
+        }
+    )
+);
+
+// And add the background processing server
+builder.Services.AddHangfireServer();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -182,14 +204,12 @@ builder.Services.AddSingleton<IReCAPTCHASettings>(sp =>
 builder.Services.AddSingleton<ISquareSettings>(sp =>
     sp.GetRequiredService<IOptions<SquareSettings>>().Value
 );
+builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(
     typeof(IJobFlowHttpClientFactory).Assembly,
-    typeof(IUserService).Assembly,
-    typeof(IUnitOfWork).Assembly,
-    typeof(IPaymentProcessorFactory).Assembly,
-    typeof(StripePaymentProcessor).Assembly
+    typeof(IUserService).Assembly
 );
 
 
@@ -225,6 +245,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
 app.UseHttpsRedirection();
 if (!app.Environment.IsProduction())
 {
@@ -236,6 +257,10 @@ else
 }
 
 app.UseCors(apiAllowOrigins);
+if (app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard("/hangfire");
+}
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();

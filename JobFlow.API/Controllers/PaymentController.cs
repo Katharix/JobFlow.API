@@ -1,13 +1,12 @@
 ﻿using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
-using JobFlow.Business.PaymentGateways.Stripe;
-using JobFlow.Business.PaymentGateways.Stripe.StripeModels;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
+using JobFlow.Infrastructure.PaymentGateways;
+using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
-using Stripe.Checkout;
 
 
 namespace JobFlow.API.Controllers

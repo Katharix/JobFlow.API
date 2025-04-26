@@ -1,9 +1,7 @@
 ﻿using FirebaseAdmin.Auth;
 using JobFlow.Business.Extensions;
-using JobFlow.Business.ExternalServices.Twilio;
-using JobFlow.Business.ExternalServices.Twilio.Models;
+using JobFlow.Business.Models;
 using JobFlow.Business.Models.DTOs;
-using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -17,19 +15,19 @@ namespace JobFlow.API.Controllers
         private IOrganizationService _organizationService;
         private IPaymentProfileService _paymentProfileService;
         private IUserService _userService;
-        private ITwilioService _twilioService;
+        private INotificationService _notificationService;
 
         public OrganizationController(
             IOrganizationService organizationService, 
             IUserService userService,
             IPaymentProfileService paymentProfileService,
-            ITwilioService twilioService
+            INotificationService notificationService
            )
         {
             _organizationService = organizationService;
             _userService = userService;
             _paymentProfileService = paymentProfileService;
-            _twilioService = twilioService;
+            _notificationService = notificationService;
         }
         [HttpGet, Route("all")]
         public async Task<IResult> GetAllOrganizations()
@@ -44,12 +42,7 @@ namespace JobFlow.API.Controllers
             var result = await _organizationService.UpsertOrganization(model);
             if (result.IsSuccess)
             {
-                var twilio = new TwilioModel()
-                {
-                    Message = $"The account for {result.Value.OrganizationName}, was successfully created in Job Flow",
-                    RecipientPhoneNumber = $"+1{result.Value.PhoneNumber}"
-                };
-                await this._twilioService.SendTextMessage(twilio);
+                await _notificationService.SendOrganizationWelcomeNotificationAsync(model);
             }
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }

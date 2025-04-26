@@ -7,12 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="ExternalServices\ReCAPTCHA\Models\**" />
-    <EmbeddedResource Remove="ExternalServices\ReCAPTCHA\Models\**" />
-    <None Remove="ExternalServices\ReCAPTCHA\Models\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
@@ -28,8 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
-    <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
-    <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

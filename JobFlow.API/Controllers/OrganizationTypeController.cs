@@ -1,8 +1,7 @@
 ﻿using JobFlow.Business.Extensions;
-using JobFlow.Business.ExternalServices.Twilio;
-using JobFlow.Business.ExternalServices.Twilio.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.ExternalServices.Twilio;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers

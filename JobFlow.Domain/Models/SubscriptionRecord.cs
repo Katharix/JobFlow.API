@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    namespace JobFlow.Domain.Models
-    {
         public class SubscriptionRecord
         {
             public Guid Id { get; set; }
@@ -22,6 +20,5 @@ namespace JobFlow.Domain.Models
 
             public virtual CustomerPaymentProfile PaymentProfile { get; set; }
         }
-    }
 
 }

@@ -1,15 +1,10 @@
 ﻿using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
-using JobFlow.Infrastructure.DI;
-using JobFlow.Infrastructure.Persistence;
+using JobFlow.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using JobFlow.Business.DI;
 
 namespace JobFlow.Business.Services
 {

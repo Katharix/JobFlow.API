@@ -12,6 +12,9 @@
     <PackageReference Include="FirebaseAdmin" Version="3.1.0" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
+    <PackageReference Include="Hangfire" Version="1.8.18" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.18" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.18" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.14" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.14" />
@@ -35,6 +38,7 @@
   <ItemGroup>
     <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
     <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
+    <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
