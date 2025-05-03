@@ -23,6 +23,7 @@ namespace JobFlow.Domain.Models
         public virtual OrganizationClient OrganizationClient { get; set; }
         public virtual Order Order { get; set; }
         public virtual ICollection<PaymentHistory> Payments { get; set; }
-
+        public virtual ICollection<InvoiceLineItem> LineItems { get; set; }
+            = new List<InvoiceLineItem>();
     }
 }
