@@ -12,6 +12,7 @@ namespace JobFlow.Infrastructure.Persistence
         public JobFlowDbContext(DbContextOptions options) : base(options)
         {        
         }
+        public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
 
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<OrganizationType> OrganizationTypes { get; set; }

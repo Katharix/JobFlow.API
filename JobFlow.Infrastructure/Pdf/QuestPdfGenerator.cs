@@ -21,64 +21,103 @@ namespace JobFlow.Infrastructure.Pdf
                 {
                     page.Size(PageSizes.Letter);
                     page.Margin(2, Unit.Centimetre);
-                    page.Header().Text($"Invoice #{inv.Id:D}")
-                                   .FontSize(20)
-                                   .SemiBold();
+                    page.DefaultTextStyle(x => x.FontSize(12));
+
+                    page.Header().Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text(inv.OrganizationClient.Organization.OrganizationName).FontSize(24).Bold();
+                            //col.Item().Text("NobleUI Themes").Bold();
+                            col.Item().Text($"{inv.OrganizationClient.Organization.Address1}," +
+                                $"\n{inv.OrganizationClient.Organization.City}, {inv.OrganizationClient.Organization.State}, {inv.OrganizationClient.Organization.ZipCode}");
+                            col.Item().PaddingTop(20).Text("Invoice to:").Bold().FontColor(Colors.Grey.Darken1);
+                            col.Item().Text($"{inv.OrganizationClient.ClientFullName()}\n{inv.OrganizationClient.Address1}" +
+                                $"\n{inv.OrganizationClient.City}, {inv.OrganizationClient.State}, {inv.OrganizationClient.ZipCode}");
+                        });
+
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().AlignRight().Text("INVOICE").FontSize(18).Bold();
+                            col.Item().PaddingBottom(20).AlignRight().Text($"# {inv.InvoiceNumber}").FontSize(12);
+                            col.Item().AlignRight().Text("Balance Due");
+                            col.Item().AlignRight().Text(inv.BalanceDue.ToString("C")).FontSize(16).Bold();
+                            col.Item().PaddingTop(20).AlignRight().Text($"Invoice Date: {inv.InvoiceDate:dd MMM yyyy}").FontSize(10);
+                            col.Item().AlignRight().Text($"Due Date: {inv.DueDate:dd MMM yyyy}").FontSize(10);
+                        });
+                    });
+
                     page.Content().Column(col =>
                     {
-                        col.Item().Text($"Date: {inv.InvoiceDate:MMMM dd, yyyy}");
-                        col.Item().Text($"Due:  {inv.DueDate:MMMM dd, yyyy}")
-                                   .Style(TextStyle.Default.FontColor(Colors.Grey.Darken1));
-                        col.Item().PaddingVertical(5).LineHorizontal(1);
-
-                        col.Item().Table(table =>
+                        col.Item().PaddingTop(20).Table(table =>
                         {
-                            table.ColumnsDefinition(def =>
+                            table.ColumnsDefinition(columns =>
                             {
-                                def.RelativeColumn();
-                                def.ConstantColumn(60);
-                                def.ConstantColumn(80);
-                                def.ConstantColumn(80);
+                                columns.ConstantColumn(25);
+                                columns.RelativeColumn();
+                                columns.ConstantColumn(60);
+                                columns.ConstantColumn(80);
+                                columns.ConstantColumn(80);
                             });
 
-                            // Header row
                             table.Header(header =>
                             {
-                                header.Cell().Text("Description");
-                                header.Cell().AlignRight().Text("Qty");
-                                header.Cell().AlignRight().Text("Unit Price");
-                                header.Cell().AlignRight().Text("Total");
+                                header.Cell().Text("#").Bold();
+                                header.Cell().Text("Description").Bold();
+                                header.Cell().AlignRight().Text("Qty").Bold();
+                                header.Cell().AlignRight().Text("Unit Price").Bold();
+                                header.Cell().AlignRight().Text("Total").Bold();
                             });
 
-                            // Line items
-                            foreach (var li in inv.LineItems)
+                            int index = 1;
+                            foreach (var item in inv.LineItems)
                             {
-                                table.Cell().Text(li.Description);
-                                table.Cell().AlignRight().Text(li.Quantity.ToString());
-                                table.Cell().AlignRight().Text(li.UnitPrice.ToString("C"));
-                                table.Cell().AlignRight().Text(li.LineTotal.ToString("C"));
+                                table.Cell().Text(index++.ToString());
+                                table.Cell().Text(item.Description);
+                                table.Cell().AlignRight().Text(item.Quantity.ToString());
+                                table.Cell().AlignRight().Text(item.UnitPrice.ToString("C"));
+                                table.Cell().AlignRight().Text(item.LineTotal.ToString("C"));
                             }
+                        });
 
-                            // Footer totals
-                            table.Footer(footer =>
+                        col.Item().PaddingTop(20).Row(row =>
+                        {
+                            row.RelativeItem();
+
+                            row.ConstantItem(200).Table(table =>
                             {
-                                footer.Cell().ColumnSpan(3)
-                                      .AlignRight()
-                                      .Text("Grand Total:")
-                                      .Bold();
-                                footer.Cell()
-                                      .AlignRight()
-                                      .Text(inv.TotalAmount.ToString("C"))
-                                      .Bold();
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn();
+                                    columns.ConstantColumn(100);
+                                });
+
+                                table.Cell().Text("Sub Total");
+                                table.Cell().AlignRight().Text(inv.LineItems.Sum(x => x.LineTotal).ToString("C"));
+
+                                table.Cell().Text("TAX (12%)");
+                                table.Cell().AlignRight().Text((inv.LineItems.Sum(x => x.LineTotal) * 0.12m).ToString("C"));
+
+                                table.Cell().Text("Total").Bold();
+                                var totalWithTax = inv.LineItems.Sum(x => x.LineTotal) * 1.12m;
+                                table.Cell().AlignRight().Text(totalWithTax.ToString("C")).Bold();
+
+                                table.Cell().Text("Payment Made");
+                                table.Cell().AlignRight().Text($"(-){inv.AmountPaid.ToString("C")}").FontColor(Colors.Red.Darken1);
+
+                                table.Cell().Text("Balance Due").Bold();
+                                table.Cell().AlignRight().Text(inv.BalanceDue.ToString("C")).Bold();
                             });
                         });
                     });
-                    page.Footer().AlignCenter().Text($"Thank you for choosing Job Flow!");
+
+                    page.Footer().AlignCenter().Text($"Thank you for choosing {inv.OrganizationClient.Organization.OrganizationName}!").FontSize(10);
                 });
             });
 
             byte[] pdf = document.GeneratePdf();
             return Task.FromResult(pdf);
         }
+
     }
 }

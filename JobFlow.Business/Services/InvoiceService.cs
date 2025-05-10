@@ -24,7 +24,11 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
         {
-            var invoice = await invoices.Query().FirstOrDefaultAsync(i => i.Id == id);
+            var invoice = await invoices.Query()
+                .Include(e => e.LineItems)
+                .Include(e => e.OrganizationClient)
+                .ThenInclude(e => e.Organization)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (invoice == null)
                 return Result.Failure<Invoice>(InvoiceErrors.NotFound);
 

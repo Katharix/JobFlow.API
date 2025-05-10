@@ -22,6 +22,11 @@ namespace JobFlow.Infrastructure.Persistence
             EnsureDbContext();
             return new Repository<TEntity>(_context);
         }
+
+        public DbContext Context => _context;
+
+        DbContext IUnitOfWork.Context { get => Context; }
+
         public void SaveChanges()
         {
             if (_context == null)

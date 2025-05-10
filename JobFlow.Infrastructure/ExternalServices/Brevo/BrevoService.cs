@@ -25,9 +25,6 @@ namespace JobFlow.Infrastructure.ExternalServices.Brevo
         {
             _settings = settings.Value;
             _client = httpFactory.ForBrevoClient();
-            _client.DefaultRequestHeaders.Add("api-key", _settings.ApiKey);
-
-            // wrap retry + circuit-breaker
             _policy = Policy.WrapAsync(
                 PollyPolicies.DefaultRetryPolicy(),
                 PollyPolicies.DefaultCircuitBreakerPolicy());
@@ -49,11 +46,10 @@ namespace JobFlow.Infrastructure.ExternalServices.Brevo
 
             HttpResponseMessage response = null;
 
-            // execute the PostAsync under our policies
             await _policy.ExecuteAsync(async () =>
             {
                 response = await _client.PostAsync("contacts", content);
-                response.EnsureSuccessStatusCode();  // bubble non-200s as exceptions
+                response.EnsureSuccessStatusCode();
             });
 
             return response.IsSuccessStatusCode;

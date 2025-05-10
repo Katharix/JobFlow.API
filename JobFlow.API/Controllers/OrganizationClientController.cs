@@ -1,4 +1,6 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Mappings;
+using JobFlow.API.Models;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -38,9 +40,9 @@ namespace JobFlow.API.Controllers
         }
 
         [HttpPost, Route("upsert")]
-        public async Task<IResult> UpsertClient(OrganizationClient model)
+        public async Task<IResult> UpsertClient(OrganizationClientDto model)
         {
-            var result = await this.organizationClientService.UpsertClient(model);
+            var result = await this.organizationClientService.UpsertClient(model.ToEntity());
             return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
         }
 

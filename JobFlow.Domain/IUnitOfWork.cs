@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,5 +17,6 @@ namespace JobFlow.Domain
         bool HasChanges();
         Task<IDbContextTransaction> BeginTransactionAsync();
         IExecutionStrategy CreateExecutionStrategy();
+        DbContext Context { get;}
     }
 }

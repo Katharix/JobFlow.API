@@ -230,6 +230,8 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())

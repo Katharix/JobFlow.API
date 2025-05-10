@@ -32,12 +32,15 @@ namespace JobFlow.Business.Services
         public async Task<string> GenerateAsync(Guid organizationId)
         {
             var year = DateTime.UtcNow.Year;
-            int nextSeq;
+            string invoiceNumber = string.Empty;
 
-            // Acquire a serializable transaction to prevent race conditions
-            var dbContext = (DbContext)_unitOfWork;
-            using (var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable))
+            var dbContext = _unitOfWork.Context;
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
+                using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
                 var sequence = await _sequenceRepo.Query()
                     .SingleOrDefaultAsync(s => s.OrganizationId == organizationId && s.Year == year);
 
@@ -53,18 +56,20 @@ namespace JobFlow.Business.Services
                 }
 
                 sequence.LastSequence++;
-                nextSeq = sequence.LastSequence;
+                int nextSeq = sequence.LastSequence;
 
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
-            }
 
-            var invoiceNumber = $"{year}-{nextSeq:D4}";
+                invoiceNumber = $"{year}-{nextSeq:D4}";
+            });
+
             _logger.LogInformation(
                 "Generated invoice number {InvoiceNumber} for organization {OrgId}",
                 invoiceNumber, organizationId);
 
             return invoiceNumber;
         }
+
     }
 }
