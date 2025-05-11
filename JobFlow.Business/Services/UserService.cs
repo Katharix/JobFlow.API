@@ -92,7 +92,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<User>> GetUserByFirebaseUid(string uid)
         {
-            var user = await this.unitOfWork.RepositoryOf<User>().Query().FirstOrDefaultAsync(u => u.FirebaseUid == uid);
+            var user = await this.unitOfWork.RepositoryOf<User>().Query().Include(e => e.Organization).FirstOrDefaultAsync(u => u.FirebaseUid == uid);
 
             if (user == null)
                 return Result.Failure<User>(UserErrors.UserNotFound);

@@ -1,4 +1,5 @@
 ﻿using FirebaseAdmin.Auth;
+using JobFlow.Business;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models;
 using JobFlow.Business.Models.DTOs;
@@ -71,7 +72,8 @@ namespace JobFlow.API.Controllers
                 {
                     { "role", model.UserRole }
                 });
-                return Results.Ok();
+                var orgResults = await _organizationService.GetOrganiztionById(model.Id.Value);
+                return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
             }
             catch (Exception ex)
             {

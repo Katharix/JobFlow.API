@@ -33,6 +33,7 @@ public class AuthController : ControllerBase
     [HttpPost, Route("login-with-firebase")]
     public async Task<IActionResult> LoginWithFirebase([FromBody] TokenDto model)
     {
+        //To do: The user must be associated with an Organization
         try
         {
             var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(model.Token);
@@ -67,7 +68,7 @@ public class AuthController : ControllerBase
                 //authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
                 //var token = GenerateJwtToken(authClaims);
-                return Ok(new { Email = user.Email });
+                return Ok(new { Email = user.Email, OrganizationId = user.OrganizationId });
         }
         catch (Exception ex)
         {
