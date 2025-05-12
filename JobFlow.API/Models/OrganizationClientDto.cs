@@ -2,7 +2,8 @@
 {
     public class OrganizationClientDto
     {
-        public Guid OrganizationId { get; set; }
+        public Guid? Id { get; set; }
+        public Guid? OrganizationId { get; set; }
 
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
@@ -16,6 +17,14 @@
         public string? PhoneNumber { get; set; }
         public string? EmailAddress { get; set; }
 
-        public string FullName => $"{FirstName} {LastName}".Trim();
+        public string? FullName => $"{FirstName} {LastName}".Trim();
+        public OrganizationDto Organization { get; set; }
+    }
+
+    public class OrganizationDto
+    {
+        public Guid? Id { get; set; }
+        public string? OrganizationName { get; set; }
+        public string? Email { get; set; }
     }
 }

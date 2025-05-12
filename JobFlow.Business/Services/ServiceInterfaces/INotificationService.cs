@@ -20,5 +20,6 @@ namespace JobFlow.Business.Services.ServiceInterfaces
         Task SendClientJobScheduledNotificationAsync(OrganizationClient client, Job job);
         Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice);
         Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
+
     }
 }

@@ -24,6 +24,35 @@ namespace JobFlow.API.Mappings
                 }).ToList()
             };
         }
+        public static InvoiceDto ToDto(this Invoice invoice) =>
+           new InvoiceDto
+           {
+               Id = invoice.Id,
+               InvoiceNumber = invoice.InvoiceNumber,
+               OrganizationId = invoice.OrganizationId,
+               OrganizationClientId = invoice.OrganizationClientId,
+               OrderId = invoice.OrderId,
+               InvoiceDate = invoice.InvoiceDate,
+               DueDate = invoice.DueDate,
+               TotalAmount = invoice.TotalAmount,
+               AmountPaid = invoice.AmountPaid,
+               BalanceDue = invoice.BalanceDue,
+               Status = invoice.Status,
+               StripeInvoiceId = invoice.StripeInvoiceId,
+               OrganizationClient = invoice.OrganizationClient.ToDto(),
+               LineItems = invoice.LineItems.Select(li => li.ToDto()).ToList(),
+           };
+
+        public static InvoiceLineItemDto ToDto(this InvoiceLineItem item) =>
+            new InvoiceLineItemDto
+            {
+                Description = item.Description,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                LineTotal = item.Quantity * item.UnitPrice
+            };
+
+
     }
 
 }

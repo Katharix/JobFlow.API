@@ -82,7 +82,9 @@ namespace JobFlow.Business.Notifications.Builders
                 Phone = client.PhoneNumber,
                 Subject = $"Invoice Created: #{invoice.Id}",
                 Body = $"Your invoice #{invoice.Id} for {invoice.TotalAmount:C} is ready.",
-                Sms = $"Invoice #{invoice.Id} ready: {invoice.TotalAmount:C}."
+                Sms = $"Invoice #{invoice.Id} ready: {invoice.TotalAmount:C}.",
+                TemplateId = 3,
+                Link = ""
             };
 
         public NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice)

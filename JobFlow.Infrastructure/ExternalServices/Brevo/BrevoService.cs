@@ -68,7 +68,8 @@ namespace JobFlow.Infrastructure.ExternalServices.Brevo
                     Name = request.Name,
                     subject = request.Subject,
                     Email = request.Email,
-                    Body = request.Message
+                    Body = request.Message,
+                    InvoiceLink = request.Link
                 }
             };
 

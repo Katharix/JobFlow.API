@@ -5,32 +5,36 @@ namespace JobFlow.API.Mappings
 {
     public static class OrganizationClientMappingExtensions
     {
-        public static OrganizationClientDto ToDto(this OrganizationClient entity)
-        {
-            if (entity == null) return null!;
-
-            return new OrganizationClientDto
+        public static OrganizationClientDto ToDto(this OrganizationClient client) =>
+            new OrganizationClientDto
             {
-                OrganizationId = entity.OrganizationId,
-                FirstName = entity.FirstName,
-                LastName = entity.LastName,
-                Address1 = entity.Address1,
-                Address2 = entity.Address2,
-                City = entity.City,
-                State = entity.State,
-                ZipCode = entity.ZipCode,
-                PhoneNumber = entity.PhoneNumber,
-                EmailAddress = entity.EmailAddress
+                Id = client.Id,
+                OrganizationId = client.OrganizationId,
+                FirstName = client.FirstName,
+                LastName = client.LastName,
+                Address1 = client.Address1,
+                Address2 = client.Address2,
+                City = client.City,
+                State = client.State,
+                ZipCode = client.ZipCode,
+                PhoneNumber = client.PhoneNumber,
+                EmailAddress = client.EmailAddress,
+                Organization = client.Organization.ToDto(),
             };
-        }
 
+        public static OrganizationDto ToDto(this Organization org) =>
+           new OrganizationDto
+           {
+               Id = org.Id,
+               OrganizationName = org.OrganizationName
+           };
         public static OrganizationClient ToEntity(this OrganizationClientDto dto)
         {
             if (dto == null) return null!;
 
             return new OrganizationClient
             {
-                OrganizationId = dto.OrganizationId,
+                OrganizationId = dto.OrganizationId.Value,
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 Address1 = dto.Address1,
