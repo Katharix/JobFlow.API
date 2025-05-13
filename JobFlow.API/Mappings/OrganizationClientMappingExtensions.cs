@@ -26,7 +26,12 @@ namespace JobFlow.API.Mappings
            new OrganizationDto
            {
                Id = org.Id,
-               OrganizationName = org.OrganizationName
+               OrganizationName = org.OrganizationName,
+               Address1 = org.Address1,
+               Address2 = org.Address2,
+               City = org.City,
+               State = org.State,
+               ZipCode = org.ZipCode,
            };
         public static OrganizationClient ToEntity(this OrganizationClientDto dto)
         {

@@ -16,7 +16,7 @@ namespace JobFlow.Domain.Models
         public Guid? OrderId { get; set; }
         public DateTime InvoiceDate { get; set; }
         public DateTime DueDate { get; set; }
-        public decimal TotalAmount => LineItems?.Sum(x => x.UnitPrice) ?? 0;
+        public decimal TotalAmount { get; set; }
 
         public decimal AmountPaid { get; set; }
         public decimal BalanceDue => TotalAmount - AmountPaid;

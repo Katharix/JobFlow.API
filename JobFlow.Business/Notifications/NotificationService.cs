@@ -95,13 +95,14 @@ namespace JobFlow.Business.Notifications
                     Email = message.Email,
                     Name = message.Name,
                     Message = message.Body,
-                    TemplateId = message.TemplateId
+                    TemplateId = message.TemplateId,
+                    Link = message.Link
                 });
 
                 await _smsService.SendTextMessage(new TwilioModel
                 {
                     RecipientPhoneNumber = message.Phone,
-                    Message = message.Sms
+                    Message = message.Sms + message.Link
                 });
             }
             catch (Exception ex)

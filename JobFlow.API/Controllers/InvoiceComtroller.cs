@@ -13,32 +13,35 @@ namespace JobFlow.API.Controllers
         private readonly IInvoiceService invoiceService;
         private readonly IInvoiceLineItemService lineItemService;
         private readonly IInvoiceNumberGenerator numberGenerator;
+        private readonly INotificationService notificationService;
         private readonly IPdfGenerator pdfGenerator;
 
         public InvoiceController(
             IInvoiceService invoiceService,
             IInvoiceLineItemService lineItemService,
             IInvoiceNumberGenerator numberGenerator,
-            IPdfGenerator pdfGenerator)
+            IPdfGenerator pdfGenerator,
+            INotificationService notificationService)
         {
             this.invoiceService = invoiceService;
             this.lineItemService = lineItemService;
             this.numberGenerator = numberGenerator;
             this.pdfGenerator = pdfGenerator;
+            this.notificationService = notificationService;
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(Guid id)
         {
             var result = await invoiceService.GetInvoiceByIdAsync(id);
-            return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+            return result.IsSuccess ? Ok(result.Value.ToDto()) : NotFound(result.Error);
         }
 
         [HttpGet("client/{clientId}")]
         public async Task<IActionResult> GetByClient(Guid clientId)
         {
             var result = await invoiceService.GetInvoicesByClientAsync(clientId);
-            return Ok(result.Value);
+            return Ok(result.Value.ToDto());
         }
 
         [HttpPost]
@@ -48,7 +51,7 @@ namespace JobFlow.API.Controllers
             var invoice = request.ToInvoice(invoiceNumber);
 
             var result = await invoiceService.UpsertInvoiceAsync(invoice);
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+            return result.IsSuccess ? Ok(result.Value.ToDto()) : BadRequest(result.Error);
         }
 
         [HttpDelete("{id}")]
@@ -69,9 +72,12 @@ namespace JobFlow.API.Controllers
             //46455c4d-58c0-49ef-b18a-84704dbd50aa
             var pdf = await pdfGenerator.GenerateInvoicePdfAsync(result.Value);
             var invoice = result.Value;
+            await this.notificationService.SendClientInvoiceCreatedNotificationAsync(invoice.OrganizationClient, invoice);
             var pdfName = $"{invoice.OrganizationClient.Organization.OrganizationName}-Invoice-{invoice.InvoiceNumber}.pdf";
             return File(pdf, "application/pdf", $"{pdfName}");
         }
+
+        
     }
 
 }

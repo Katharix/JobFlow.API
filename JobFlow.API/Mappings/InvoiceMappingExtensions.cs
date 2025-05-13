@@ -24,6 +24,11 @@ namespace JobFlow.API.Mappings
                 }).ToList()
             };
         }
+        public static IEnumerable<InvoiceDto> ToDto(this IEnumerable<Invoice> invoices)
+        {
+            return invoices.Select(invoice => invoice.ToDto());
+        }
+
         public static InvoiceDto ToDto(this Invoice invoice) =>
            new InvoiceDto
            {

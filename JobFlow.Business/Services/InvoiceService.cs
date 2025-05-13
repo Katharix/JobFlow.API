@@ -45,14 +45,32 @@ namespace JobFlow.Business.Services
         {
             var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);
 
+            // Calculate TotalAmount manually since it's not mapped
+            model.TotalAmount = model.LineItems?.Sum(li => li.Quantity * li.UnitPrice) ?? 0;
+
             if (exists)
+            {
                 invoices.Update(model);
+            }
             else
+            {
+                // Ensure invoice ID is set before adding line items (if needed)
+                if (model.Id == Guid.Empty)
+                    model.Id = Guid.NewGuid();
+
+                // Attach invoice to line items
+                foreach (var li in model.LineItems)
+                {
+                    li.InvoiceId = model.Id;
+                }
+
                 await invoices.AddAsync(model);
+            }
 
             await unitOfWork.SaveChangesAsync();
             return Result<Invoice>.Success(model);
         }
+
 
         public async Task<Result> DeleteInvoiceAsync(Guid id)
         {
