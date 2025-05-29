@@ -22,6 +22,7 @@ namespace JobFlow.Domain.Models
         public string? PhoneNumber { get; set; }
         public string? EmailAddress { get; set; }
         public bool HasFreeAccount { get; set; }
+        public bool OnBoardingComplete { get; set; }
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
 
 

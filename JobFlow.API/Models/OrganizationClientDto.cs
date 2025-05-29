@@ -18,6 +18,7 @@
         public string? EmailAddress { get; set; }
 
         public string? FullName => $"{FirstName} {LastName}".Trim();
+       
         public OrganizationDto Organization { get; set; }
     }
 
@@ -33,5 +34,6 @@
         public string? ZipCode { get; set; }
 
         public string? PhoneNumber { get; set; }
+        public bool? OnBoardingComplete { get; set; }
     }
 }

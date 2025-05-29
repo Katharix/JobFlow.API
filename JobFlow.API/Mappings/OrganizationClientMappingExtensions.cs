@@ -32,6 +32,9 @@ namespace JobFlow.API.Mappings
                City = org.City,
                State = org.State,
                ZipCode = org.ZipCode,
+               PhoneNumber = org.PhoneNumber,
+               Email = org.EmailAddress,
+               OnBoardingComplete = org.OnBoardingComplete,
            };
         public static OrganizationClient ToEntity(this OrganizationClientDto dto)
         {

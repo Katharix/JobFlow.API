@@ -89,5 +89,11 @@ namespace JobFlow.API.Controllers
             var result = await _organizationService.GetOrganiztionById(org.OrganizationId);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
+
+        [HttpPost, Route("onboarding")]
+        public async Task<IResult> OrganizationOnboarding()
+        {
+
+        }
     }
 }
