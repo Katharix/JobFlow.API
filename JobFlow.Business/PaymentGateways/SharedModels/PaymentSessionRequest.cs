@@ -8,7 +8,7 @@ namespace JobFlow.Business.PaymentGateways.SharedModels
 {
     public class PaymentSessionRequest
     {
-        public string? Mode { get; set; } // "subscription" or "payment"
+        public string? Mode { get; set; } 
 
         // Shared
         public string? SuccessUrl { get; set; }
@@ -20,6 +20,7 @@ namespace JobFlow.Business.PaymentGateways.SharedModels
         public string? StripePriceId { get; set; }
         public string? StripeCustomerId { get; set; }
         public Guid? PaymentProfileId { get; set; }
+
 
         // Payment-specific
         public string? ProductName { get; set; }

@@ -21,6 +21,9 @@ namespace JobFlow.Domain.Models
         public string? State { get; set; }
         public string? PhoneNumber { get; set; }
         public string? EmailAddress { get; set; }
+        public decimal DefaultTaxRate { get; set; } = 0.00m;
+        public bool EnableTax { get; set; } = false;
+
         public bool HasFreeAccount { get; set; }
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
 
