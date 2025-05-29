@@ -35,6 +35,7 @@ namespace JobFlow.API.Mappings
                PhoneNumber = org.PhoneNumber,
                Email = org.EmailAddress,
                OnBoardingComplete = org.OnBoardingComplete,
+               DefaultTaxRate = org.DefaultTaxRate
            };
         public static OrganizationClient ToEntity(this OrganizationClientDto dto)
         {
