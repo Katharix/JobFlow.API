@@ -43,7 +43,7 @@ namespace JobFlow.Business.Services
                 return Result.Failure<CustomerPaymentProfile>(OrganizationErrors.NullOrEmptyId);
 
             var profile = await paymentProfiles.Query()
-                .FirstOrDefaultAsync(p => p.OwnerId == clientId && p.OwnerType == PaymentEntityType.Client);
+                .FirstOrDefaultAsync(p => p.OwnerId == clientId && p.OwnerType == PaymentEntityType.Customer);
 
             return profile is null
                 ? Result.Failure<CustomerPaymentProfile>(PaymentProfileErrors.NotFound)

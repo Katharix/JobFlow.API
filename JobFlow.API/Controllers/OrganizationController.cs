@@ -1,8 +1,10 @@
 ﻿using FirebaseAdmin.Auth;
+using JobFlow.API.Models;
 using JobFlow.Business;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +16,7 @@ namespace JobFlow.API.Controllers
     public class OrganizationController : ControllerBase
     {
         private IOrganizationService _organizationService;
+        private IOrganizationBrandingService _organizationBrandingService;
         private IPaymentProfileService _paymentProfileService;
         private IUserService _userService;
         private INotificationService _notificationService;
@@ -22,13 +25,15 @@ namespace JobFlow.API.Controllers
             IOrganizationService organizationService, 
             IUserService userService,
             IPaymentProfileService paymentProfileService,
-            INotificationService notificationService
+            INotificationService notificationService,
+            IOrganizationBrandingService organizationBrandingService
            )
         {
             _organizationService = organizationService;
             _userService = userService;
             _paymentProfileService = paymentProfileService;
             _notificationService = notificationService;
+            _organizationBrandingService = organizationBrandingService;
         }
         [HttpGet, Route("all")]
         public async Task<IResult> GetAllOrganizations()
@@ -91,9 +96,54 @@ namespace JobFlow.API.Controllers
         }
 
         [HttpPost, Route("onboarding")]
-        public async Task<IResult> OrganizationOnboarding()
+        public async Task<IResult> OrganizationOnboarding([FromBody] OnboardingDto onboarding)
         {
+            var orgResult = await _organizationService.GetAllOrganizations();
+            var ownerId = orgResult.Value.FirstOrDefault(e => e.OrganizationType?.TypeName == "Master Account")?.Id;
+            var org = new Organization() 
+            { 
+                Id = onboarding.OrganizationId,
+                DefaultTaxRate = onboarding.DefaultTaxRate,
+                EnableTax = onboarding.EnableTax,
+                OnBoardingComplete = onboarding.OnboardingComplete
+            };
+            var branding = new OrganizationBranding()
+            {
+                LogoUrl = onboarding?.Branding?.LogoUrl,
+                FooterNote = onboarding?.Branding?.FooterNote,
+                PrimaryColor = onboarding?.Branding?.PrimaryColor,
+                SecondaryColor = onboarding?.Branding?.SecondaryColor,
+                Tagline = onboarding?.Branding?.Tagline,
+                CreatedAt = DateTime.UtcNow,
+            };
+            var paymentProfile = new CustomerPaymentProfile()
+            {
+                OwnerType = Domain.Enums.PaymentEntityType.Organization,
+                OwnerId = ownerId.Value,
+                Provider = onboarding.PaymentProfile.Provider,
+                ProviderCustomerId = onboarding.PaymentProfile.ProviderCustomerId,
+                CreatedAt = DateTime.UtcNow
+            };
 
+            if (org != null)
+            {
+                var result = await _organizationService.UpsertOrganization(org);
+                if (!result.IsSuccess)
+                    return result.ToProblemDetails();
+            }
+            if (branding != null)
+            {
+                var result = await _organizationBrandingService.CreateOrUpdateAsync(branding);
+                if (!result.IsSuccess)
+                    return result.ToProblemDetails();
+            }
+            if (paymentProfile != null)
+            {
+                var result = await _paymentProfileService.CreateAsync(paymentProfile.OwnerId, paymentProfile.OwnerType, paymentProfile.Provider, paymentProfile.ProviderCustomerId);
+                if (!result.IsSuccess)
+                    return result.ToProblemDetails();
+            }
+            return Results.Ok();
         }
     }
 }
