@@ -68,7 +68,7 @@ public class AuthController : ControllerBase
                 //authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
                 //var token = GenerateJwtToken(authClaims);
-                return Ok(new { Email = user.Email, OrganizationId = user.OrganizationId });
+                return Ok(new { Organization = user.Organization });
         }
         catch (Exception ex)
         {
