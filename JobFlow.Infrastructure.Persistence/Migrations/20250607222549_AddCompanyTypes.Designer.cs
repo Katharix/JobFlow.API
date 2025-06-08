@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250607222549_AddCompanyTypes")]
+    partial class AddCompanyTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,44 +24,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("JobFlow.Domain.Models.Conversation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Conversation", "messaging");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.ConversationParticipant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("ConversationId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("ConversationParticipant", "messaging");
-                });
 
             modelBuilder.Entity("JobFlow.Domain.Models.CustomerPaymentProfile", b =>
                 {
@@ -294,41 +259,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                             Id = new Guid("1ca909ea-e3e8-4364-a81f-7c5b93d9bc25"),
                             Status = "Awaiting Approval"
                         });
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.Message", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<string>("AttachmentUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("Message", "messaging");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Order", b =>
@@ -871,25 +801,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
-            modelBuilder.Entity("JobFlow.Domain.Models.ConversationParticipant", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.Conversation", "Conversation")
-                        .WithMany("Participants")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("JobFlow.Domain.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("JobFlow.Domain.Models.CustomerPaymentProfile", b =>
                 {
                     b.HasOne("JobFlow.Domain.Models.OrganizationClient", null)
@@ -957,25 +868,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Job");
 
                     b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.Message", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.Conversation", "Conversation")
-                        .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("JobFlow.Domain.Models.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Order", b =>
@@ -1095,13 +987,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.Conversation", b =>
-                {
-                    b.Navigation("Messages");
-
-                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Invoice", b =>

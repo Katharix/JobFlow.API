@@ -2,9 +2,11 @@ using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
 using Google.Apis.Auth.OAuth2;
-using JobFlow.Business.DI;
 using Hangfire;
 using Hangfire.SqlServer;
+using JobFlow.API.Hubs;
+using JobFlow.Business.DI;
+using JobFlow.Business.Notifications.Builders;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
@@ -21,7 +23,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
-using JobFlow.Business.Notifications.Builders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,7 +78,9 @@ builder.Services.AddControllers()
         {
             options.SuppressMapClientErrors = false;
         });
+
 builder.Services.AddProblemDetails();
+builder.Services.AddSignalR();
 
 var appConnectionString = builder.Configuration["SqlConnectionString"];
 
@@ -268,5 +271,6 @@ app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
