@@ -35,7 +35,7 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe
             var accountLink = await service.CreateAsync(new AccountLinkCreateOptions
             {
                 Account = accountId,
-                ReturnUrl = $"http://localhost:4200/dashboard/stripe-success/{accountId}",
+                ReturnUrl = $"http://localhost:4200/onboarding",
                 RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{accountId}",
                 Type = "account_onboarding"
             });

@@ -71,7 +71,7 @@ namespace JobFlow.API.Controllers
                 if (accountId == null) return NotFound();
 
                 var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId);
-                return Ok(new { onboardingUrl });
+                return Ok(new { onboarding = onboardingUrl });
             }
 
             return BadRequest("This provider does not support connected accounts.");
