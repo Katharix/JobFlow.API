@@ -6,8 +6,6 @@ using Hangfire;
 using Hangfire.SqlServer;
 using JobFlow.API.Hubs;
 using JobFlow.Business.DI;
-using JobFlow.Business.Notifications.Builders;
-using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain;
