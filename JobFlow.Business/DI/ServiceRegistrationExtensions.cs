@@ -34,17 +34,14 @@ namespace JobFlow.Business.DI
                     if (isScoped)
                     {
                         services.AddScoped(iface, type);
-                        Console.WriteLine($"[DI] Registered Scoped: {iface.Name} → {type.Name}");
                     }
                     else if (isSingleton)
                     {
                         services.AddSingleton(iface, type);
-                        Console.WriteLine($"[DI] Registered Singleton: {iface.Name} → {type.Name}");
                     }
                     else if (isTransient)
                     {
                         services.AddTransient(iface, type);
-                        Console.WriteLine($"[DI] Registered Transient: {iface.Name} → {type.Name}");
                     }
                 }
 
@@ -52,17 +49,14 @@ namespace JobFlow.Business.DI
                 if (isScoped)
                 {
                     services.AddScoped(type);
-                    Console.WriteLine($"[DI] Registered Scoped (concrete): {type.Name}");
                 }
                 else if (isSingleton)
                 {
                     services.AddSingleton(type);
-                    Console.WriteLine($"[DI] Registered Singleton (concrete): {type.Name}");
                 }
                 else if (isTransient)
                 {
                     services.AddTransient(type);
-                    Console.WriteLine($"[DI] Registered Transient (concrete): {type.Name}");
                 }
             }
 
