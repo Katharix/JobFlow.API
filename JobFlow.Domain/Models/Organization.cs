@@ -25,7 +25,7 @@ namespace JobFlow.Domain.Models
 
         public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
-
+        public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
         public virtual OrganizationType? OrganizationType { get; set; }
     }
 }

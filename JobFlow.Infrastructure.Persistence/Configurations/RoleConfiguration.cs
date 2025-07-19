@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
-    internal class RoleConfiguration : IEntityTypeConfiguration<Role>
+    internal class RoleConfiguration : IEntityTypeConfiguration<SystemRole>
     {
-        public void Configure(EntityTypeBuilder<Role> builder)
+        public void Configure(EntityTypeBuilder<SystemRole> builder)
         {
             builder.ToTable("Roles");
             builder.Property(u => u.Id).HasDefaultValueSql("NEWID()");

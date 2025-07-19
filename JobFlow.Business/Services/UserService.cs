@@ -70,7 +70,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result> AssignRole(Guid userId, string role)
         {
-            var identityRole = this.unitOfWork.RepositoryOf<Role>().Query().FirstOrDefault(e => e.Name == role);
+            var identityRole = this.unitOfWork.RepositoryOf<SystemRole>().Query().FirstOrDefault(e => e.Name == role);
             if (identityRole == null)
             {
                 return Result.Failure(Error.NullValue);

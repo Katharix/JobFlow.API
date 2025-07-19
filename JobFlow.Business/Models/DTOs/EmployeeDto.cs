@@ -16,7 +16,7 @@ namespace JobFlow.Business.Models.DTOs
         public string LastName { get; set; } = default!;
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? Role { get; set; }
+        public Guid Role { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -29,7 +29,7 @@ namespace JobFlow.Business.Models.DTOs
         public string LastName { get; set; } = default!;
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? Role { get; set; }
+        public Guid RoleId { get; set; }
     }
 
     public class UpdateEmployeeRequest
@@ -38,7 +38,7 @@ namespace JobFlow.Business.Models.DTOs
         public string LastName { get; set; } = default!;
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? Role { get; set; }
+        public Guid RoleId { get; set; }
         public bool IsActive { get; set; }
     }
 }

@@ -48,7 +48,7 @@ namespace JobFlow.Business.Services
                 LastName = request.LastName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
-                Role = request.Role,
+                RoleId = request.RoleId,
                 IsActive = true
             };
 
@@ -68,7 +68,7 @@ namespace JobFlow.Business.Services
             employee.LastName = request.LastName;
             employee.Email = request.Email;
             employee.PhoneNumber = request.PhoneNumber;
-            employee.Role = request.Role;
+            employee.RoleId = request.RoleId;
             employee.IsActive = request.IsActive;
 
             _employeeRepo.Update(employee);

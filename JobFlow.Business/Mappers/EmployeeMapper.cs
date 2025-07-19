@@ -19,7 +19,7 @@ namespace JobFlow.Business.Mappers
             LastName = employee.LastName,
             Email = employee.Email,
             PhoneNumber = employee.PhoneNumber,
-            Role = employee.Role,
+            Role = employee.RoleId,
             IsActive = employee.IsActive
         };
     }

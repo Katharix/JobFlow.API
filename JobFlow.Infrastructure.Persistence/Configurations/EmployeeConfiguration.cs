@@ -31,9 +31,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
             builder.Property(e => e.PhoneNumber)
                    .HasMaxLength(20);
 
-            builder.Property(e => e.Role)
-                   .HasMaxLength(100);
-
             builder.Property(e => e.IsActive)
                    .IsRequired();
 
@@ -43,8 +40,15 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                    .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(e => e.User)
-                   .WithMany()
+                   .WithMany(u => u.Employees)
                    .HasForeignKey(e => e.UserId)
+                   .HasPrincipalKey(u => u.Id)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+
+            builder.HasOne(e => e.Role)
+                   .WithMany(r => r.Employees)
+                   .HasForeignKey(e => e.RoleId)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }
