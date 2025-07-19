@@ -37,7 +37,10 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                 new OrganizationType{ Id = Guid.Parse("408d2185-53b9-493d-8713-938114de90f5"),TypeName = "Junk Removal" },
                 new OrganizationType{ Id = Guid.Parse("33341b2d-957f-4efb-94f7-3a015ae1a718"),TypeName = "Car Detailing" },
                 new OrganizationType{ Id = Guid.Parse("30530a32-a151-436d-a050-613eac4c22d5"),TypeName = "IT & Network Installation" },
-                new OrganizationType{ Id = Guid.Parse("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"),TypeName = "Master Account" }
+                new OrganizationType{ Id = Guid.Parse("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"),TypeName = "Master Account" },
+                new OrganizationType{ Id = Guid.Parse("0F32E14A-5F70-45AF-A647-04E59AD52E58"),TypeName = "Handyman" },
+                new OrganizationType{ Id = Guid.Parse("09786EAB-D69F-45BF-BCEC-5F368BD60BE7"),TypeName = "Flooring" },
+                new OrganizationType{ Id = Guid.Parse("906A2BDB-4CC6-4E49-ACC3-1BD63FB82611"),TypeName = "Other" }
                 ];
         }
     }

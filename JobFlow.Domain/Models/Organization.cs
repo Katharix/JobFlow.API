@@ -1,10 +1,4 @@
 ﻿using JobFlow.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
@@ -21,12 +15,17 @@ namespace JobFlow.Domain.Models
         public string? State { get; set; }
         public string? PhoneNumber { get; set; }
         public string? EmailAddress { get; set; }
+        public decimal DefaultTaxRate { get; set; } = 0.00m;
+        public bool EnableTax { get; set; } = false;
+
         public bool HasFreeAccount { get; set; }
+        public bool OnBoardingComplete { get; set; }
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
 
 
         public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
-
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+        public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
         public virtual OrganizationType? OrganizationType { get; set; }
     }
 }

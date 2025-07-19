@@ -1,6 +1,4 @@
-﻿using JobFlow.Business;
-using JobFlow.Domain.Models;
-using JobFlow.Domain.Models.JobFlow.Domain.Models;
+﻿using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Services.ServiceInterfaces
 {

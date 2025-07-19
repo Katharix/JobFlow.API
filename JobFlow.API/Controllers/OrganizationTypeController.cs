@@ -1,6 +1,7 @@
 ﻿using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.ExternalServices.Twilio;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers
@@ -10,10 +11,12 @@ namespace JobFlow.API.Controllers
     public class OrganizationTypeController : ControllerBase
     {
         private readonly IOrganizationTypeService organizationTypeService;
+        private readonly ITwilioService _twilioService;
 
-        public OrganizationTypeController(IOrganizationTypeService organizationTypeService)
+        public OrganizationTypeController(IOrganizationTypeService organizationTypeService, ITwilioService twilioService)
         {
             this.organizationTypeService = organizationTypeService;
+            this._twilioService = twilioService;
         }
 
         [HttpGet, Route("all")]

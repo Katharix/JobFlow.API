@@ -1,6 +1,6 @@
-﻿using JobFlow.Business.ExternalServices.Brevo;
-using JobFlow.Business.ExternalServices.Brevo.Models;
-using JobFlow.Business.ExternalServices.ReCAPTCHA;
+﻿using JobFlow.Business.Models;
+using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Infrastructure.ExternalServices.ReCAPTCHA;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers

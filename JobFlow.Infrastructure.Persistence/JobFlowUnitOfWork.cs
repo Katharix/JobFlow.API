@@ -1,16 +1,10 @@
-﻿using JobFlow.Infrastructure.DI;
+﻿using JobFlow.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence
 {
-    [ScopedService]
     public class JobFlowUnitOfWork : IUnitOfWork
     {
         private readonly ILogger<JobFlowUnitOfWork> _logger;
@@ -28,6 +22,11 @@ namespace JobFlow.Infrastructure.Persistence
             EnsureDbContext();
             return new Repository<TEntity>(_context);
         }
+
+        public DbContext Context => _context;
+
+        DbContext IUnitOfWork.Context { get => Context; }
+
         public void SaveChanges()
         {
             if (_context == null)
@@ -116,16 +115,5 @@ namespace JobFlow.Infrastructure.Persistence
         {
             return (_context != null) && _context.ChangeTracker.HasChanges();
         }
-    }
-
-    public interface IUnitOfWork : IDisposable
-    {
-        IRepository<TEntity> RepositoryOf<TEntity>() where TEntity : class;
-        void SaveChanges();
-        Task SaveChangesAsync(bool resetDbContext = true);
-        TEntity GetAddedEntity<TEntity>(TEntity entity) where TEntity : class;
-        bool HasChanges();
-        Task<IDbContextTransaction> BeginTransactionAsync();
-        IExecutionStrategy CreateExecutionStrategy();
     }
 }

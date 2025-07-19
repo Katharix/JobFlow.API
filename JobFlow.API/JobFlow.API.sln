@@ -8,6 +8,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobFlow.Domain", "..\JobFlow.Domain\JobFlow.Domain.csproj", "{48FBC45E-3C54-457C-8348-5EE12FDB7509}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobFlow.Infrastructure", "..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj", "{E78317D2-F53A-40E4-B6A3-D6EFE7176457}"
+	ProjectSection(ProjectDependencies) = postProject
+		{48FBC45E-3C54-457C-8348-5EE12FDB7509} = {48FBC45E-3C54-457C-8348-5EE12FDB7509}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobFlow.Infrastructure.Persistence", "..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj", "{64605E3D-70CB-4B7A-8457-71727057F147}"
 EndProject

@@ -1,5 +1,4 @@
 ﻿using JobFlow.Domain.Models;
-using JobFlow.Domain.Models.JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

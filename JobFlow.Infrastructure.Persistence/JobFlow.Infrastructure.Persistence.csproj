@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
-    <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

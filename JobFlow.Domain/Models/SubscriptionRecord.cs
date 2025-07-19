@@ -7,14 +7,13 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    namespace JobFlow.Domain.Models
-    {
         public class SubscriptionRecord
         {
             public Guid Id { get; set; }
             public Guid PaymentProfileId { get; set; }
             public string ProviderSubscriptionId { get; set; } = string.Empty;
             public string ProviderPriceId { get; set; } = string.Empty;
+            public string PlanName { get; set; } = string.Empty;
             public PaymentProvider Provider { get; set; }
             public string Status { get; set; } = "active";
             public DateTime StartDate { get; set; }
@@ -22,6 +21,5 @@ namespace JobFlow.Domain.Models
 
             public virtual CustomerPaymentProfile PaymentProfile { get; set; }
         }
-    }
 
 }

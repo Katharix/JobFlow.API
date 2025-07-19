@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Stripe;
 using Microsoft.Data.SqlClient;
+using Twilio.Exceptions;
 
 namespace JobFlow.Infrastructure.Middleware
 {
@@ -56,7 +57,11 @@ namespace JobFlow.Infrastructure.Middleware
                     error.Message = "A service call failed.";
                     error.Code = "HTTP_ERROR";
                     break;
-
+                case TwilioException twilioEx:
+                    statusCode = StatusCodes.Status500InternalServerError;
+                    error.Message = twilioEx.Message;
+                    error.Code = "TWILIO_ERROR";
+                    break;
                 default:
                     statusCode = StatusCodes.Status500InternalServerError;
                     error.Message = "An unexpected error occurred.";

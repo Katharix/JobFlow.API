@@ -1,15 +1,10 @@
 ﻿using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
-using JobFlow.Infrastructure.DI;
-using JobFlow.Infrastructure.Persistence;
+using JobFlow.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using JobFlow.Business.DI;
 
 namespace JobFlow.Business.Services
 {
@@ -29,7 +24,11 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
         {
-            var invoice = await invoices.Query().FirstOrDefaultAsync(i => i.Id == id);
+            var invoice = await invoices.Query()
+                .Include(e => e.LineItems)
+                .Include(e => e.OrganizationClient)
+                .ThenInclude(e => e.Organization)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (invoice == null)
                 return Result.Failure<Invoice>(InvoiceErrors.NotFound);
 
@@ -46,14 +45,32 @@ namespace JobFlow.Business.Services
         {
             var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);
 
+            // Calculate TotalAmount manually since it's not mapped
+            model.TotalAmount = model.LineItems?.Sum(li => li.Quantity * li.UnitPrice) ?? 0;
+
             if (exists)
+            {
                 invoices.Update(model);
+            }
             else
+            {
+                // Ensure invoice ID is set before adding line items (if needed)
+                if (model.Id == Guid.Empty)
+                    model.Id = Guid.NewGuid();
+
+                // Attach invoice to line items
+                foreach (var li in model.LineItems)
+                {
+                    li.InvoiceId = model.Id;
+                }
+
                 await invoices.AddAsync(model);
+            }
 
             await unitOfWork.SaveChangesAsync();
             return Result<Invoice>.Success(model);
         }
+
 
         public async Task<Result> DeleteInvoiceAsync(Guid id)
         {

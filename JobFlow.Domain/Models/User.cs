@@ -14,6 +14,8 @@ namespace JobFlow.Domain.Models
         public Organization Organization { get; set; }
         public OrganizationClient Client { get; set; }
 
-        public ICollection<UserRole> UserRoles { get; set; }
+        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+
     }
 }

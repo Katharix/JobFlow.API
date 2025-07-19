@@ -1,8 +1,8 @@
-﻿using JobFlow.Business.ModelErrors;
+﻿using JobFlow.Business.DI;
+using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain;
 using JobFlow.Domain.Models;
-using JobFlow.Infrastructure.DI;
-using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -70,7 +70,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result> AssignRole(Guid userId, string role)
         {
-            var identityRole = this.unitOfWork.RepositoryOf<Role>().Query().FirstOrDefault(e => e.Name == role);
+            var identityRole = this.unitOfWork.RepositoryOf<SystemRole>().Query().FirstOrDefault(e => e.Name == role);
             if (identityRole == null)
             {
                 return Result.Failure(Error.NullValue);
@@ -92,7 +92,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<User>> GetUserByFirebaseUid(string uid)
         {
-            var user = await this.unitOfWork.RepositoryOf<User>().Query().FirstOrDefaultAsync(u => u.FirebaseUid == uid);
+            var user = await this.unitOfWork.RepositoryOf<User>().Query().Include(e => e.Organization).FirstOrDefaultAsync(u => u.FirebaseUid == uid);
 
             if (user == null)
                 return Result.Failure<User>(UserErrors.UserNotFound);

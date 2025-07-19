@@ -1,4 +1,5 @@
-﻿using JobFlow.Infrastructure.HttpClients;
+﻿using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
+using JobFlow.Infrastructure.HttpClients;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 
@@ -9,9 +10,11 @@ namespace JobFlow.Infrastructure.Extensions
     {
         public static IServiceCollection AddJobFlowHttpClients(this IServiceCollection services)
         {
-            services.AddHttpClient(JobFlowNamedClient.Brevo, client =>
+            services.AddHttpClient(JobFlowNamedClient.Brevo, (sp, client) =>
             {
+                var brevoSettings = sp.GetRequiredService<IBrevoSettings>();
                 client.BaseAddress = new Uri("https://api.brevo.com/v3/");
+                client.DefaultRequestHeaders.Add("api-key", brevoSettings.ApiKey);
             });
 
             return services;
