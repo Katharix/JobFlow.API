@@ -1,11 +1,6 @@
 ﻿using JobFlow.Domain.Models;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
@@ -17,11 +12,22 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
 
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-            builder.Property(x => x.Unit).IsRequired().HasMaxLength(50);
-            builder.Property(x => x.Description).HasMaxLength(1000);
-            builder.Property(x => x.Category).HasMaxLength(100);
-            builder.Property(x => x.PricePerUnit).HasColumnType("decimal(18,2)");
+            builder.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            builder.Property(x => x.Unit)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            builder.Property(x => x.Description)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.PricePerUnit)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.Type)
+                .IsRequired();
 
             builder
                 .HasOne(x => x.InventoryItem)
@@ -29,8 +35,17 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                 .HasForeignKey(x => x.InventoryItemId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            builder
+                .HasOne(x => x.Category)
+                .WithMany(c => c.Items)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Property(x => x.InventoryUnitsPerSale)
+                .HasColumnType("decimal(18,4)")
+                .HasDefaultValue(1.0m);
+
             builder.HasIndex(x => new { x.OrganizationId, x.Name }).IsUnique();
         }
     }
-
 }
