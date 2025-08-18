@@ -20,15 +20,21 @@ namespace JobFlow.Business.Services
             _logger = logger;
         }
 
-        public async Task<Result<PriceBookItem>> GetByIdAsync(int id)
+        public async Task<Result<PriceBookItem>> GetByIdAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<PriceBookItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             return item is null ? Result.Failure<PriceBookItem>(PriceBookErrors.PriceBookItemNotFound) : Result.Success(item);
         }
 
-        public async Task<Result<List<PriceBookItem>>> GetAllAsync(Guid organizationId)
+        public async Task<Result<List<PriceBookItem>>> GetAllAsync(Guid organizationId, Guid? categoryId = null)
         {
-            var items = await _uow.RepositoryOf<PriceBookItem>().Query().Where(x => x.OrganizationId == organizationId).ToListAsync();
+            var q = _uow.RepositoryOf<PriceBookItem>().Query()
+                .Where(x => x.OrganizationId == organizationId);
+
+            if (categoryId.HasValue)
+                q = q.Where(x => x.CategoryId == categoryId.Value);
+
+            var items = await q.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
             return items;
         }
 
@@ -49,7 +55,7 @@ namespace JobFlow.Business.Services
             return Result.Success(item);
         }
 
-        public async Task<Result> DeleteAsync(int id)
+        public async Task<Result> DeleteAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<PriceBookItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             if (item is null) return Result.Failure(PriceBookErrors.PriceBookItemNotFound);

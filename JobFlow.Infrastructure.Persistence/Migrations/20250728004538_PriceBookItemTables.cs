@@ -11,16 +11,19 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Remove old text Category column
             migrationBuilder.DropColumn(
                 name: "Category",
                 table: "PriceBookItems");
 
-            migrationBuilder.AddColumn<int>(
+            // Correct: CategoryId is Guid? (nullable) — NOT int
+            migrationBuilder.AddColumn<Guid>(
                 name: "CategoryId",
                 table: "PriceBookItems",
-                type: "int",
+                type: "uniqueidentifier",
                 nullable: true);
 
+            // Inventory units per sale default 1.0000
             migrationBuilder.AddColumn<decimal>(
                 name: "InventoryUnitsPerSale",
                 table: "PriceBookItems",
@@ -35,6 +38,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 nullable: false,
                 defaultValue: 0);
 
+            // Invoice number length constraint
             migrationBuilder.AlterColumn<string>(
                 name: "InvoiceNumber",
                 table: "Invoice",
@@ -44,32 +48,34 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 oldClrType: typeof(string),
                 oldType: "nvarchar(max)");
 
+            // Create PriceBookCategories with Guid PK (no IDENTITY)
             migrationBuilder.CreateTable(
                 name: "PriceBookCategories",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWSEQUENTIALID()"),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PriceBookCategories", x => x.Id);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_PriceBookItems_CategoryId",
-                table: "PriceBookItems",
-                column: "CategoryId");
-
+            // Unique name per org
             migrationBuilder.CreateIndex(
                 name: "IX_PriceBookCategories_OrganizationId_Name",
                 table: "PriceBookCategories",
                 columns: new[] { "OrganizationId", "Name" },
                 unique: true);
+
+            // FK from items -> categories
+            migrationBuilder.CreateIndex(
+                name: "IX_PriceBookItems_CategoryId",
+                table: "PriceBookItems",
+                column: "CategoryId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_PriceBookItems_PriceBookCategories_CategoryId",

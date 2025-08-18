@@ -8,7 +8,7 @@ namespace JobFlow.Domain.Models
 {
     public class PriceBookCategory
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
 
         public string Name { get; set; } = null!;

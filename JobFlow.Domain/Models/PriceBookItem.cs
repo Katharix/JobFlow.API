@@ -9,7 +9,7 @@ namespace JobFlow.Domain.Models
 {
     public class PriceBookItem
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
 
         public string Name { get; set; } = null!;
@@ -21,7 +21,7 @@ namespace JobFlow.Domain.Models
 
         public PriceBookItemType Type { get; set; }
 
-        public int? CategoryId { get; set; }
+        public Guid? CategoryId { get; set; }
         public PriceBookCategory? Category { get; set; }
 
         public bool IsTaxable { get; set; }
