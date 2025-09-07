@@ -41,7 +41,10 @@ namespace JobFlow.API.Controllers
                 Description = dto.Description,
                 Unit = dto.Unit,
                 PricePerUnit = dto.Cost,
-                Type = dto.Type,
+                Price = dto.Price,
+                Cost = dto.Cost,
+                PartNumber = dto.PartNumber,
+                ItemType = dto.Type,
                 InventoryUnitsPerSale = dto.InventoryUnitsPerSale,
                 CategoryId = dto.CategoryId
             };
@@ -60,7 +63,7 @@ namespace JobFlow.API.Controllers
                 Description = dto.Description,
                 Unit = dto.Unit,
                 PricePerUnit = dto.Cost,
-                Type = dto.Type,
+                ItemType = dto.Type,
                 InventoryUnitsPerSale = dto.InventoryUnitsPerSale,
                 CategoryId = dto.CategoryId
             };

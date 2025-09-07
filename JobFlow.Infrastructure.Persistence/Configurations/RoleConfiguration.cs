@@ -17,7 +17,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Roles");
             builder.Property(u => u.Id).HasDefaultValueSql("NEWID()");
-            builder.HasData(PopulateRoleData());
         }
 
         private IdentityRole<Guid>[] PopulateRoleData()

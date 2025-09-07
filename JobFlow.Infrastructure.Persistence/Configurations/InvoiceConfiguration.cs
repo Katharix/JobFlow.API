@@ -15,7 +15,7 @@ namespace JobFlow.Business.Configurations
                 .HasMaxLength(50);
 
             builder.Property(i => i.TotalAmount)
-                .HasColumnType("decimal(18,2)")
+                .HasPrecision(18, 2)
                 .IsRequired();
 
             builder.Property(i => i.Status)

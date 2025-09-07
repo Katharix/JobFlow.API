@@ -15,7 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<User> builder)
         {
             builder.ToTable("Users");
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
         }
     }
 }

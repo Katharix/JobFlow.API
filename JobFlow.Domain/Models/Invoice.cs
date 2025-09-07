@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class Invoice
+    public class Invoice : Entity
     {
-        public Guid Id { get; set; }
         public string InvoiceNumber { get; set; }
         public Guid OrganizationId { get; set; }
         public Guid OrganizationClientId { get; set; }
@@ -17,12 +16,10 @@ namespace JobFlow.Domain.Models
         public DateTime InvoiceDate { get; set; }
         public DateTime DueDate { get; set; }
         public decimal TotalAmount { get; set; }
-
         public decimal AmountPaid { get; set; }
         public decimal BalanceDue => TotalAmount - AmountPaid;
         public InvoiceStatus Status { get; set; }
         public string? StripeInvoiceId { get; set; }
-
         public virtual OrganizationClient OrganizationClient { get; set; }
         public virtual Order Order { get; set; }
         public virtual ICollection<PaymentHistory> Payments { get; set; }

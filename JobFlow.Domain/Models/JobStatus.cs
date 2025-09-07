@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class JobStatus
+    public class JobStatus : Entity
     {
-        public Guid Id { get; set; }
         public string Status { get; set; }
     }
 }

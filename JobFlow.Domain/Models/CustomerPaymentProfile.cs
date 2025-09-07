@@ -8,16 +8,14 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class CustomerPaymentProfile
+    public class CustomerPaymentProfile : Entity
     {
-        public Guid Id { get; set; }
         public Guid OwnerId { get; set; }
         public PaymentEntityType OwnerType { get; set; }
         public PaymentProvider Provider { get; set; }
         public string ProviderCustomerId { get; set; } = string.Empty;
         public string? DefaultPaymentMethodId { get; set; }
         public bool IsDelinquent { get; set; } = false;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
 }

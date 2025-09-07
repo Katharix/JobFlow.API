@@ -16,7 +16,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
             builder.ToTable("PriceBookCategories");
 
             builder.HasKey(x => x.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
 
             builder.Property(x => x.Name)
                 .IsRequired()

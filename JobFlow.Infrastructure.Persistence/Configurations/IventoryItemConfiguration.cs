@@ -21,7 +21,7 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Unit).IsRequired().HasMaxLength(50);
             builder.Property(x => x.Description).HasMaxLength(1000);
             builder.Property(x => x.Category).HasMaxLength(100);
-            builder.Property(x => x.CostPerUnit).HasColumnType("decimal(18,2)");
+            builder.Property(x => x.CostPerUnit).HasPrecision(18, 2);
 
             builder.HasIndex(x => new { x.OrganizationId, x.Name }).IsUnique();
         }

@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -56,6 +57,10 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 builder.Services.AddControllers()
+       .AddJsonOptions(options =>
+       {
+           options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+       })
     .ConfigureApiBehaviorOptions(options => options.SuppressMapClientErrors = false);
 
 builder.Services.AddProblemDetails();

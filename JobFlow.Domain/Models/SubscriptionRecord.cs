@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-        public class SubscriptionRecord
+        public class SubscriptionRecord : Entity
         {
-            public Guid Id { get; set; }
             public Guid PaymentProfileId { get; set; }
             public string ProviderSubscriptionId { get; set; } = string.Empty;
             public string ProviderPriceId { get; set; } = string.Empty;

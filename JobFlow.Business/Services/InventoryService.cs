@@ -25,7 +25,7 @@ namespace JobFlow.Business.Services
             _logger = logger;
         }
 
-        public async Task<Result<InventoryItem>> GetByIdAsync(int id)
+        public async Task<Result<InventoryItem>> GetByIdAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<InventoryItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             return item is null ? Result.Failure<InventoryItem>(InventoryErrors.InventoryItemNotFound) : Result.Success(item);
@@ -54,7 +54,7 @@ namespace JobFlow.Business.Services
             return Result.Success(item);
         }
 
-        public async Task<Result> DeleteAsync(int id)
+        public async Task<Result> DeleteAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<InventoryItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             if (item is null) return Result.Failure<InventoryItem>(InventoryErrors.InventoryItemNotFound);

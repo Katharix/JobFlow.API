@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class OrganizationType
+    public class OrganizationType : Entity
     {
-        public Guid Id { get; set; }
         public string TypeName { get; set; } 
     }
 }

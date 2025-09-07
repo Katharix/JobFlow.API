@@ -17,7 +17,7 @@ public class InventoryController : ControllerBase
         }
 
         [HttpGet("{id}")]
-        public async Task<IResult> Get(int id)
+        public async Task<IResult> Get(Guid id)
         {
             var result = await _service.GetByIdAsync(id);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
@@ -45,7 +45,7 @@ public class InventoryController : ControllerBase
         }
 
         [HttpDelete("{id}")]
-        public async Task<IResult> Delete(int id)
+        public async Task<IResult> Delete(Guid id)
         {
             var result = await _service.DeleteAsync(id);
             return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();

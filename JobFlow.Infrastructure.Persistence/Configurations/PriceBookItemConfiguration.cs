@@ -11,7 +11,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
             builder.ToTable("PriceBookItems");
 
             builder.HasKey(x => x.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             builder.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(200);
@@ -24,9 +23,11 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                 .HasMaxLength(1000);
 
             builder.Property(x => x.PricePerUnit)
-                .HasColumnType("decimal(18,2)");
+                .HasPrecision(18, 2);
+            builder.Property(x => x.Cost).HasPrecision(18, 2);
+            builder.Property(x => x.Price).HasPrecision(18, 2);
 
-            builder.Property(x => x.Type)
+            builder.Property(x => x.ItemType)
                 .IsRequired();
 
             builder

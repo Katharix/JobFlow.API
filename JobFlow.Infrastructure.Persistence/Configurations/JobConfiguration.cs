@@ -15,7 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Job");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
         }
     }
 }

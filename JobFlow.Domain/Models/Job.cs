@@ -7,14 +7,12 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class Job
+    public class Job : Entity
     {
-        public Guid Id { get; set; }
         public Guid JobStatusId { get; set; }
         public DateTime ScheduledDate { get; set; }
         public DateTime ScheduledTime { get; set; }
         public string Comments { get; set; }
-
         public virtual JobStatus JobStatus { get; set; }
         public virtual ICollection<OrganizationClientJob> OrganizationClientJobs { get; set; }
         public virtual ICollection<JobOrder> JobOrders { get; set; } = new List<JobOrder>();

@@ -15,9 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("OrganizationType");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
-
-            builder.HasData(PopulateOrganizationTypeData());
         }
 
         private OrganizationType[] PopulateOrganizationTypeData()

@@ -2,11 +2,9 @@
 
 namespace JobFlow.Domain.Models
 {
-    public class Organization
+    public class Organization : Entity
     {
-        public Guid Id { get; set; }
         public Guid OrganizationTypeId { get; set; }
-
         public string? ZipCode { get; set; }
         public string? OrganizationName { get; set; }
         public string? Address1 { get; set; }
@@ -17,12 +15,9 @@ namespace JobFlow.Domain.Models
         public string? EmailAddress { get; set; }
         public decimal DefaultTaxRate { get; set; } = 0.00m;
         public bool EnableTax { get; set; } = false;
-
         public bool HasFreeAccount { get; set; }
         public bool OnBoardingComplete { get; set; }
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
-
-
         public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
         public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
