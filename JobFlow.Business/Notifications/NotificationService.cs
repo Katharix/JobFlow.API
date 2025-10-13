@@ -83,6 +83,24 @@ namespace JobFlow.Business.Notifications
             await SendNotificationAsync(message);
         }
 
+        public async Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes)
+        {
+            var message = _builder.BuildClientJobTrackingEta(client, job, etaMinutes);
+            await SendNotificationAsync(message);
+        }
+
+        public async Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job)
+        {
+            var message = _builder.BuildClientJobTrackingArrival(client, job);
+            await SendNotificationAsync(message);
+        }
+
+        public async Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite)
+        {
+           var message = _builder.BuildEmployeeInvite(invite);
+            await SendNotificationAsync(message);
+        }
+
         /// <summary>
         /// Shared helper for sending email and SMS.
         /// </summary>
@@ -95,7 +113,7 @@ namespace JobFlow.Business.Notifications
                     Email = message.Email,
                     Name = message.Name,
                     Message = message.Body,
-                    TemplateId = message.TemplateId,
+                    TemplateId = (int)message.TemplateId,
                     Link = message.Link
                 });
 
@@ -112,6 +130,5 @@ namespace JobFlow.Business.Notifications
                     message.Subject, message.Name, message.Email);
             }
         }
-
     }
 }

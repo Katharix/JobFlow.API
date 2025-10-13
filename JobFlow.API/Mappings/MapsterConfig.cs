@@ -1,0 +1,44 @@
+﻿using JobFlow.API.Models;
+using JobFlow.Business.Models.DTOs;
+using JobFlow.Domain.Models;
+using Mapster;
+
+namespace JobFlow.API.Mappings
+{
+    public class MapsterConfig : IRegister
+    {
+        public void Register(TypeAdapterConfig config)
+        {
+            // EmployeeInvite → DTO
+            config.NewConfig<EmployeeInvite, EmployeeInviteDto>()
+                .Map(dest => dest.FullName, src => $"{src.FirstName} {src.LastName}".Trim());
+
+            // DTO → EmployeeInvite
+            config.NewConfig<EmployeeInviteDto, EmployeeInvite>();
+
+            // Employee → DTO
+            config.NewConfig<Employee, EmployeeDto>();
+
+            // DTO → Employee
+            config.NewConfig<EmployeeDto, Employee>();
+
+            //EmployeeRole → DTO
+            config.NewConfig<EmployeeRole, EmployeeRoleDto>();
+
+            // Organization → DTO
+            config.NewConfig<Organization, OrganizationDto>();
+
+            //OrganizationBranding → DTO
+            config.NewConfig<OrganizationBranding, BrandingDto>();
+
+            //OrganizationClient → DTO
+            config.NewConfig<OrganizationClient, OrganizationClientDto>();
+
+            //Invoice → DTO
+            config.NewConfig<Invoice, InvoiceDto>();
+
+            //InvoiceLineItem → DTO
+            config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
+        }
+    }
+}

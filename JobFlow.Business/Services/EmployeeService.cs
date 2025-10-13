@@ -35,7 +35,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<EmployeeDto>> CreateAsync(CreateEmployeeRequest request)
         {
-            var org = await _orgRepo.Query().FirstOrDefaultAsync(e => e.Id == request.OrganizationId);
+            var org = await _orgRepo.Query().Include(e => e.EmployeeRoles).FirstOrDefaultAsync(e => e.Id == request.OrganizationId);
             if (org == null)
                 return Result.Failure<EmployeeDto>(EmployeeErrors.InvalidOrganization);
 
@@ -93,6 +93,7 @@ namespace JobFlow.Business.Services
         {
             var employee = await _employeeRepo.Query()
                 .AsNoTracking()
+                .Include(e => e.Role)
                 .FirstOrDefaultAsync(e => e.Id == employeeId);
 
             return employee is null
@@ -104,6 +105,7 @@ namespace JobFlow.Business.Services
         {
             var employees = await _employeeRepo.Query()
                 .AsNoTracking()
+                .Include(e => e.Role)
                 .Where(e => e.OrganizationId == organizationId)
                 .ToListAsync();
 

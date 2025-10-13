@@ -1,5 +1,7 @@
 ﻿using JobFlow.Business.DI;
+using JobFlow.Business.Notifications.Enums;
 using JobFlow.Business.Notifications.Models;
+using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Notifications.Builders
@@ -7,6 +9,13 @@ namespace JobFlow.Business.Notifications.Builders
     [ScopedService]
     public class NotificationMessageBuilder : INotificationMessageBuilder
     {
+        private readonly IFrontendSettings _frontendSettings;
+        private readonly string baseUrl;
+        public NotificationMessageBuilder(IFrontendSettings frontendSettings) 
+        {
+            this._frontendSettings = frontendSettings;
+            this.baseUrl = _frontendSettings.BaseUrl;
+        }
         public NotificationMessage BuildOrganizationWelcome(Organization org)
            => new NotificationMessage
            {
@@ -14,7 +23,7 @@ namespace JobFlow.Business.Notifications.Builders
                Email = org.EmailAddress,
                Phone = org.PhoneNumber,
                Subject = "Welcome to JobFlow!",
-               TemplateId = 2,
+               TemplateId = EmailTemplate.OrganizationWelcome,
                Body = $"Hello {org.OrganizationName}, welcome aboard! We're excited to have you.",
                Sms = $"Welcome to Job Flow, {org.OrganizationName}!"
            };
@@ -59,8 +68,8 @@ namespace JobFlow.Business.Notifications.Builders
                 Email = client.EmailAddress,
                 Phone = client.PhoneNumber,
                 Subject = $"{client.Organization.OrganizationName} scheduled an appointment for you.",
-                Body = $"Your appointment was scheduled for {job.ScheduledDate:MMMM dd, yyyy}.",
-                Sms = $"Appointment scheduled for {job.ScheduledDate:MM/dd/yyyy}."
+                Body = $"Your appointment was scheduled for {job.ScheduledStart:MMMM dd, yyyy}.",
+                Sms = $"Appointment scheduled for {job.ScheduledStart:MM/dd/yyyy}."
             };
 
         public NotificationMessage BuildClientJobScheduled(OrganizationClient client, Job job)
@@ -70,8 +79,8 @@ namespace JobFlow.Business.Notifications.Builders
                 Email = client.EmailAddress,
                 Phone = client.PhoneNumber,
                 Subject = $"Appointment Scheduled",
-                Body = $"Reminder: your appointment is scheduled for {job.ScheduledDate:MMMM dd, yyyy} at {job.ScheduledDate:hh:mm tt}.",
-                Sms = $"Reminder: appointment on {job.ScheduledDate:MM/dd/yyyy}."
+                Body = $"Reminder: your appointment is scheduled for {job.ScheduledStart:MMMM dd, yyyy} at {job.ScheduledStart:hh:mm tt}.",
+                Sms = $"Reminder: appointment on {job.ScheduledStart:MM/dd/yyyy}."
             };
 
         public NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice)
@@ -83,8 +92,8 @@ namespace JobFlow.Business.Notifications.Builders
                 Subject = $"Invoice Created: #{invoice.Id}",
                 Body = $"Your invoice #{invoice.Id} for {invoice.TotalAmount:C} is ready.",
                 Sms = $"Invoice #{invoice.Id} ready: {invoice.TotalAmount:C}.",
-                TemplateId = 3,
-                Link = $"http://localhost:4200/invoice/view/{invoice.Id}"
+                TemplateId = EmailTemplate.InvoiceCreated,
+                Link = $"{this.baseUrl}/invoice/view/{invoice.Id}"
             };
 
         public NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice)
@@ -97,5 +106,57 @@ namespace JobFlow.Business.Notifications.Builders
                 Body = $"We have received your payment for invoice #{invoice.Id}. Thank you!",
                 Sms = $"Payment received for invoice #{invoice.Id}."
             };
+        public NotificationMessage BuildClientJobTrackingEta(OrganizationClient client, Job job, int etaMinutes)
+        {
+            return new NotificationMessage
+            {
+                Email = client.EmailAddress,
+                Phone = client.PhoneNumber,
+                Name = client.ClientFullName(),
+                Subject = $"Your worker is on the way for {job.Title}",
+                Body = $"Hello {client.ClientFullName()},\n\nYour JobFlow worker is about {etaMinutes} minutes away for your job: {job.Title}.",
+                Sms = $"Your JobFlow worker is about {etaMinutes} minutes away for {job.Title}. ",
+                TemplateId = EmailTemplate.Default
+            };
+        }
+
+        public NotificationMessage BuildClientJobTrackingArrival(OrganizationClient client, Job job)
+        {
+            return new NotificationMessage
+            {
+                Email = client.EmailAddress,
+                Phone = client.PhoneNumber,
+                Name = client.ClientFullName(),
+                Subject = $"Your worker has arrived for {job.Title}",
+                Body = $"Hello {client.ClientFullName()},\n\nYour JobFlow worker has arrived at your location for job: {job.Title}.",
+                Sms = $"Your JobFlow worker has arrived for {job.Title}. ",
+                TemplateId = EmailTemplate.Default
+            };
+        }
+
+        public NotificationMessage BuildEmployeeInvite(EmployeeInvite invite)
+        {
+            return new NotificationMessage
+            {
+                Email = invite.Email,
+                Name = invite.FullName,
+                Phone = invite.PhoneNumber,
+                Subject = $"You're invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}",
+                Body = $"""
+                    Hello {invite.FullName},
+
+                    You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}.
+                    Click below to accept your invitation:
+                    {this.baseUrl}/i/{invite.ShortCode}
+                    {this.baseUrl}/invite/{invite.InviteToken}
+
+                    This link will expire on {invite.ExpiresAt:MMM dd, yyyy}.
+                """,
+                Sms = $"You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}! Accept your invite: ",
+                Link = $"{this.baseUrl}/invite/{invite.InviteToken}",
+                TemplateId = EmailTemplate.OrganizationWelcome
+            };
+        }
+
     }
 }

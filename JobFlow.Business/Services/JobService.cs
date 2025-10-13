@@ -22,7 +22,7 @@ namespace JobFlow.Business.Services
             this.jobs = unitOfWork.RepositoryOf<Job>();
         }
 
-        public async Task<Result<Job>> GetJobByIdAsync(Guid id)
+        public async Task<Result<Job>> GetJobByIdAsync(Guid id, Guid OrganizationId)
         {
             var job = await jobs.Query().FirstOrDefaultAsync(j => j.Id == id);
             if (job == null)
@@ -31,7 +31,7 @@ namespace JobFlow.Business.Services
             return Result<Job>.Success(job);
         }
 
-        public async Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(Guid statusId)
+        public async Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(Guid organizationId, Guid statusId)
         {
             var list = await jobs.Query().Where(j => j.JobStatusId == statusId).ToListAsync();
             return Result<IEnumerable<Job>>.Success(list.AsEnumerable());
@@ -69,7 +69,7 @@ namespace JobFlow.Business.Services
 
             // Fetch jobs scheduled within that day
             var list = await jobs.Query()
-                .Where(j => j.ScheduledDate >= start && j.ScheduledDate < end)
+                .Where(j => j.ScheduledStart >= start && j.ScheduledStart < end)
                 .ToListAsync();
 
             return Result<IEnumerable<Job>>.Success(list.AsEnumerable());

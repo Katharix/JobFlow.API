@@ -19,5 +19,11 @@ namespace JobFlow.Business.Notifications.Builders
         NotificationMessage BuildClientJobScheduled(OrganizationClient client, Job job);
         NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice);
         NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice);
+
+        NotificationMessage BuildClientJobTrackingEta(OrganizationClient client, Job job, int etaMinutes);
+        NotificationMessage BuildClientJobTrackingArrival(OrganizationClient client, Job job);
+
+        NotificationMessage BuildEmployeeInvite(EmployeeInvite invite);
+
     }
 }

@@ -6,7 +6,9 @@ using Hangfire;
 using Hangfire.SqlServer;
 using JobFlow.API.Constants;
 using JobFlow.API.Hubs;
+using JobFlow.API.Mappings;
 using JobFlow.Business.DI;
+using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain;
@@ -31,6 +33,12 @@ builder.Configuration
     .SetBasePath(env.ContentRootPath)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+
+builder.Services.Configure<FrontEndSettings>(
+    builder.Configuration.GetSection("Frontend"));
+
+builder.Services.AddSingleton<IFrontendSettings>(sp =>
+    sp.GetRequiredService<IOptions<FrontEndSettings>>().Value);
 
 var tempConfig = new ConfigurationBuilder()
     .SetBasePath(env.ContentRootPath)
@@ -67,7 +75,22 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 builder.Services.AddAuthentication();
 
-var appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
+string? appConnectionString;
+
+if (env.IsDevelopment())
+{
+    // Use local DB during development
+    appConnectionString = builder.Configuration.GetConnectionString("JobFlowDB");
+    if (string.IsNullOrWhiteSpace(appConnectionString))
+        throw new InvalidOperationException("JobFlowDB connection string is missing in appsettings.Development.json.");
+}
+else
+{
+    // Use secure connection string from Key Vault or environment
+    appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
+    if (string.IsNullOrWhiteSpace(appConnectionString))
+        throw new InvalidOperationException($"Missing Key Vault connection string: {ConfigConstants.APP_CONNECTIONSTRING_NAME}");
+}
 
 builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSqlServer(appConnectionString,
     b =>
@@ -130,6 +153,8 @@ builder.Services.AddCors(op =>
     });
 });
 
+
+
 builder.Services.Configure<StripeSettings>(options =>
 {
     options.ApiKey = builder.Configuration[$"StripeSettings-ApiKey"] ?? "";
@@ -168,6 +193,9 @@ builder.Services.AddSingleton<IStripeSettings>(sp => sp.GetRequiredService<IOpti
 builder.Services.AddSingleton<IBrevoSettings>(sp => sp.GetRequiredService<IOptions<BrevoSettings>>().Value);
 builder.Services.AddSingleton<IReCAPTCHASettings>(sp => sp.GetRequiredService<IOptions<ReCAPTCHASettings>>().Value);
 builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOptions<SquareSettings>>().Value);
+builder.Services.AddMapsterConfiguration();
+
+
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 
 builder.Services.AddJobFlowHttpClients();

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JobFlow.Business.Notifications.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,6 @@ namespace JobFlow.Business.Notifications.Models
         public string? Body { get; set; }
         public string? Sms { get; set; }
         public string? Link { get; set; }
-        public int? TemplateId { get; set; }
+        public EmailTemplate? TemplateId { get; set; }
     }
 }

@@ -19,7 +19,7 @@ namespace JobFlow.Web.Controllers
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
-        [HttpGet("{id:int}")]
+        [HttpGet("{id:Guid}")]
         public async Task<IResult> GetById(Guid organizationId, Guid id)
         {
             var result = await _service.GetByIdAsync(id);
@@ -36,7 +36,7 @@ namespace JobFlow.Web.Controllers
             return Results.Created(location, result.Value);
         }
 
-        [HttpPut("{id:int}")]
+        [HttpPut("{id:Guid}")]
         public async Task<IResult> Update(Guid organizationId, Guid id, [FromBody] PriceBookCategory body)
         {
             body.Id = id;
@@ -45,7 +45,7 @@ namespace JobFlow.Web.Controllers
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("{id:Guid}")]
         public async Task<IResult> Delete(Guid organizationId, Guid id)
         {
             var result = await _service.DeleteAsync(id);
