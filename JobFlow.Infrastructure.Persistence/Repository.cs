@@ -20,14 +20,10 @@ namespace JobFlow.Infrastructure.Persistence
             _dbSet = context.Set<T>();
         }
 
+        // 🔹 Query
         public IQueryable<T> Query(Expression<Func<T, bool>> filter = null)
         {
-            IQueryable<T> query = _dbSet;
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-            return query;
+            return filter != null ? _dbSet.Where(filter) : _dbSet;
         }
 
         public IQueryable<T> QueryWithNoTracking()
@@ -35,41 +31,57 @@ namespace JobFlow.Infrastructure.Persistence
             return _dbSet.AsNoTracking();
         }
 
-        public void Add(T item)
-        {
-            _dbSet.Add(item);
+        // 🔹 Create
+        public void Add(T item) => _dbSet.Add(item);
+        public async Task AddAsync(T item) => await _dbSet.AddAsync(item);
 
-        }
-        public async Task AddAsync(T item)
-        {
-            await _dbSet.AddAsync(item);
+        public void AddRange(IEnumerable<T> items) => _dbSet.AddRange(items);
+        public async Task AddRangeAsync(IEnumerable<T> items) => await _dbSet.AddRangeAsync(items);
 
-        }
-
-        public void AddRange(IEnumerable<T> items)
-        {
-            _dbSet.AddRange(items);
-        }
-
-        public void Remove(T item)
-        {
-            _dbSet.Remove(item);
-        }
-
-        public void RemoveRange(IEnumerable<T> items)
-        {
-            _dbSet.RemoveRange(items);
-        }
-
-        public void Update(T item)
+        // 🔹 Update
+        public void Update(T item) => _dbSet.Update(item);
+        public Task UpdateAsync(T item)
         {
             _dbSet.Update(item);
+            return Task.CompletedTask;
         }
 
-        public void UpdateRange(IEnumerable<T> items)
+        public void UpdateRange(IEnumerable<T> items) => _dbSet.UpdateRange(items);
+        public Task UpdateRangeAsync(IEnumerable<T> items)
         {
             _dbSet.UpdateRange(items);
+            return Task.CompletedTask;
         }
 
+        // 🔹 Delete
+        public void Remove(T item) => _dbSet.Remove(item);
+        public Task RemoveAsync(T item)
+        {
+            _dbSet.Remove(item);
+            return Task.CompletedTask;
+        }
+
+        public void RemoveRange(IEnumerable<T> items) => _dbSet.RemoveRange(items);
+        public Task RemoveRangeAsync(IEnumerable<T> items)
+        {
+            _dbSet.RemoveRange(items);
+            return Task.CompletedTask;
+        }
+
+        // 🔹 Read Helpers
+        public async Task<T> GetByIdAsync(Guid id)
+        {
+            return await _dbSet.FindAsync(id);
+        }
+
+        public async Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.FirstOrDefaultAsync(predicate);
+        }
+
+        public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbSet.AnyAsync(predicate);
+        }
     }
 }

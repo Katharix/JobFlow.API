@@ -2,6 +2,7 @@
 using JobFlow.Business.Extensions;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JobFlow.Api.Controllers
 {
@@ -16,6 +17,7 @@ namespace JobFlow.Api.Controllers
             _userService = userService;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IResult> GetAll()
         {
@@ -23,6 +25,7 @@ namespace JobFlow.Api.Controllers
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IResult> GetById(Guid id)
         {
@@ -37,6 +40,7 @@ namespace JobFlow.Api.Controllers
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IResult> Delete(Guid id)
         {
@@ -51,6 +55,7 @@ namespace JobFlow.Api.Controllers
             return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
         }
 
+        [Authorize]
         [HttpGet("firebase/{uid}")]
         public async Task<IResult> GetByFirebaseUid(string uid)
         {

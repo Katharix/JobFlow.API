@@ -1,11 +1,6 @@
 ﻿using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
@@ -14,7 +9,20 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<Job> builder)
         {
             builder.ToTable("Job");
+
             builder.HasKey(e => e.Id);
+
+            builder.Property(e => e.Title)
+                .HasMaxLength(200);
+
+            builder.Property(e => e.Comments)
+                .HasMaxLength(2000);
+
+            // ✅ Relationship with OrganizationClient
+            builder.HasOne(j => j.OrganizationClient)
+                   .WithMany(c => c.Jobs) // assuming you added ICollection<Job> Jobs to OrganizationClient
+                   .HasForeignKey(j => j.OrganizationClientId)
+                   .OnDelete(DeleteBehavior.Restrict); // 👈 avoids multiple cascade paths
         }
     }
 }

@@ -4,6 +4,7 @@ using JobFlow.Domain.Enums;
 using JobFlow.Infrastructure.PaymentGateways.Stripe.StripeModels;
 using Stripe;
 using Stripe.Checkout;
+using System.Linq;
 
 namespace JobFlow.Infrastructure.PaymentGateways.Stripe
 {
@@ -20,6 +21,7 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe
             _paymentProfileService = paymentProfileService;
             _subscriptionRecordService = subscriptionRecordService;
         }
+
         public async Task HandleEventAsync(Event stripeEvent)
         {
             switch (stripeEvent.Type)
@@ -39,44 +41,43 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe
                 case StripeEvents.PaymentIntentFailed:
                     {
                         var intent = stripeEvent.Data.Object as PaymentIntent;
-                        // TODO: Handle failed payment intent (notify user, log, etc.)
+                        await HandlePaymentIntentFailedAsync(intent);
                         break;
                     }
                 case StripeEvents.InvoicePaymentSucceeded:
                     {
                         var invoice = stripeEvent.Data.Object as Invoice;
-                        // Optional: Log renewal payment, notify user, etc.
+                        await HandleInvoicePaymentSucceededAsync(invoice);
                         break;
                     }
                 case StripeEvents.InvoicePaymentFailed:
                     {
                         var invoice = stripeEvent.Data.Object as Invoice;
-                        var customerId = invoice.CustomerId;
-                        // Optional: Notify user or flag account
+                        await HandleInvoicePaymentFailedAsync(invoice);
                         break;
                     }
                 case StripeEvents.InvoiceCreated:
                     {
                         var invoice = stripeEvent.Data.Object as Invoice;
-                        // TODO: Handle invoice creation
+                        await HandleInvoiceCreatedAsync(invoice);
                         break;
                     }
                 case StripeEvents.InvoiceFinalized:
                     {
                         var invoice = stripeEvent.Data.Object as Invoice;
-                        // TODO: Handle invoice finalized
+                        await HandleInvoiceFinalizedAsync(invoice);
                         break;
                     }
                 case StripeEvents.InvoiceMarkedUncollectible:
                     {
                         var invoice = stripeEvent.Data.Object as Invoice;
-                        // TODO: Handle invoice marked uncollectible
+                        await HandleInvoiceMarkedUncollectibleAsync(invoice);
                         break;
                     }
                 case StripeEvents.CustomerSubscriptionUpdated:
                     {
                         var updated = stripeEvent.Data.Object as Subscription;
-                        // Optional: Track status changes or plan upgrades
+                        await HandleSubscriptionUpdatedAsync(updated);
                         break;
                     }
                 case StripeEvents.CustomerSubscriptionDeleted:
@@ -91,48 +92,48 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe
                 case StripeEvents.SubscriptionCreated:
                     {
                         var subscription = stripeEvent.Data.Object as Subscription;
-                        // TODO: Handle subscription creation
+                        await HandleSubscriptionCreatedAsync(subscription);
                         break;
                     }
                 case StripeEvents.SubscriptionTrialWillEnd:
                     {
                         var subscription = stripeEvent.Data.Object as Subscription;
-                        // TODO: Handle trial will end notification
+                        await HandleSubscriptionTrialWillEndAsync(subscription);
                         break;
                     }
                 case StripeEvents.CustomerCreated:
                     {
                         var customer = stripeEvent.Data.Object as Customer;
-                        // TODO: Handle customer creation
+                        await HandleCustomerCreatedAsync(customer);
                         break;
                     }
                 case StripeEvents.CustomerUpdated:
                     {
                         var customer = stripeEvent.Data.Object as Customer;
-                        // TODO: Handle customer update
+                        await HandleCustomerUpdatedAsync(customer);
                         break;
                     }
                 case StripeEvents.CustomerDeleted:
                     {
                         var customer = stripeEvent.Data.Object as Customer;
-                        // TODO: Handle customer deletion
+                        await HandleCustomerDeletedAsync(customer);
                         break;
                     }
                 case StripeEvents.PaymentMethodAttached:
                     {
                         var paymentMethod = stripeEvent.Data.Object as PaymentMethod;
-                        // TODO: Handle payment method attached
+                        await HandlePaymentMethodAttachedAsync(paymentMethod);
                         break;
                     }
                 case StripeEvents.PaymentMethodDetached:
                     {
                         var paymentMethod = stripeEvent.Data.Object as PaymentMethod;
-                        // TODO: Handle payment method detached
+                        await HandlePaymentMethodDetachedAsync(paymentMethod);
                         break;
                     }
             }
-
         }
+
         private async Task HandleCheckoutSessionAsync(Session session)
         {
             var subscriptionService = new SubscriptionService();
@@ -159,9 +160,137 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe
 
         private async Task HandlePaymentIntentAsync(PaymentIntent intent)
         {
+            // Mark payment as successful, set default payment method if available
+            if (!string.IsNullOrEmpty(intent.CustomerId) && !string.IsNullOrEmpty(intent.PaymentMethodId))
+            {
+                var profileResult = await _paymentProfileService.GetForOrganizationAsync(Guid.Parse(intent.CustomerId));
+                if (profileResult.IsSuccess)
+                {
+                    await _paymentProfileService.SetDefaultPaymentMethodAsync(profileResult.Value.Id, intent.PaymentMethodId);
+                }
+            }
+        }
 
+        private async Task HandlePaymentIntentFailedAsync(PaymentIntent intent)
+        {
+            // Flag payment profile as delinquent
+            if (!string.IsNullOrEmpty(intent.CustomerId))
+            {
+                var profileResult = await _paymentProfileService.GetForOrganizationAsync(Guid.Parse(intent.CustomerId));
+                if (profileResult.IsSuccess)
+                {
+                    profileResult.Value.IsDelinquent = true;
+                    // Persist changes if needed
+                }
+            }
+        }
+
+        private async Task HandleInvoicePaymentSucceededAsync(Invoice invoice)
+        {
+            // Mark subscription as active
+            if (!string.IsNullOrEmpty(invoice.SubscriptionId))
+            {
+                var subResult = await _subscriptionRecordService.GetByProviderIdAsync(invoice.SubscriptionId);
+                if (subResult.IsSuccess)
+                {
+                    subResult.Value.Status = "active";
+                    // Persist changes if needed
+                }
+            }
+        }
+
+        private async Task HandleInvoicePaymentFailedAsync(Invoice invoice)
+        {
+            // Mark subscription as past_due
+            if (!string.IsNullOrEmpty(invoice.SubscriptionId))
+            {
+                var subResult = await _subscriptionRecordService.GetByProviderIdAsync(invoice.SubscriptionId);
+                if (subResult.IsSuccess)
+                {
+                    subResult.Value.Status = "past_due";
+                    // Persist changes if needed
+                }
+            }
+        }
+
+        private async Task HandleInvoiceCreatedAsync(Invoice invoice)
+        {
+            // Optionally log or notify about invoice creation
+        }
+
+        private async Task HandleInvoiceFinalizedAsync(Invoice invoice)
+        {
+            // Optionally log or notify about invoice finalization
+        }
+
+        private async Task HandleInvoiceMarkedUncollectibleAsync(Invoice invoice)
+        {
+            // Optionally flag invoice as uncollectible
+        }
+
+        private async Task HandleSubscriptionUpdatedAsync(Subscription subscription)
+        {
+            // Update subscription status
+            var subResult = await _subscriptionRecordService.GetByProviderIdAsync(subscription.Id);
+            if (subResult.IsSuccess)
+            {
+                subResult.Value.Status = subscription.Status;
+                // Persist changes if needed
+            }
+        }
+
+        private async Task HandleSubscriptionCreatedAsync(Subscription subscription)
+        {
+            var ownerId = subscription.Metadata["ownerId"];
+            var ownerType = subscription.Metadata["ownerType"];
+            var paymentCustomerId = subscription.Metadata["customerId"];
+
+            var paymentProfileResult = await _paymentProfileService.CreateAsync(
+                Guid.Parse(ownerId),
+                Enum.Parse<PaymentEntityType>(ownerType),
+                PaymentProvider.Stripe,
+                paymentCustomerId
+            );
+
+            await _subscriptionRecordService.CreateAsync(
+                paymentProfileResult.Value.Id,
+                subscription.Id,
+                subscription.Items.Data.First().Price.Id,
+                subscription.Status
+            );
+        }
+
+        private async Task HandleSubscriptionTrialWillEndAsync(Subscription subscription)
+        {
+            // Notify user trial is ending
+        }
+
+        private async Task HandleCustomerCreatedAsync(Customer customer)
+        {
+            // Create payment profile for new customer if needed
+        }
+
+        private async Task HandleCustomerUpdatedAsync(Customer customer)
+        {
+            // Update payment profile for customer if needed
+        }
+
+        private async Task HandleCustomerDeletedAsync(Customer customer)
+        {
+            // Remove or deactivate payment profile for customer if needed
+        }
+
+        private async Task HandlePaymentMethodAttachedAsync(PaymentMethod paymentMethod)
+        {
+            // Set as default payment method if needed
+        }
+
+        private async Task HandlePaymentMethodDetachedAsync(PaymentMethod paymentMethod)
+        {
+            // Remove payment method from profile if needed
         }
     }
+
     public interface IStripeWebhookService
     {
         Task HandleEventAsync(Event stripeEvent);

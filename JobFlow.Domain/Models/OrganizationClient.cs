@@ -15,9 +15,11 @@ namespace JobFlow.Domain.Models
         public string? ZipCode { get; set; }
 
         public virtual Organization Organization { get; set; }
-        public virtual ICollection<OrganizationClientJob> OrganizationClientJobs { get; set; }
-        public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
 
+        // ✅ Replace the old join collection with a direct Jobs collection
+        public virtual ICollection<Job> Jobs { get; set; } = new List<Job>();
+
+        public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
 
         public string ClientFullName()
         {

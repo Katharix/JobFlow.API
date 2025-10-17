@@ -41,37 +41,36 @@ namespace JobFlow.Infrastructure.Scheduling
                 return;
             }
 
-            // 2) Flatten to all OrganizationClient–Job pairs
-            var clientJobs = result.Value
-                .SelectMany(org => org.OrganizationClientJobs)  // each has OrganizationClient + Job
-                .ToList();
+            // 2) Get jobs directly (no need to go through JobOrders)
+            var jobs = result.Value.ToList();
 
-            if (!clientJobs.Any())
+            if (!jobs.Any())
             {
-                _logger.LogInformation("No client jobs found for {Date}", targetDate);
+                _logger.LogInformation("No jobs found for {Date}", targetDate);
                 return;
             }
 
             // 3) Fire off notifications in parallel
-            var notifyTasks = clientJobs.Select(async ocj =>
+            var notifyTasks = jobs.Select(async job =>
             {
                 try
                 {
                     await _notifications.SendClientJobScheduledNotificationAsync(
-                        ocj.OrganizationClient,
-                        ocj.Job);
+                        job.OrganizationClient,   // ✅ direct navigation
+                        job);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex,
                         "Error sending scheduled reminder for JobId={JobId}, ClientId={ClientId}",
-                        ocj.Job.Id,
-                        ocj.OrganizationClient.Id);
+                        job.Id,
+                        job.OrganizationClientId);
                 }
             });
 
             await Task.WhenAll(notifyTasks);
         }
+
 
     }
 }

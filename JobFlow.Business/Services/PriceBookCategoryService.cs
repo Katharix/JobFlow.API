@@ -6,6 +6,7 @@ using JobFlow.Domain;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using global::JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Business.Models.DTOs;
 
 namespace JobFlow.Business.Services
 {
@@ -25,7 +26,6 @@ namespace JobFlow.Business.Services
         {
             var entity = await _uow.RepositoryOf<PriceBookCategory>()
                 .Query()
-                .Include(x => x.Items)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             return entity is null
@@ -33,12 +33,21 @@ namespace JobFlow.Business.Services
                 : Result.Success(entity);
         }
 
-        public async Task<Result<List<PriceBookCategory>>> GetAllAsync(Guid organizationId)
+        public async Task<Result<List<PriceBookCategoryDto>>> GetAllAsync(Guid organizationId)
         {
             var items = await _uow.RepositoryOf<PriceBookCategory>()
                 .Query()
                 .AsNoTracking()
+                .Include(e => e.Items)
                 .Where(x => x.OrganizationId == organizationId)
+                .Select(e => new PriceBookCategoryDto
+                {
+                    Id = e.Id,
+                    OrganizationId = organizationId,
+                    Description = e.Description,
+                    ItemCount = e.Items.Count(),
+                    Name = e.Name
+                })
                 .OrderBy(x => x.Name)
                 .ToListAsync();
             return items;

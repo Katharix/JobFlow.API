@@ -17,6 +17,7 @@ namespace JobFlow.Business.Models.DTOs
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public Guid Role { get; set; }
+        public string? RoleName { get; set; }
         public bool IsActive { get; set; }
     }
 
