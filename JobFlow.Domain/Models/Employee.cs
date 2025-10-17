@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class Employee
+    public class Employee : Entity
     {
-        public Guid Id { get; set; }
-
         public Guid OrganizationId { get; set; }
         public Guid? UserId { get; set; } 
-
         public required string FirstName { get; set; }
         public required string LastName { get; set; }
         public string? Email { get; set; }
@@ -26,8 +23,6 @@ namespace JobFlow.Domain.Models
         public string? ProfilePictureUrl { get; set; }
         public string FullName => $"{FirstName} {LastName}";
         public bool IsConnectedUser => UserId.HasValue;
-
-
         public EmployeeRole Role { get; set; }
         public Organization Organization { get; set; }
         public User? User { get; set; }

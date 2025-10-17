@@ -15,7 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Message", "messaging");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             builder.Property(e => e.Content).IsRequired();
 
             builder.HasOne(m => m.Sender)

@@ -26,10 +26,21 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -41,8 +52,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
@@ -69,6 +79,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("DefaultPaymentMethodId")
                         .HasColumnType("nvarchar(max)");
 
@@ -94,6 +107,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationClientId");
@@ -108,6 +127,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(255)
@@ -151,6 +176,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("TerminationDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -188,21 +219,23 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.InventoryItem", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Category")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("CostPerUnit")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -224,6 +257,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId", "Name")
@@ -241,6 +280,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("AmountPaid")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
@@ -249,7 +294,8 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -267,7 +313,14 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -284,6 +337,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -297,6 +356,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
@@ -308,14 +373,25 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("LastSequence")
                         .HasColumnType("int");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Year")
                         .HasColumnType("int");
@@ -329,11 +405,16 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Comments")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("JobStatusId")
@@ -344,6 +425,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("ScheduledTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -376,61 +463,34 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("JobStatus", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("878f4fa0-e7c4-4440-bf7e-e1bdf068b551"),
-                            Status = "Completed"
-                        },
-                        new
-                        {
-                            Id = new Guid("0e58e058-c9b8-4acf-b8ca-cb8d2eb857f4"),
-                            Status = "Canceled"
-                        },
-                        new
-                        {
-                            Id = new Guid("5788453f-4c21-4c9b-b50c-f987c15d0cf2"),
-                            Status = "Pending"
-                        },
-                        new
-                        {
-                            Id = new Guid("001a1323-185b-4624-987c-325b23bdb5c7"),
-                            Status = "In Progress"
-                        },
-                        new
-                        {
-                            Id = new Guid("0e48efd2-5783-4ea0-b091-6b4bf4377e38"),
-                            Status = "On Hold"
-                        },
-                        new
-                        {
-                            Id = new Guid("be7d4999-e30f-4d4a-8f8b-580344e14dcd"),
-                            Status = "Failed"
-                        },
-                        new
-                        {
-                            Id = new Guid("1ca909ea-e3e8-4364-a81f-7c5b93d9bc25"),
-                            Status = "Awaiting Approval"
-                        });
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Message", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AttachmentUrl")
                         .HasColumnType("nvarchar(max)");
@@ -442,6 +502,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -450,6 +516,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -464,8 +536,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Notes")
                         .IsRequired()
@@ -482,7 +559,14 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -495,8 +579,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address1")
                         .HasColumnType("nvarchar(max)");
@@ -507,8 +590,15 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("DefaultTaxRate")
-                        .HasColumnType("decimal(18,4)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("EmailAddress")
                         .HasColumnType("nvarchar(max)");
@@ -537,6 +627,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("State")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ZipCode")
                         .HasColumnType("nvarchar(max)");
 
@@ -545,45 +641,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationTypeId");
 
                     b.ToTable("Organization", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("d464b178-a52d-440b-a064-42246f7e0756"),
-                            DefaultTaxRate = 0.00m,
-                            EmailAddress = "jerry.daniel.phillips@gmail.com",
-                            EnableTax = false,
-                            HasFreeAccount = true,
-                            OnBoardingComplete = false,
-                            OrganizationName = "Katharix",
-                            OrganizationTypeId = new Guid("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"),
-                            PaymentProvider = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("b3b20208-07ae-40a2-971e-adf3bb93fc8c"),
-                            Address1 = "116 Terrill St",
-                            City = "Beckley",
-                            DefaultTaxRate = 0.00m,
-                            EmailAddress = "vonbrown230@gmail.com",
-                            EnableTax = false,
-                            HasFreeAccount = true,
-                            OnBoardingComplete = false,
-                            OrganizationName = "Browns Cleaning Services",
-                            OrganizationTypeId = new Guid("1921d982-22f8-4ed5-b4e3-fca82c5767eb"),
-                            PaymentProvider = 1,
-                            PhoneNumber = "304-731-1952",
-                            State = "WV",
-                            ZipCode = "25801"
-                        });
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationClient", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address1")
                         .HasColumnType("nvarchar(max)");
@@ -592,6 +656,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmailAddress")
@@ -610,6 +680,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ZipCode")
@@ -644,11 +720,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("DateCreated")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -658,6 +736,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -671,103 +755,27 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TypeName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("OrganizationType", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("bf489aa6-db19-42df-82bc-c116bd967e7e"),
-                            TypeName = "General Contracting"
-                        },
-                        new
-                        {
-                            Id = new Guid("393a5b3e-323e-4b76-aa86-0d4683ddcd49"),
-                            TypeName = "Painting"
-                        },
-                        new
-                        {
-                            Id = new Guid("e01750b0-0d01-4e25-abf7-6efa23509035"),
-                            TypeName = "Plumbing"
-                        },
-                        new
-                        {
-                            Id = new Guid("fbc6accf-0fb1-4908-b449-14f13b826f24"),
-                            TypeName = "Landscaping and Gardening"
-                        },
-                        new
-                        {
-                            Id = new Guid("9362c957-0f41-4c20-9085-c01e449fdda2"),
-                            TypeName = "Electrical Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("8f0d3e93-425b-4a53-b4d2-4c5eb97e490f"),
-                            TypeName = "Carpentry and Woodworking"
-                        },
-                        new
-                        {
-                            Id = new Guid("37fc17e8-0a25-4119-9a71-7d160bb9c7b4"),
-                            TypeName = "HVAC Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("f64f078f-ecfb-4f3e-8640-236219fcf01e"),
-                            TypeName = "Tree Removal"
-                        },
-                        new
-                        {
-                            Id = new Guid("bf3b9512-8a9c-4a73-9f88-cb914c1573cd"),
-                            TypeName = "Pest Control"
-                        },
-                        new
-                        {
-                            Id = new Guid("1921d982-22f8-4ed5-b4e3-fca82c5767eb"),
-                            TypeName = "Cleaning Services"
-                        },
-                        new
-                        {
-                            Id = new Guid("408d2185-53b9-493d-8713-938114de90f5"),
-                            TypeName = "Junk Removal"
-                        },
-                        new
-                        {
-                            Id = new Guid("33341b2d-957f-4efb-94f7-3a015ae1a718"),
-                            TypeName = "Car Detailing"
-                        },
-                        new
-                        {
-                            Id = new Guid("30530a32-a151-436d-a050-613eac4c22d5"),
-                            TypeName = "IT & Network Installation"
-                        },
-                        new
-                        {
-                            Id = new Guid("6ac2cabc-bbe3-4bc1-9879-5455de042cf4"),
-                            TypeName = "Master Account"
-                        },
-                        new
-                        {
-                            Id = new Guid("0f32e14a-5f70-45af-a647-04e59ad52e58"),
-                            TypeName = "Handyman"
-                        },
-                        new
-                        {
-                            Id = new Guid("09786eab-d69f-45bf-bcec-5f368bd60be7"),
-                            TypeName = "Flooring"
-                        },
-                        new
-                        {
-                            Id = new Guid("906a2bdb-4cc6-4e49-acc3-1bd63fb82611"),
-                            TypeName = "Other"
-                        });
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.PaymentHistory", b =>
@@ -778,6 +786,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("AmountPaid")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -822,6 +836,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("SubscriptionId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
@@ -829,30 +849,80 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.ToTable("PaymentHistory");
                 });
 
-            modelBuilder.Entity("JobFlow.Domain.Models.PriceBookItem", b =>
+            modelBuilder.Entity("JobFlow.Domain.Models.PriceBookCategory", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("PriceBookCategories", (string)null);
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.PriceBookItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int?>("InventoryItemId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("InventoryUnitsPerSale")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(1.0m);
 
                     b.Property<bool>("IsTaxable")
                         .HasColumnType("bit");
+
+                    b.Property<int>("ItemType")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -862,7 +932,15 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("PartNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("PricePerUnit")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Unit")
@@ -870,7 +948,15 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("InventoryItemId");
 
@@ -878,36 +964,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("PriceBookItems", (string)null);
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.PricingTier", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DurationType")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<double>("Price")
-                        .HasColumnType("float");
-
-                    b.Property<int>("TierType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PricingTier", "site");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.SubscriptionRecord", b =>
@@ -918,6 +974,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("CanceledAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("PaymentProfileId")
                         .HasColumnType("uniqueidentifier");
@@ -947,6 +1009,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PaymentProfileId");
@@ -968,52 +1036,22 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Roles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("e88fbbe6-8bdf-4aca-b941-912785a94f0b"),
-                            Name = "OrganizationAdmin"
-                        },
-                        new
-                        {
-                            Id = new Guid("079e4277-0eb2-4222-82e4-5a751ede48f6"),
-                            Name = "OrganizationEmployee"
-                        },
-                        new
-                        {
-                            Id = new Guid("3da14c58-562a-437a-a2a6-47706b40eb70"),
-                            Name = "OrganizationClient"
-                        },
-                        new
-                        {
-                            Id = new Guid("5bc0d325-a915-4e17-8184-428ee533cf89"),
-                            Name = "KatharixAdmin"
-                        },
-                        new
-                        {
-                            Id = new Guid("92193eb2-dba0-433c-814e-9fca95bde016"),
-                            Name = "KatharixEmployee"
-                        },
-                        new
-                        {
-                            Id = new Guid("dfe36ebc-bfb5-4583-b68e-59be8ba60fa9"),
-                            Name = "SuperAdmin"
-                        });
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("ClientId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
@@ -1025,6 +1063,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -1269,10 +1313,17 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.PriceBookItem", b =>
                 {
+                    b.HasOne("JobFlow.Domain.Models.PriceBookCategory", "Category")
+                        .WithMany("Items")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("JobFlow.Domain.Models.InventoryItem", "InventoryItem")
                         .WithMany()
                         .HasForeignKey("InventoryItemId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Category");
 
                     b.Navigation("InventoryItem");
                 });
@@ -1371,6 +1422,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("OrganizationClientJobs");
 
                     b.Navigation("PaymentProfiles");
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.PriceBookCategory", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.SystemRole", b =>

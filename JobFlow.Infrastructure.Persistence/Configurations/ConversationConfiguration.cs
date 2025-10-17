@@ -15,7 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Conversation", "messaging");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
 
             builder.HasMany(c => c.Participants)
                    .WithOne(p => p.Conversation)

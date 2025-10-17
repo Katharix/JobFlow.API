@@ -4,6 +4,7 @@ using FluentValidation;
 using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.SqlServer;
+using JobFlow.API.Constants;
 using JobFlow.API.Hubs;
 using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
@@ -21,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Stripe;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -38,13 +40,13 @@ var tempConfig = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var keyVaultUri = tempConfig["KeyVaultUri"];
+var keyVaultUri = tempConfig[ConfigConstants.KEY_VAULT_URI];
 if (!string.IsNullOrEmpty(keyVaultUri))
 {
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
 }
 
-var firebaseJson = builder.Configuration["Firebase-adminsdk"];
+var firebaseJson = builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK];
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromJson(firebaseJson)
@@ -55,13 +57,17 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 builder.Services.AddControllers()
+       .AddJsonOptions(options =>
+       {
+           options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+       })
     .ConfigureApiBehaviorOptions(options => options.SuppressMapClientErrors = false);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 builder.Services.AddAuthentication();
 
-var appConnectionString = builder.Configuration["SqlConnectionString"];
+var appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
 
 builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSqlServer(appConnectionString,
     b =>
@@ -75,7 +81,7 @@ builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSql
 builder.Services.AddHangfire(cfg =>
     cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions
     {
-        SchemaName = "hangfire",
+        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME ,
         CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
         SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
         QueuePollInterval = TimeSpan.FromSeconds(15),

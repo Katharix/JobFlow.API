@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class InvoiceSequence
+    public class InvoiceSequence : Entity
     {
-        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
         public int Year { get; set; }
         public int LastSequence { get; set; }

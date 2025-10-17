@@ -15,15 +15,12 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Organization");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             builder.Property(x => x.DefaultTaxRate)
-             .HasColumnType("decimal(18,4)");
+             .HasPrecision(18, 2);
             builder.HasOne(e => e.OrganizationType)
              .WithMany()
              .HasForeignKey(e => e.OrganizationTypeId)
              .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasData(PopulateOrganizationData());
         }
 
         private Organization[] PopulateOrganizationData()
@@ -37,6 +34,7 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                         OrganizationName = "Katharix",         
                         HasFreeAccount = true,
                         EmailAddress = "jerry.daniel.phillips@gmail.com",
+                        CreatedAt = DateTime.Parse("03/22/2025"),
                     },
                     new Organization
                     {
@@ -50,6 +48,7 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                         HasFreeAccount = true,
                         PhoneNumber = "304-731-1952",
                         EmailAddress = "vonbrown230@gmail.com",
+                        CreatedAt = DateTime.Parse("03/22/2025"),
                     }
                 ];
         }

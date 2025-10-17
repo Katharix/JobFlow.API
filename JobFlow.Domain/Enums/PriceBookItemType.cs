@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JobFlow.Domain.Models
+namespace JobFlow.Domain.Enums
 {
-    public class OrganizationType : Entity
+    public enum PriceBookItemType
     {
-        public string TypeName { get; set; } 
+        Material = 1,
+        Service = 2
     }
+
 }

@@ -15,9 +15,8 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Order", "payment");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             builder.Property(x => x.TotalAmount)
-                   .HasColumnType("decimal(18,2)");
+                   .HasPrecision(18, 2);
 
         }
     }

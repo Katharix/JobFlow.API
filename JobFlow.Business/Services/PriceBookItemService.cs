@@ -5,6 +5,8 @@ using JobFlow.Domain;
 using Microsoft.Extensions.Logging;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using JobFlow.Business.Models.DTOs;
 
 namespace JobFlow.Business.Services
 {
@@ -20,22 +22,66 @@ namespace JobFlow.Business.Services
             _logger = logger;
         }
 
-        public async Task<Result<PriceBookItem>> GetByIdAsync(int id)
+        public async Task<Result<PriceBookItem>> GetByIdAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<PriceBookItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             return item is null ? Result.Failure<PriceBookItem>(PriceBookErrors.PriceBookItemNotFound) : Result.Success(item);
         }
 
-        public async Task<Result<List<PriceBookItem>>> GetAllAsync(Guid organizationId)
+        public async Task<Result<List<PriceBookItemDto>>> GetAllAsync(Guid organizationId, Guid? categoryId = null)
         {
-            var items = await _uow.RepositoryOf<PriceBookItem>().Query().Where(x => x.OrganizationId == organizationId).ToListAsync();
-            return items;
+            try
+            {
+                var q = _uow.RepositoryOf<PriceBookItem>()
+                    .Query()
+                    .Include(e => e.Category)
+                    .Where(x => x.OrganizationId == organizationId);
+
+                if (categoryId.HasValue)
+                    q = q.Where(x => x.CategoryId == categoryId.Value);
+
+                var items = await q.AsNoTracking()
+                    .OrderBy(x => x.Name)
+                    .Select(x => new PriceBookItemDto
+                    {
+                        Id = x.Id,
+                        OrganizationId = x.OrganizationId,
+                        Name = x.Name,
+                        Description = x.Description,
+                        PartNumber = x.PartNumber,
+                        Unit = x.Unit,
+                        Cost = x.Cost,
+                        Price = x.Price,
+                        ItemType = x.ItemType,
+                        InventoryUnitsPerSale = x.InventoryUnitsPerSale,
+                        CategoryId = x.CategoryId,
+                        CreatedAt = x.CreatedAt,
+                        Category = x.Category != null ? x.Category.Name : null
+                    })
+                    .ToListAsync();
+
+                return items;
+            }
+            catch (SqlException ex)
+            {
+                // TODO: log properly
+                throw;
+            }
         }
 
         public async Task<Result<PriceBookItem>> CreateAsync(PriceBookItem item)
         {
-            await _uow.RepositoryOf<PriceBookItem>().AddAsync(item);
-            await _uow.SaveChangesAsync();
+            try
+            {
+                await _uow.RepositoryOf<PriceBookItem>().AddAsync(item);
+                await _uow.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var message = ex.Message;
+                throw;
+            }
+
             return item;
         }
 
@@ -49,7 +95,7 @@ namespace JobFlow.Business.Services
             return Result.Success(item);
         }
 
-        public async Task<Result> DeleteAsync(int id)
+        public async Task<Result> DeleteAsync(Guid id)
         {
             var item = await _uow.RepositoryOf<PriceBookItem>().Query().FirstOrDefaultAsync(e => e.Id == id);
             if (item is null) return Result.Failure(PriceBookErrors.PriceBookItemNotFound);

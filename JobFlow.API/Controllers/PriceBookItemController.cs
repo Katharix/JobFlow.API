@@ -2,6 +2,7 @@
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 using JobFlow.Business.Extensions;
+using JobFlow.API.Models;
 
 namespace JobFlow.API.Controllers
 {
@@ -17,35 +18,61 @@ namespace JobFlow.API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IResult> Get(int id)
+        public async Task<IResult> Get(Guid id)
         {
             var result = await _service.GetByIdAsync(id);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
-        [HttpGet("org/{orgId}")]
-        public async Task<IResult> GetAll(Guid orgId)
+        [HttpGet("org/{orgId}/category/{categoryId}")]
+        public async Task<IResult> GetAllByCategory(Guid orgId, Guid categoryId)
         {
-            var result = await _service.GetAllAsync(orgId);
+            var result = await _service.GetAllAsync(orgId, categoryId);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
         [HttpPost]
-        public async Task<IResult> Create([FromBody] PriceBookItem item)
+        public async Task<IResult> Create([FromBody] CreatePriceBookItemRequest dto)
         {
+            var item = new PriceBookItem
+            {
+                OrganizationId = dto.OrganizationId,
+                Name = dto.Name,
+                Description = dto.Description,
+                Unit = dto.Unit,
+                PricePerUnit = dto.Cost,
+                Price = dto.Price,
+                Cost = dto.Cost,
+                PartNumber = dto.PartNumber,
+                ItemType = dto.Type,
+                InventoryUnitsPerSale = dto.InventoryUnitsPerSale,
+                CategoryId = dto.CategoryId
+            };
             var result = await _service.CreateAsync(item);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
         [HttpPut]
-        public async Task<IResult> Update([FromBody] PriceBookItem item)
+        public async Task<IResult> Update([FromBody] UpdatePriceBookItemRequest dto)
         {
+            var item = new PriceBookItem
+            {
+                Id = dto.Id,
+                OrganizationId = dto.OrganizationId,
+                Name = dto.Name,
+                Description = dto.Description,
+                Unit = dto.Unit,
+                PricePerUnit = dto.Cost,
+                ItemType = dto.Type,
+                InventoryUnitsPerSale = dto.InventoryUnitsPerSale,
+                CategoryId = dto.CategoryId
+            };
             var result = await _service.UpdateAsync(item);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
 
         [HttpDelete("{id}")]
-        public async Task<IResult> Delete(int id)
+        public async Task<IResult> Delete(Guid id)
         {
             var result = await _service.DeleteAsync(id);
             return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();

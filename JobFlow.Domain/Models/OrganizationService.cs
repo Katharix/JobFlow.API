@@ -7,14 +7,11 @@ using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
 {
-    public class OrganizationService
+    public class OrganizationService : Entity
     {
-        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
         public string ServiceName { get; set; }
         public bool IsActive { get; set; }
-        public DateTime DateCreated { get; set; }
-
         public virtual Organization Organization { get; set; }
     }
 }

@@ -1,9 +1,8 @@
 ﻿
 namespace JobFlow.Domain.Models
 {
-    public class OrganizationClient
+    public class OrganizationClient : Entity
     {
-        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }

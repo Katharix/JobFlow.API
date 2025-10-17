@@ -15,7 +15,6 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("OrganizationClient");
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             builder.HasOne(e => e.Organization)
              .WithMany()
              .HasForeignKey(e => e.OrganizationId)
