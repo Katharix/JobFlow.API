@@ -1,4 +1,6 @@
-﻿using JobFlow.Domain;
+﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
+using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,29 +11,28 @@ namespace JobFlow.API.Controllers
     [Route("i")]
     public class InviteRedirectController : ControllerBase
     {
-        private readonly IRepository<EmployeeInvite> _invites;
+        private readonly IEmployeeInviteService _invites;
+        private readonly IFrontendSettings _frontendSettings;
 
-        public InviteRedirectController(IRepository<EmployeeInvite> invites)
+        public InviteRedirectController(IEmployeeInviteService invites, IFrontendSettings frontendSettings)
         {
             _invites = invites;
+            _frontendSettings = frontendSettings;
         }
 
         [HttpGet("{code}")]
         public async Task<IActionResult> RedirectInvite(string code)
         {
-            var invite = await _invites.Query()
-                .FirstOrDefaultAsync(i => i.ShortCode == code && !i.IsRevoked && !i.IsAccepted);
+            var invite = await _invites.GetInviteByCode(code);
 
-            if (invite is null || invite.ExpiresAt < DateTime.UtcNow)
+            if (invite is null)
                 return NotFound("Invite not found or expired.");
 
-            invite.AccessCount++;
-            invite.AccessedAt = DateTime.UtcNow;
-            invite.AccessIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            _invites.Update(invite);
+            var redirectResult = await _invites.ResolveShortCodeAsync(code);
+            if(string.IsNullOrEmpty(redirectResult.Value))
+                return NotFound("No invite redirect url.");
 
-            var redirectUrl = $"https://jobflow.katharix.com/invite/{invite.InviteToken}";
-            return Redirect(redirectUrl);
+            return Redirect(redirectResult.Value);
         }
     }
 

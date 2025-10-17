@@ -1,7 +1,7 @@
-﻿using JobFlow.Business.DI;
+﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
+using JobFlow.Business.DI;
 using JobFlow.Business.Notifications.Enums;
 using JobFlow.Business.Notifications.Models;
-using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Notifications.Builders
@@ -9,12 +9,12 @@ namespace JobFlow.Business.Notifications.Builders
     [ScopedService]
     public class NotificationMessageBuilder : INotificationMessageBuilder
     {
-        private readonly IFrontendSettings _frontendSettings;
+        private readonly IBackendSettings _backendSettings;
         private readonly string baseUrl;
-        public NotificationMessageBuilder(IFrontendSettings frontendSettings) 
+        public NotificationMessageBuilder(IBackendSettings backendSettings) 
         {
-            this._frontendSettings = frontendSettings;
-            this.baseUrl = _frontendSettings.BaseUrl;
+            this._backendSettings = backendSettings;
+            this.baseUrl = _backendSettings.BaseUrl;
         }
         public NotificationMessage BuildOrganizationWelcome(Organization org)
            => new NotificationMessage
@@ -136,6 +136,7 @@ namespace JobFlow.Business.Notifications.Builders
 
         public NotificationMessage BuildEmployeeInvite(EmployeeInvite invite)
         {
+            var link = $"{this.baseUrl}/i/{invite.ShortCode}";
             return new NotificationMessage
             {
                 Email = invite.Email,
@@ -147,13 +148,12 @@ namespace JobFlow.Business.Notifications.Builders
 
                     You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}.
                     Click below to accept your invitation:
-                    {this.baseUrl}/i/{invite.ShortCode}
-                    {this.baseUrl}/invite/{invite.InviteToken}
+                    {link}
 
                     This link will expire on {invite.ExpiresAt:MMM dd, yyyy}.
                 """,
                 Sms = $"You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}! Accept your invite: ",
-                Link = $"{this.baseUrl}/invite/{invite.InviteToken}",
+                Link = $"{link}",
                 TemplateId = EmailTemplate.OrganizationWelcome
             };
         }

@@ -7,8 +7,9 @@ using Hangfire.SqlServer;
 using JobFlow.API.Constants;
 using JobFlow.API.Hubs;
 using JobFlow.API.Mappings;
+using JobFlow.Business.ConfigurationSettings;
+using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 using JobFlow.Business.DI;
-using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Validators;
 using JobFlow.Domain;
@@ -20,6 +21,7 @@ using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using JobFlow.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
@@ -39,6 +41,12 @@ builder.Services.Configure<FrontEndSettings>(
 
 builder.Services.AddSingleton<IFrontendSettings>(sp =>
     sp.GetRequiredService<IOptions<FrontEndSettings>>().Value);
+
+builder.Services.Configure<BackendSettings>(
+    builder.Configuration.GetSection("Backend"));
+
+builder.Services.AddSingleton<IBackendSettings>(sp =>
+    sp.GetRequiredService<IOptions<BackendSettings>>().Value);
 
 var tempConfig = new ConfigurationBuilder()
     .SetBasePath(env.ContentRootPath)
@@ -141,17 +149,24 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var apiAllowOrigins = "JobFlowAPIAllowOrigins";
-builder.Services.AddCors(op =>
+
+builder.Services.AddCors(o =>
 {
-    op.AddPolicy(name: apiAllowOrigins, policy =>
-    {
-        policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-        policy.WithOrigins("https://localhost:4200/", "http://localhost:4200/");
-    });
+    o.AddPolicy(apiAllowOrigins, p => p
+        .SetIsOriginAllowed(origin =>
+        {
+            var host = new Uri(origin).Host;
+            return host == "localhost"
+                || host == "gojobflow.com"
+                || host == "www.gojobflow.com"
+                || host.EndsWith(".gojobflow.app")
+                || host.EndsWith(".gojobflow.com"); // app., i., etc. if needed
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
 });
+
 
 
 
@@ -219,6 +234,15 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.ConfigureKestrel(o =>
+    {
+        // Match your ports from launchSettings.json
+        o.ListenLocalhost(44398, lo => { lo.UseHttps(); lo.Protocols = HttpProtocols.Http1; });
+        o.ListenLocalhost(5099, lo => { lo.Protocols = HttpProtocols.Http1; });
+    });
+}
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

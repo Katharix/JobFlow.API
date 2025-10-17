@@ -1,6 +1,6 @@
-﻿using JobFlow.Business.Services.ServiceInterfaces;
+﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.ConfigurationSettings
 {
     public class FrontEndSettings : IFrontendSettings
     {

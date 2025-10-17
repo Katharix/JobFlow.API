@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.DI;
+﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
+using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
@@ -22,16 +23,19 @@ namespace JobFlow.Business.Services
         private readonly INotificationService _notifications;
         private readonly IMapper _mapper;
         private readonly IRepository<Employee> _employees;
+        private readonly IFrontendSettings _frontendSettings;
 
         public EmployeeInviteService(
             ILogger<EmployeeInviteService> logger,
             IUnitOfWork unitOfWork,
             INotificationService notifications,
+            IFrontendSettings frontendSettings,
             IMapper mapper)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
+            _frontendSettings = frontendSettings;
             _mapper = mapper;
             _invites = unitOfWork.RepositoryOf<EmployeeInvite>();
         }
@@ -141,9 +145,25 @@ namespace JobFlow.Business.Services
             _invites.Update(invite);
             await _unitOfWork.SaveChangesAsync();
 
-            var redirectUrl = $"https://jobflow.katharix.com/invite/{invite.InviteToken}";
+            var redirectUrl = $"{this._frontendSettings.BaseUrl}/invite/{invite.InviteToken}";
             return Result.Success(redirectUrl);
         }
 
+        public async Task<Result<EmployeeInviteDto>> GetInviteByCode(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InviteNotFound);   
+
+            var invite = await _invites.Query()
+                .Include(i => i.Organization)
+                .Include(i => i.Role)
+                .FirstOrDefaultAsync(i => i.ShortCode == code && !i.IsRevoked && !i.IsAccepted);
+
+            if (invite is null)
+                return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InviteNotFound);
+
+            var dto = _mapper.Map<EmployeeInviteDto>(invite);
+            return Result.Success(dto);
+        }
     }
 }

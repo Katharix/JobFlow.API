@@ -1,5 +1,4 @@
-﻿
-namespace JobFlow.Business.Services.ServiceInterfaces
+﻿namespace JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces
 {
     public interface IFrontendSettings
     {

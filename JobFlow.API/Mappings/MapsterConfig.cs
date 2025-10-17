@@ -39,6 +39,9 @@ namespace JobFlow.API.Mappings
 
             //InvoiceLineItem → DTO
             config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
+
+            //OnboardingDto → Organization
+            config.NewConfig<OnboardingDto, OrganizationOnboardingStep>();
         }
     }
 }
