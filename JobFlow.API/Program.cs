@@ -270,8 +270,9 @@ else
     app.UseExceptionHandler("/error");
 }
 
-app.UseCors(apiAllowOrigins);
 app.UseRouting();
+
+app.UseCors(apiAllowOrigins);
 
 if (app.Environment.IsDevelopment())
 {
