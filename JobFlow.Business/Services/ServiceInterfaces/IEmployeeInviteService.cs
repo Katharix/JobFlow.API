@@ -7,7 +7,7 @@ namespace JobFlow.Business.Services.ServiceInterfaces
     {
         Task<Result<EmployeeInviteDto>> InviteAsync(EmployeeInvite invite);
         Task<Result<EmployeeInviteDto>> GetInviteByCode(string code);
-        Task<Result<Employee>> AcceptInviteAsync(string inviteToken);
+        Task<Result<EmployeeDto>> AcceptInviteAsync(string inviteToken);
         Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null);
     }
 }

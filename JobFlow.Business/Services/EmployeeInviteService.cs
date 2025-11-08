@@ -7,6 +7,7 @@ using JobFlow.Business.Utilities;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using MapsterMapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -85,10 +86,10 @@ namespace JobFlow.Business.Services
             }
         }
 
-        public async Task<Result<Employee>> AcceptInviteAsync(string inviteToken)
+        public async Task<Result<EmployeeDto>> AcceptInviteAsync(string inviteToken)
         {
             if (string.IsNullOrWhiteSpace(inviteToken))
-                return Result.Failure<Employee>(EmployeeInviteErrors.NullOrEmptyId);
+                return Result.Failure<EmployeeDto>(EmployeeInviteErrors.NullOrEmptyId);
 
             var invite = await _invites.Query()
                 .Include(i => i.Organization)
@@ -96,16 +97,16 @@ namespace JobFlow.Business.Services
                 .FirstOrDefaultAsync(i => i.InviteToken == inviteToken);
 
             if (invite is null)
-                return Result.Failure<Employee>(EmployeeInviteErrors.InviteNotFound);
+                return Result.Failure<EmployeeDto>(EmployeeInviteErrors.InviteNotFound);
 
             if (invite.IsRevoked)
-                return Result.Failure<Employee>(Error.Failure("EmployeeInvites", "This invitation has been revoked."));
+                return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has been revoked."));
 
             if (invite.IsAccepted)
-                return Result.Failure<Employee>(Error.Failure("EmployeeInvites", "This invitation has already been accepted."));
+                return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has already been accepted."));
 
             if (invite.ExpiresAt < DateTime.UtcNow)
-                return Result.Failure<Employee>(Error.Failure("EmployeeInvites", "This invitation has expired."));
+                return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has expired."));
 
             // Create new Employee from invite info
             var employee = new Employee
@@ -122,12 +123,14 @@ namespace JobFlow.Business.Services
 
             invite.IsAccepted = true;
 
-            await _employees.AddAsync(employee);
-            await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.RepositoryOf<Employee>().AddAsync(employee);
+                await _unitOfWork.SaveChangesAsync();
 
+       
+            var employeeDto = _mapper.Map<EmployeeDto>(employee);
             _logger.LogInformation("Employee {Email} accepted invite for Org {OrgId}", employee.Email, employee.OrganizationId);
 
-            return Result.Success(employee);
+            return Result.Success(employeeDto);
         }
 
         public async Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null)

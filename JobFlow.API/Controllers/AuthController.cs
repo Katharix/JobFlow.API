@@ -1,14 +1,10 @@
 ﻿using FirebaseAdmin.Auth;
 using JobFlow.Business.ModelErrors;
-using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
-using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -23,52 +19,47 @@ public class AuthController : ControllerBase
 
     public AuthController(
         IUserService userService,
-        JobFlowDbContext dbContext,
         IConfiguration configuration)
     {
         _userService = userService;
         _configuration = configuration;
     }
 
+    // ============================================================
+    // LOGIN WITH FIREBASE
+    // ============================================================
     [HttpPost, Route("login-with-firebase")]
     public async Task<IActionResult> LoginWithFirebase([FromBody] TokenDto model)
     {
-        //To do: The user must be associated with an Organization
         try
         {
             var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(model.Token);
             var firebaseUid = decodedToken.Uid;
-            var email = decodedToken.Claims.ContainsKey("email") ? decodedToken.Claims["email"].ToString() : null;
-            var user = new User();
+            var email = decodedToken.Claims.ContainsKey("email")
+                ? decodedToken.Claims["email"]?.ToString()
+                : null;
+
             var userInfo = await _userService.GetUserByFirebaseUid(firebaseUid);
-            if (userInfo.Error == UserErrors.UserNotFound && !String.IsNullOrEmpty(email))
+            User user;
+
+            if (userInfo.Error == UserErrors.UserNotFound && !string.IsNullOrEmpty(email))
             {
-                 user = new User
+                user = new User
                 {
                     FirebaseUid = firebaseUid,
                     Email = email,
                     CreatedAt = DateTime.Now
                 };
-                await _userService.UpsertUser(user);
 
-                // ✅ Assign default role (e.g., "User")
+                await _userService.UpsertUser(user);
                 await _userService.AssignRole(user.Id, "User");
             }
             else
             {
                 user = userInfo.Value;
             }
-                //var authClaims = new List<Claim>
-                //    {
-                //        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                //        new Claim(ClaimTypes.Name, user.Email),
-                //        new Claim("OrganizationId", user.OrganizationId.ToString())
-                //    };
 
-                //authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-                //var token = GenerateJwtToken(authClaims);
-                return Ok(new { Organization = user.Organization });
+            return Ok(new { Organization = user.Organization });
         }
         catch (Exception ex)
         {
@@ -76,64 +67,155 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Register a new user (Admin or Employee)
-    /// </summary>
-    //[HttpPost, Route("register")]
-    //[AllowAnonymous]
-    //public async Task<IActionResult> Register([FromBody] RegisterDto model)
-    //{
-    //    // Check if user already exists
-    //    var existingUser = await _userManager.FindByEmailAsync(model.Email);
-    //    if (existingUser != null)
-    //        return BadRequest("User already exists.");
+    // ============================================================
+    // CREATE FIREBASE ACCOUNT (SUPER ADMIN)
+    // ============================================================
+    [HttpPost("create-account")]
+    [Authorize(Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> CreateFirebaseAccount([FromBody] CreateAccountRequest model)
+    {
+        try
+        {
+            var args = new UserRecordArgs
+            {
+                Email = model.Email,
+                Password = model.Password,
+                DisplayName = model.DisplayName,
+                EmailVerified = false,
+                Disabled = false
+            };
 
-    //    // Create new user
-    //    var user = new User
-    //    {
-    //        UserName = model.Email,
-    //        Email = model.Email,
-    //        OrganizationId = model.OrganizationId
-    //    };
+            var userRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(args);
 
-    //    var result = await _userManager.CreateAsync(user, model.Password);
-    //    if (!result.Succeeded)
-    //        return BadRequest(result.Errors);
+            // Optionally create JobFlow DB record too
+            var newUser = new User
+            {
+                FirebaseUid = userRecord.Uid,
+                Email = model.Email,
+                CreatedAt = DateTime.UtcNow
+            };
 
-    //    // Assign role
-    //    var roleExists = await _roleManager.RoleExistsAsync(model.Role);
-    //    if (!roleExists)
-    //        return BadRequest("Invalid role specified.");
+            await _userService.UpsertUser(newUser);
+            await _userService.AssignRole(newUser.Id, model.Role ?? "OrganizationEmployee");
 
-    //    await _userManager.AddToRoleAsync(user, model.Role);
+            return Ok(new
+            {
+                Message = "Firebase account created successfully.",
+                userRecord.Uid,
+                userRecord.Email
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = "Failed to create Firebase account.", Error = ex.Message });
+        }
+    }
 
-    //    return Ok("User registered successfully!");
-    //}
+    // ============================================================
+    // SEND PASSWORD RESET LINK
+    // ============================================================
+    [HttpPost("password-reset")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PasswordReset([FromBody] PasswordResetRequest model)
+    {
+        try
+        {
+            var link = await FirebaseAuth.DefaultInstance.GeneratePasswordResetLinkAsync(model.Email);
+            return Ok(new { ResetLink = link });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = "Failed to generate reset link.", Error = ex.Message });
+        }
+    }
 
-    /// <summary>
-    /// User login endpoint - Returns JWT token
-    /// </summary>
-    //[HttpPost("login")]
-    //public async Task<IActionResult> Login([FromBody] LoginDto model)
-    //{
-    //    var user = await _userManager.FindByEmailAsync(model.Email);
-    //    if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
-    //        return Unauthorized("Invalid credentials");
+    // ============================================================
+    // LOOKUP ACCOUNT BY EMAIL OR UID
+    // ============================================================
+    [HttpGet("lookup")]
+    [Authorize(Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> Lookup([FromQuery] string email = "", [FromQuery] string uid = "")
+    {
+        try
+        {
+            UserRecord userRecord;
 
-    //    var userRoles = await _userManager.GetRolesAsync(user);
-    //    var authClaims = new List<Claim>
-    //    {
-    //        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-    //        new Claim(ClaimTypes.Name, user.Email),
-    //        new Claim("OrganizationId", user.OrganizationId.ToString())
-    //    };
+            if (!string.IsNullOrEmpty(email))
+                userRecord = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
+            else if (!string.IsNullOrEmpty(uid))
+                userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(uid);
+            else
+                return BadRequest("Provide either 'email' or 'uid'.");
 
-    //    authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+            return Ok(new
+            {
+                userRecord.Uid,
+                userRecord.Email,
+                userRecord.DisplayName,
+                userRecord.EmailVerified,
+                userRecord.Disabled,
+                userRecord.CustomClaims
+            });
+        }
+        catch (Exception ex)
+        {
+            return NotFound(new { Message = "Account not found.", Error = ex.Message });
+        }
+    }
 
-    //    var token = GenerateJwtToken(authClaims);
-    //    return Ok(new { token, role = userRoles.FirstOrDefault(), organizationId = user.OrganizationId });
-    //}
+    // ============================================================
+    // UPDATE FIREBASE ACCOUNT (SUPER ADMIN)
+    // ============================================================
+    [HttpPut("update/{uid}")]
+    [Authorize(Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> UpdateAccount(string uid, [FromBody] UpdateAccountRequest model)
+    {
+        try
+        {
+            var args = new UserRecordArgs
+            {
+                Uid = uid,
+                DisplayName = model.DisplayName,
+                Disabled = model.Disabled
+            };
 
+            var updatedUser = await FirebaseAuth.DefaultInstance.UpdateUserAsync(args);
+
+            return Ok(new
+            {
+                Message = "User updated successfully.",
+                updatedUser.Uid,
+                updatedUser.DisplayName,
+                updatedUser.Disabled
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = "Failed to update user.", Error = ex.Message });
+        }
+    }
+
+    // ============================================================
+    // DELETE FIREBASE ACCOUNT (SUPER ADMIN)
+    // ============================================================
+    [HttpDelete("delete/{uid}")]
+    [Authorize(Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> DeleteAccount(string uid)
+    {
+        try
+        {
+            await FirebaseAuth.DefaultInstance.DeleteUserAsync(uid);
+            return Ok(new { Message = "Firebase user deleted successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = "Failed to delete user.", Error = ex.Message });
+        }
+    }
+
+    // ============================================================
+    // HELPER TOKEN GENERATORS
+    // ============================================================
     private string GenerateJwtToken(List<Claim> claims)
     {
         var jwtKey = _configuration.GetSection("JWTKey").Value ?? throw new Exception("JWT Key is missing.");
@@ -162,24 +244,42 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        // ✅ Add role claims
         foreach (var role in roles)
-        {
             claims.Add(new Claim(ClaimTypes.Role, role));
-        }
 
         var token = new JwtSecurityToken(
-            issuer: null,
-            audience: null,
-            claims: claims,
             expires: DateTime.UtcNow.AddHours(2),
+            claims: claims,
             signingCredentials: credentials
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+
+// ============================================================
+// DTOs
+// ============================================================
 public class TokenDto
 {
     public string Token { get; set; }
+}
+
+public class CreateAccountRequest
+{
+    public string Email { get; set; } = default!;
+    public string Password { get; set; } = default!;
+    public string DisplayName { get; set; } = default!;
+    public string? Role { get; set; }
+}
+
+public class PasswordResetRequest
+{
+    public string Email { get; set; } = default!;
+}
+
+public class UpdateAccountRequest
+{
+    public string DisplayName { get; set; } = default!;
+    public bool Disabled { get; set; }
 }

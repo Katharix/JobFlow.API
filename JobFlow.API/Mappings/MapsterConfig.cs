@@ -17,7 +17,8 @@ namespace JobFlow.API.Mappings
             config.NewConfig<EmployeeInviteDto, EmployeeInvite>();
 
             // Employee → DTO
-            config.NewConfig<Employee, EmployeeDto>();
+            config.NewConfig<Employee, EmployeeDto>()
+                .Map(dest => dest.Role, src => src.RoleId);
 
             // DTO → Employee
             config.NewConfig<EmployeeDto, Employee>();

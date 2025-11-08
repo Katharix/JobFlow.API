@@ -9,9 +9,9 @@ namespace JobFlow.Business.Notifications.Builders
     [ScopedService]
     public class NotificationMessageBuilder : INotificationMessageBuilder
     {
-        private readonly IBackendSettings _backendSettings;
+        private readonly IFrontendSettings _backendSettings;
         private readonly string baseUrl;
-        public NotificationMessageBuilder(IBackendSettings backendSettings) 
+        public NotificationMessageBuilder(IFrontendSettings backendSettings) 
         {
             this._backendSettings = backendSettings;
             this.baseUrl = _backendSettings.BaseUrl;

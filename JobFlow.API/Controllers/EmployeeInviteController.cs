@@ -40,5 +40,13 @@ namespace JobFlow.API.Controllers
             var result = await _inviteService.AcceptInviteAsync(token);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
         }
+
+        [HttpGet("{code}")]
+        public async Task<IResult> GetInviteByCode(string code)
+        {
+            var result = await _inviteService.GetInviteByCode(code);
+            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        }
+
     }
 }
