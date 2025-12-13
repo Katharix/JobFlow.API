@@ -47,7 +47,7 @@ namespace JobFlow.Business.Services
         public async Task<Result<EmployeeRole>> UpsertAsync(EmployeeRole model)
         {
             var exists = await employeeRoles.Query().AnyAsync(r => r.Id == model.Id);
-
+            
             if (exists)
                 employeeRoles.Update(model);
             else

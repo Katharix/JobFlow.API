@@ -14,5 +14,6 @@ namespace JobFlow.Business.Services.ServiceInterfaces
         Task<Result> DeleteAsync(Guid employeeId);
         Task<Result<EmployeeDto>> GetByIdAsync(Guid employeeId);
         Task<Result<List<EmployeeDto>>> GetByOrganizationIdAsync(Guid organizationId);
+        Task<Result<Boolean>> EmployeeExistByEmailAsync(Guid organizationId, string email);
     }
 }

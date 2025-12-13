@@ -38,7 +38,7 @@ namespace JobFlow.API.Controllers
         {
             var employeeRole = new EmployeeRole
             {
-                Name = model.Name,
+                Name = model.Name.ToUpper(),
                 OrganizationId = model.OrganizationId
             };
             var result = await employeeRoleService.UpsertAsync(employeeRole);

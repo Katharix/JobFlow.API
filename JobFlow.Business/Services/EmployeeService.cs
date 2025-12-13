@@ -5,11 +5,6 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using JobFlow.Domain;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using JobFlow.Business.Mappers;
 
@@ -60,7 +55,7 @@ namespace JobFlow.Business.Services
 
         public async Task<Result<EmployeeDto>> UpdateAsync(Guid employeeId, UpdateEmployeeRequest request)
         {
-            var employee = await _employeeRepo.Query().FirstOrDefaultAsync(e => e.Id == employeeId);
+            var employee = await _employeeRepo.Query().Include(e => e.Role).FirstOrDefaultAsync(e => e.Id == employeeId);
             if (employee == null)
                 return Result.Failure<EmployeeDto>(EmployeeErrors.NotFound);
 
@@ -110,6 +105,18 @@ namespace JobFlow.Business.Services
                 .ToListAsync();
 
             return employees.Select(e => e.ToDto()).ToList();
+        }
+
+        public async Task<Result<Boolean>> EmployeeExistByEmailAsync(Guid organizationId, string email)
+        {
+            if (organizationId == Guid.Empty)
+                return Result.Failure<Boolean>(EmployeeErrors.InvalidOrganization);
+            
+            if (email == null)
+                return Result.Failure<Boolean>(EmployeeErrors.NotFound);
+            
+            var employeeExist = await _employeeRepo.ExistsAsync(e => e.Email == email.Trim() && e.OrganizationId == organizationId);
+            return Result.Success(employeeExist);
         }
     }
 }
