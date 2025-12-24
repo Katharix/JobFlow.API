@@ -1,77 +1,82 @@
 ﻿using JobFlow.Business.DI;
+using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.Services;
+
+[ScopedService]
+public class OnboardingService : IOnboardingService
 {
-    [ScopedService]
-    public class OnboardingService : IOnboardingService
+    private readonly IUnitOfWork uow;
+    private readonly IRepository<Organization> orgRepo;
+    private readonly IRepository<OrganizationOnboardingStep> stepRepo;
+
+    public OnboardingService(IUnitOfWork uow)
     {
-        private readonly ILogger<OnboardingService> logger;
-        private readonly IUnitOfWork unitOfWork;
-        private readonly IRepository<OrganizationOnboardingStep> stepsRepo;
-        private readonly IRepository<Organization> orgRepo;
+        this.uow = uow;
+        orgRepo = uow.RepositoryOf<Organization>();
+        stepRepo = uow.RepositoryOf<OrganizationOnboardingStep>();
+    }
 
-        public OnboardingService(ILogger<OnboardingService> logger, IUnitOfWork unitOfWork)
-        {
-            this.logger = logger;
-            this.unitOfWork = unitOfWork;
-            this.stepsRepo = unitOfWork.RepositoryOf<OrganizationOnboardingStep>();
-            this.orgRepo = unitOfWork.RepositoryOf<Organization>();
-        }
+    public async Task<Result<IEnumerable<OnboardingStepDto>>> GetChecklistAsync(Guid orgId)
+    {
+        var org = await orgRepo.GetByIdAsync(orgId);
+        if (org == null)
+            return Result.Failure<IEnumerable<OnboardingStepDto>>(OnboardingErrors.OrganizationNotFound);
 
-        public async Task<Result<IEnumerable<OrganizationOnboardingStep>>> GetStepsAsync(Guid organizationId)
-        {
-            var steps = await stepsRepo.Query()
-                .Where(s => s.OrganizationId == organizationId)
-                .OrderBy(s => s.StepName)
-                .ToListAsync();
+        var progress = await stepRepo.Query()
+            .Where(x => x.OrganizationId == orgId)
+            .ToListAsync();
 
-            return Result<IEnumerable<OrganizationOnboardingStep>>.Success(steps.AsEnumerable());
-        }
-
-        public async Task<Result<OrganizationOnboardingStep>> MarkStepCompleteAsync(Guid organizationId, string stepName)
-        {
-            var step = await stepsRepo.Query()
-                .FirstOrDefaultAsync(s => s.OrganizationId == organizationId && s.StepName == stepName);
-
-            if (step == null)
+        var steps = OnboardingCatalog.ApplicableSteps(org)
+            .Select(def =>
             {
-                step = new OrganizationOnboardingStep
+                var row = progress.FirstOrDefault(p => p.StepName == def.Key);
+                return new OnboardingStepDto
                 {
-                    OrganizationId = organizationId,
-                    StepName = stepName,
-                    IsCompleted = true,
-                    CompletedAt = DateTimeOffset.UtcNow
+                    Key = def.Key,
+                    Title = def.Title,
+                    Order = def.Order,
+                    IsCompleted = row?.IsCompleted ?? false,
+                    CompletedAt = row?.CompletedAt
                 };
-                await stepsRepo.AddAsync(step);
-            }
-            else
+            });
+
+        return Result.Success(steps);
+    }
+
+    public async Task<Result> MarkStepCompleteAsync(Guid orgId, string stepKey)
+    {
+        if (!OnboardingCatalog.IsKnown(stepKey))
+            return Result.Failure(OnboardingErrors.UnknownStep(stepKey));
+
+        var step = await stepRepo.Query()
+            .FirstOrDefaultAsync(x => x.OrganizationId == orgId && x.StepName == stepKey);
+
+        if (step == null)
+        {
+            step = new OrganizationOnboardingStep
             {
-                step.IsCompleted = true;
-                step.CompletedAt = DateTimeOffset.UtcNow;
-                stepsRepo.Update(step);
-            }
-
-            // If all required steps done → flag org complete
-            var required = await stepsRepo.Query()
-                .Where(s => s.OrganizationId == organizationId)
-                .ToListAsync();
-
-            var org = await orgRepo.GetByIdAsync(organizationId);
-            org.OnBoardingComplete = required.All(x => x.IsCompleted);
-            org.UpdatedAt = DateTime.UtcNow;
-
-            await unitOfWork.SaveChangesAsync();
-            return Result<OrganizationOnboardingStep>.Success(step);
+                OrganizationId = orgId,
+                StepName = stepKey,
+                IsCompleted = true,
+                CompletedAt = DateTimeOffset.UtcNow
+            };
+            await stepRepo.AddAsync(step);
         }
+        else if (!step.IsCompleted)
+        {
+            step.IsCompleted = true;
+            step.CompletedAt = DateTimeOffset.UtcNow;
+            stepRepo.Update(step);
+        }
+
+        await uow.SaveChangesAsync();
+        return Result.Success();
     }
 }

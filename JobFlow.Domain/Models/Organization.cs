@@ -17,6 +17,11 @@ namespace JobFlow.Domain.Models
         public bool EnableTax { get; set; } = false;
         public bool HasFreeAccount { get; set; }
         public bool OnBoardingComplete { get; set; }
+        public string? StripeConnectAccountId { get; set; }
+        public bool CanAcceptPayments =>
+            PaymentProvider == PaymentProvider.Stripe &&
+            !string.IsNullOrWhiteSpace(StripeConnectAccountId);
+
         public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
         public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
