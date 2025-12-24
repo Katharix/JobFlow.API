@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace JobFlow.Domain.Models
-{
+{    
     public class OrganizationOnboardingStep : Entity
     {
         public Guid OrganizationId { get; set; }

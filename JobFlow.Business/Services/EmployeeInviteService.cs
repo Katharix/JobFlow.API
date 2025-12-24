@@ -5,6 +5,7 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Business.Utilities;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using MapsterMapper;
 using Microsoft.Data.SqlClient;
@@ -54,17 +55,15 @@ namespace JobFlow.Business.Services
 
                 // Check for existing active invite
                 var existingInvite = await _invites.Query()
-                    .FirstOrDefaultAsync(e => e.Email == invite.Email && !e.IsAccepted && !e.IsRevoked);
+                    .FirstOrDefaultAsync(e => e.Email == invite.Email && invite.Status == EmployeeInviteStatus.Pending);
 
                 if (existingInvite is not null)
                     return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.AlreadyInvited(invite.Email));
 
                 // Create invite
                 invite.Id = Guid.NewGuid();
-                invite.InviteToken = TokenGenerator.GenerateInviteToken();
+                invite.InviteToken = Guid.NewGuid();
                 invite.ExpiresAt = DateTime.UtcNow.AddDays(7);
-                invite.IsAccepted = false;
-                invite.IsRevoked = false;
                 invite.ShortCode = ShortCodeGenerator.Generate();
 
                 await _invites.AddAsync(invite);
@@ -86,9 +85,9 @@ namespace JobFlow.Business.Services
             }
         }
 
-        public async Task<Result<EmployeeDto>> AcceptInviteAsync(string inviteToken)
+        public async Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken)
         {
-            if (string.IsNullOrWhiteSpace(inviteToken))
+            if (inviteToken == Guid.Empty)
                 return Result.Failure<EmployeeDto>(EmployeeInviteErrors.NullOrEmptyId);
 
             var invite = await _invites.Query()
@@ -99,10 +98,10 @@ namespace JobFlow.Business.Services
             if (invite is null)
                 return Result.Failure<EmployeeDto>(EmployeeInviteErrors.InviteNotFound);
 
-            if (invite.IsRevoked)
+            if (invite.Status == EmployeeInviteStatus.Revoked)
                 return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has been revoked."));
 
-            if (invite.IsAccepted)
+            if (invite.Status == EmployeeInviteStatus.Accepted)
                 return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has already been accepted."));
 
             if (invite.ExpiresAt < DateTime.UtcNow)
@@ -121,7 +120,7 @@ namespace JobFlow.Business.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            invite.IsAccepted = true;
+            invite.Status = EmployeeInviteStatus.Accepted;
 
                 await _unitOfWork.RepositoryOf<Employee>().AddAsync(employee);
                 await _unitOfWork.SaveChangesAsync();
@@ -136,7 +135,7 @@ namespace JobFlow.Business.Services
         public async Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null)
         {
             var invite = await _invites.Query()
-                .FirstOrDefaultAsync(i => i.ShortCode == code && !i.IsRevoked && !i.IsAccepted);
+                .FirstOrDefaultAsync(i => i.ShortCode == code && i.Status == EmployeeInviteStatus.Pending);
 
             if (invite is null || invite.ExpiresAt < DateTime.UtcNow)
                 return Result.Failure<string>(EmployeeInviteErrors.InviteNotFound);
@@ -160,7 +159,7 @@ namespace JobFlow.Business.Services
             var invite = await _invites.Query()
                 .Include(i => i.Organization)
                 .Include(i => i.Role)
-                .FirstOrDefaultAsync(i => i.ShortCode == code && !i.IsRevoked && !i.IsAccepted);
+                .FirstOrDefaultAsync(i => i.ShortCode == code && i.Status == EmployeeInviteStatus.Pending);
 
             if (invite is null)
                 return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InviteNotFound);

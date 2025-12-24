@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using JobFlow.Domain.Enums;
 
 namespace JobFlow.Domain.Models
 {
@@ -11,14 +6,13 @@ namespace JobFlow.Domain.Models
     {
         public Guid OrganizationId { get; set; }
         public string Email { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public Guid RoleId { get; set; }
-        public string PhoneNumber { get; set; }
-        public string InviteToken { get; set; }
+        public string? PhoneNumber { get; set; }
+        public Guid InviteToken { get; set; }
         public DateTime ExpiresAt { get; set; }
-        public bool IsAccepted { get; set; }
-        public bool IsRevoked { get; set; }
+        public EmployeeInviteStatus Status { get; set; }
         public string FullName => $"{FirstName} {LastName}".Trim();
         public string ShortCode { get; set; }
         public DateTime? AccessedAt { get; set; }

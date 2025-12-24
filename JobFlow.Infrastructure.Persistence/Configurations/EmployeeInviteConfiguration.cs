@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using JobFlow.Domain.Enums;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations
 {
@@ -40,12 +41,9 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
             builder.Property(e => e.ExpiresAt)
                 .IsRequired();
 
-            builder.Property(e => e.IsAccepted)
-                .HasDefaultValue(false);
-
-            builder.Property(e => e.IsRevoked)
-                .HasDefaultValue(false);
-
+            builder.Property(e => e.Status)
+                .HasDefaultValue(EmployeeInviteStatus.Pending);
+            
             builder.HasOne(e => e.Organization)
                 .WithMany()
                 .HasForeignKey(e => e.OrganizationId)
@@ -55,6 +53,21 @@ namespace JobFlow.Infrastructure.Persistence.Configurations
                 .WithMany()
                 .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            builder.HasIndex(x => x.InviteToken)
+                .IsUnique();
+            
+            builder.HasIndex(x => new { x.OrganizationId, x.Email })
+                .IsUnique()
+                .HasFilter("[Status] = 1"); // Pending
+            
+            builder.HasIndex(x => x.OrganizationId);
+            
+            builder.HasIndex(x => new { x.Status, x.ExpiresAt });
+            
+            builder.HasIndex(x => x.ShortCode)
+                .IsUnique()
+                .HasFilter("[ShortCode] IS NOT NULL");
         }
     }
 }

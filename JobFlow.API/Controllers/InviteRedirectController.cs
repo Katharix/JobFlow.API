@@ -27,8 +27,9 @@ namespace JobFlow.API.Controllers
 
             if (invite is null)
                 return NotFound("Invite not found or expired.");
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-            var redirectResult = await _invites.ResolveShortCodeAsync(code);
+            var redirectResult = await _invites.ResolveShortCodeAsync(code, ipAddress);
             if(string.IsNullOrEmpty(redirectResult.Value))
                 return NotFound("No invite redirect url.");
 

@@ -35,7 +35,7 @@ namespace JobFlow.API.Controllers
         }
 
         [HttpPost("accept/{token}")]
-        public async Task<IResult> AcceptInvite(string token)
+        public async Task<IResult> AcceptInvite(Guid token)
         {
             var result = await _inviteService.AcceptInviteAsync(token);
             return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
