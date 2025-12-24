@@ -35,5 +35,6 @@
         public decimal DefaultTaxRate { get; set; }
         public string? PhoneNumber { get; set; }
         public bool? OnBoardingComplete { get; set; }
+        public bool CanAcceptPayments { get; set; }
     }
 }
