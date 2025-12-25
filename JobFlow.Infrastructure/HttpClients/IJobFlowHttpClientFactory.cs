@@ -1,9 +1,6 @@
-﻿using System.Net.Http;
+﻿namespace JobFlow.Infrastructure.HttpClients;
 
-namespace JobFlow.Infrastructure.HttpClients
+public interface IJobFlowHttpClientFactory
 {
-    public interface IJobFlowHttpClientFactory
-    {
-        HttpClient ForBrevoClient();
-    }
+    HttpClient ForBrevoClient();
 }

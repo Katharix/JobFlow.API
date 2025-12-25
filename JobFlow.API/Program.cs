@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
@@ -19,14 +20,14 @@ using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using JobFlow.Infrastructure.ExternalServices.ConfigurationModels;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
-using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using QuestPDF;
+using QuestPDF.Infrastructure;
 using Stripe;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -37,23 +38,21 @@ var env = builder.Environment;
 
 builder.Configuration
     .SetBasePath(env.ContentRootPath)
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddJsonFile("appsettings.local.json", optional: true)
+    .AddJsonFile("appsettings.json", false, true)
+    .AddJsonFile($"appsettings.{env.EnvironmentName}.json", true, true)
+    .AddJsonFile("appsettings.local.json", true)
     .AddEnvironmentVariables();
 
 if (env.IsDevelopment())
 {
     // Add User Secrets for local dev, safe and offline
-    builder.Configuration.AddUserSecrets<Program>(optional: true);
+    builder.Configuration.AddUserSecrets<Program>(true);
 }
 
 // Add Key Vault if configured
 var keyVaultUri = builder.Configuration[ConfigConstants.KEY_VAULT_URI];
 if (!env.IsDevelopment() && !string.IsNullOrWhiteSpace(keyVaultUri))
-{
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
-}
 
 
 // ============================================================
@@ -87,10 +86,7 @@ if (FirebaseApp.DefaultInstance == null)
 
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 builder.Services.AddControllers()
-       .AddJsonOptions(options =>
-       {
-           options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-       })
+    .AddJsonOptions(options => { options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; })
     .ConfigureApiBehaviorOptions(options => options.SuppressMapClientErrors = false);
 
 builder.Services.AddProblemDetails();
@@ -107,13 +103,15 @@ if (env.IsDevelopment())
 {
     appConnectionString = builder.Configuration.GetConnectionString("JobFlowDB");
     if (string.IsNullOrWhiteSpace(appConnectionString))
-        throw new InvalidOperationException("JobFlowDB connection string is missing in appsettings.Development.json or User Secrets.");
+        throw new InvalidOperationException(
+            "JobFlowDB connection string is missing in appsettings.Development.json or User Secrets.");
 }
 else
 {
     appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
     if (string.IsNullOrWhiteSpace(appConnectionString))
-        throw new InvalidOperationException($"Missing Key Vault connection string: {ConfigConstants.APP_CONNECTIONSTRING_NAME}");
+        throw new InvalidOperationException(
+            $"Missing Key Vault connection string: {ConfigConstants.APP_CONNECTIONSTRING_NAME}");
 }
 
 builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSqlServer(appConnectionString, b =>
@@ -163,7 +161,7 @@ builder.Services.AddSwaggerGen(c =>
             {
                 Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
-            new string[] {}
+            new string[] { }
         }
     });
 });
@@ -180,10 +178,10 @@ builder.Services.AddCors(o =>
         {
             var host = new Uri(origin).Host;
             return host == "localhost"
-                || host == "gojobflow.com"
-                || host == "www.gojobflow.com"
-                || host.EndsWith(".gojobflow.app")
-                || host.EndsWith(".gojobflow.com");
+                   || host == "gojobflow.com"
+                   || host == "www.gojobflow.com"
+                   || host.EndsWith(".gojobflow.app")
+                   || host.EndsWith(".gojobflow.com");
         })
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -259,13 +257,17 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+Settings.License = LicenseType.Community;
 
 if (env.IsDevelopment())
 {
     builder.WebHost.ConfigureKestrel(o =>
     {
-        o.ListenLocalhost(44398, lo => { lo.UseHttps(); lo.Protocols = HttpProtocols.Http1; });
+        o.ListenLocalhost(44398, lo =>
+        {
+            lo.UseHttps();
+            lo.Protocols = HttpProtocols.Http1;
+        });
         o.ListenLocalhost(5099, lo => { lo.Protocols = HttpProtocols.Http1; });
     });
 }
@@ -289,10 +291,7 @@ app.UseExceptionHandler(app.Environment.IsProduction() ? "/error" : "/error-deve
 
 app.UseRouting();
 app.UseCors(apiAllowOrigins);
-if (app.Environment.IsDevelopment())
-{
-    app.UseHangfireDashboard("/hangfire");
-}
+if (app.Environment.IsDevelopment()) app.UseHangfireDashboard();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<FirebaseAuthMiddleware>();

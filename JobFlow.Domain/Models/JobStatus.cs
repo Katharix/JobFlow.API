@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Domain.Models;
 
-namespace JobFlow.Domain.Models
+public class JobStatus : Entity
 {
-    public class JobStatus : Entity
-    {
-        public string Status { get; set; }
-    }
+    public string Status { get; set; }
 }

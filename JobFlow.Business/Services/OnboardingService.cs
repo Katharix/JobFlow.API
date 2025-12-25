@@ -12,9 +12,9 @@ namespace JobFlow.Business.Services;
 [ScopedService]
 public class OnboardingService : IOnboardingService
 {
-    private readonly IUnitOfWork uow;
     private readonly IRepository<Organization> orgRepo;
     private readonly IRepository<OrganizationOnboardingStep> stepRepo;
+    private readonly IUnitOfWork uow;
 
     public OnboardingService(IUnitOfWork uow)
     {

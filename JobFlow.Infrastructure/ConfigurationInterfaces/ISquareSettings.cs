@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 
-namespace JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces
+public interface ISquareSettings
 {
-    public interface ISquareSettings
-    {
-        string? ApplicationId { get; set; }
-        string? AccessToken { get; set; }
-        string? LocationId { get; set; }
-    }
+    string? ApplicationId { get; set; }
+    string? AccessToken { get; set; }
+    string? LocationId { get; set; }
 }

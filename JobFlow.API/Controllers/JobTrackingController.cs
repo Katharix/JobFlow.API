@@ -2,35 +2,33 @@
 using JobFlow.Business.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JobFlow.API.Controllers
+namespace JobFlow.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class JobTrackingController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class JobTrackingController : ControllerBase
+    private readonly JobTrackingService _jobTrackingService;
+
+    public JobTrackingController(JobTrackingService jobTrackingService)
     {
-        private readonly JobTrackingService _jobTrackingService;
+        _jobTrackingService = jobTrackingService;
+    }
 
-        public JobTrackingController(JobTrackingService jobTrackingService)
-        {
-            _jobTrackingService = jobTrackingService;
-        }
+    /// <summary>
+    ///     Records a new GPS location update for a job.
+    /// </summary>
+    [HttpPost("update")]
+    public async Task<IActionResult> UpdateLocation([FromBody] JobTrackingUpdateDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        /// <summary>
-        /// Records a new GPS location update for a job.
-        /// </summary>
-        [HttpPost("update")]
-        public async Task<IActionResult> UpdateLocation([FromBody] JobTrackingUpdateDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+        var result = await _jobTrackingService.RecordLocationAsync(dto);
 
-            var result = await _jobTrackingService.RecordLocationAsync(dto);
+        if (result.IsFailure)
+            return BadRequest(new { error = result.Error });
 
-            if (result.IsFailure)
-                return BadRequest(new { error = result.Error });
-
-            return Ok(new { success = true });
-        }
-
+        return Ok(new { success = true });
     }
 }

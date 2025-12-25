@@ -1,86 +1,80 @@
-﻿using JobFlow.Business.ModelErrors;
+﻿using JobFlow.Business.DI;
+using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
-using JobFlow.Domain.Models;
 using JobFlow.Domain;
+using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using JobFlow.Business.DI;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.Services;
+
+[ScopedService]
+public class InvoiceService : IInvoiceService
 {
-    [ScopedService]
-    public class InvoiceService : IInvoiceService
+    private readonly IRepository<Invoice> invoices;
+    private readonly ILogger<InvoiceService> logger;
+    private readonly IUnitOfWork unitOfWork;
+
+    public InvoiceService(ILogger<InvoiceService> logger, IUnitOfWork unitOfWork)
     {
-        private readonly ILogger<InvoiceService> logger;
-        private readonly IUnitOfWork unitOfWork;
-        private readonly IRepository<Invoice> invoices;
+        this.logger = logger;
+        this.unitOfWork = unitOfWork;
+        invoices = unitOfWork.RepositoryOf<Invoice>();
+    }
 
-        public InvoiceService(ILogger<InvoiceService> logger, IUnitOfWork unitOfWork)
+    public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
+    {
+        var invoice = await invoices.Query()
+            .Include(e => e.LineItems)
+            .Include(e => e.OrganizationClient)
+            .ThenInclude(e => e.Organization)
+            .FirstOrDefaultAsync(i => i.Id == id);
+        if (invoice == null)
+            return Result.Failure<Invoice>(InvoiceErrors.NotFound);
+
+        return Result<Invoice>.Success(invoice);
+    }
+
+    public async Task<Result<IEnumerable<Invoice>>> GetInvoicesByClientAsync(Guid clientId)
+    {
+        var list = await invoices.Query().Where(i => i.OrganizationClientId == clientId).ToListAsync();
+        return Result<IEnumerable<Invoice>>.Success(list.AsEnumerable());
+    }
+
+    public async Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model)
+    {
+        var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);
+
+        // Calculate TotalAmount manually since it's not mapped
+        model.TotalAmount = model.LineItems?.Sum(li => li.Quantity * li.UnitPrice) ?? 0;
+
+        if (exists)
+            invoices.Update(model);
+        else
         {
-            this.logger = logger;
-            this.unitOfWork = unitOfWork;
-            this.invoices = unitOfWork.RepositoryOf<Invoice>();
+            // Ensure invoice ID is set before adding line items (if needed)
+            if (model.Id == Guid.Empty)
+                model.Id = Guid.NewGuid();
+
+            // Attach invoice to line items
+            foreach (var li in model.LineItems) li.InvoiceId = model.Id;
+
+            await invoices.AddAsync(model);
         }
 
-        public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
-        {
-            var invoice = await invoices.Query()
-                .Include(e => e.LineItems)
-                .Include(e => e.OrganizationClient)
-                .ThenInclude(e => e.Organization)
-                .FirstOrDefaultAsync(i => i.Id == id);
-            if (invoice == null)
-                return Result.Failure<Invoice>(InvoiceErrors.NotFound);
-
-            return Result<Invoice>.Success(invoice);
-        }
-
-        public async Task<Result<IEnumerable<Invoice>>> GetInvoicesByClientAsync(Guid clientId)
-        {
-            var list = await invoices.Query().Where(i => i.OrganizationClientId == clientId).ToListAsync();
-            return Result<IEnumerable<Invoice>>.Success(list.AsEnumerable());
-        }
-
-        public async Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model)
-        {
-            var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);
-
-            // Calculate TotalAmount manually since it's not mapped
-            model.TotalAmount = model.LineItems?.Sum(li => li.Quantity * li.UnitPrice) ?? 0;
-
-            if (exists)
-            {
-                invoices.Update(model);
-            }
-            else
-            {
-                // Ensure invoice ID is set before adding line items (if needed)
-                if (model.Id == Guid.Empty)
-                    model.Id = Guid.NewGuid();
-
-                // Attach invoice to line items
-                foreach (var li in model.LineItems)
-                {
-                    li.InvoiceId = model.Id;
-                }
-
-                await invoices.AddAsync(model);
-            }
-
-            await unitOfWork.SaveChangesAsync();
-            return Result<Invoice>.Success(model);
-        }
+        await unitOfWork.SaveChangesAsync();
+        return Result<Invoice>.Success(model);
+    }
 
 
-        public async Task<Result> DeleteInvoiceAsync(Guid id)
-        {
-            var entity = await invoices.Query().FirstOrDefaultAsync(i => i.Id == id);
-            if (entity == null)
-                return Result.Failure(InvoiceErrors.NotFound);
+    public async Task<Result> DeleteInvoiceAsync(Guid id)
+    {
+        var entity = await invoices.Query().FirstOrDefaultAsync(i => i.Id == id);
+        if (entity == null)
+            return Result.Failure(InvoiceErrors.NotFound);
 
-            invoices.Remove(entity);
-            await unitOfWork.SaveChangesAsync();
-            return Result.Success();
-        }
+        invoices.Remove(entity);
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
     }
 }

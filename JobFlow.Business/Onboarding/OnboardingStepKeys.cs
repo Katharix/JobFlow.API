@@ -1,4 +1,4 @@
-﻿namespace JobFlow.Business.Onbaording;
+﻿namespace JobFlow.Business.Onboarding;
 
 public static class OnboardingStepKeys
 {

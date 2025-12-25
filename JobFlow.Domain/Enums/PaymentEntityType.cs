@@ -1,9 +1,7 @@
-﻿
-namespace JobFlow.Domain.Enums
+﻿namespace JobFlow.Domain.Enums;
+
+public enum PaymentEntityType
 {
-    public enum PaymentEntityType
-    {
-        Organization = 1,
-        Customer = 2
-    }
+    Organization = 1,
+    Customer = 2
 }

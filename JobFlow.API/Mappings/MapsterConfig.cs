@@ -3,46 +3,45 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Domain.Models;
 using Mapster;
 
-namespace JobFlow.API.Mappings
+namespace JobFlow.API.Mappings;
+
+public class MapsterConfig : IRegister
 {
-    public class MapsterConfig : IRegister
+    public void Register(TypeAdapterConfig config)
     {
-        public void Register(TypeAdapterConfig config)
-        {
-            // EmployeeInvite → DTO
-            config.NewConfig<EmployeeInvite, EmployeeInviteDto>()
-                .Map(dest => dest.FullName, src => $"{src.FirstName} {src.LastName}".Trim());
+        // EmployeeInvite → DTO
+        config.NewConfig<EmployeeInvite, EmployeeInviteDto>()
+            .Map(dest => dest.FullName, src => $"{src.FirstName} {src.LastName}".Trim());
 
-            // DTO → EmployeeInvite
-            config.NewConfig<EmployeeInviteDto, EmployeeInvite>();
+        // DTO → EmployeeInvite
+        config.NewConfig<EmployeeInviteDto, EmployeeInvite>();
 
-            // Employee → DTO
-            config.NewConfig<Employee, EmployeeDto>()
-                .Map(dest => dest.Role, src => src.RoleId);
+        // Employee → DTO
+        config.NewConfig<Employee, EmployeeDto>()
+            .Map(dest => dest.Role, src => src.RoleId);
 
-            // DTO → Employee
-            config.NewConfig<EmployeeDto, Employee>();
+        // DTO → Employee
+        config.NewConfig<EmployeeDto, Employee>();
 
-            //EmployeeRole → DTO
-            config.NewConfig<EmployeeRole, EmployeeRoleDto>();
+        //EmployeeRole → DTO
+        config.NewConfig<EmployeeRole, EmployeeRoleDto>();
 
-            // Organization → DTO
-            config.NewConfig<Organization, OrganizationDto>();
+        // Organization → DTO
+        config.NewConfig<Organization, OrganizationDto>();
 
-            //OrganizationBranding → DTO
-            config.NewConfig<OrganizationBranding, BrandingDto>();
+        //OrganizationBranding → DTO
+        config.NewConfig<OrganizationBranding, BrandingDto>();
 
-            //OrganizationClient → DTO
-            config.NewConfig<OrganizationClient, OrganizationClientDto>();
+        //OrganizationClient → DTO
+        config.NewConfig<OrganizationClient, OrganizationClientDto>();
 
-            //Invoice → DTO
-            config.NewConfig<Invoice, InvoiceDto>();
+        //Invoice → DTO
+        config.NewConfig<Invoice, InvoiceDto>();
 
-            //InvoiceLineItem → DTO
-            config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
+        //InvoiceLineItem → DTO
+        config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
 
-            //OnboardingDto → Organization
-            config.NewConfig<OnboardingDto, OrganizationOnboardingStep>();
-        }
+        //OnboardingDto → Organization
+        config.NewConfig<OnboardingDto, OrganizationOnboardingStep>();
     }
 }

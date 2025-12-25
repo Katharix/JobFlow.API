@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Infrastructure.PaymentGateways;
 
-namespace JobFlow.Infrastructure.PaymentGateways
+public interface IConnectedAccountProcessor
 {
-    public interface IConnectedAccountProcessor
-    {
-        Task<string> CreateConnectedAccountAsync();
-        Task<string> GenerateAccountLinkAsync(string accountId);
-    }
-
+    Task<string> CreateConnectedAccountAsync();
+    Task<string> GenerateAccountLinkAsync(string accountId);
 }

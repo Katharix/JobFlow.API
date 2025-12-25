@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Business.ModelErrors;
 
-namespace JobFlow.Business.ModelErrors
+public static class EmployeeErrors
 {
-    public static class EmployeeErrors
-    {
-        public static readonly Error NotFound = Error.NotFound("Employee.NotFound", "Employee not found.");
-        public static readonly Error InvalidOrganization = Error.Validation("Employee.InvalidOrganization", "The specified organization does not exist.");
-    }
+    public static readonly Error NotFound = Error.NotFound("Employee.NotFound", "Employee not found.");
+
+    public static readonly Error InvalidOrganization =
+        Error.Validation("Employee.InvalidOrganization", "The specified organization does not exist.");
 }

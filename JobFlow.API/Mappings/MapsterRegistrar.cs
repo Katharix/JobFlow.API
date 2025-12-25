@@ -1,20 +1,19 @@
-﻿using Mapster;
+﻿using System.Reflection;
+using Mapster;
 using MapsterMapper;
-using System.Reflection;
 
-namespace JobFlow.API.Mappings
+namespace JobFlow.API.Mappings;
+
+public static class MapsterRegistrar
 {
-    public static class MapsterRegistrar
+    public static IServiceCollection AddMapsterConfiguration(this IServiceCollection services)
     {
-        public static IServiceCollection AddMapsterConfiguration(this IServiceCollection services)
-        {
-            var config = TypeAdapterConfig.GlobalSettings;
-            config.Scan(Assembly.GetExecutingAssembly());
+        var config = TypeAdapterConfig.GlobalSettings;
+        config.Scan(Assembly.GetExecutingAssembly());
 
-            services.AddSingleton(config);
-            services.AddScoped<IMapper, ServiceMapper>();
+        services.AddSingleton(config);
+        services.AddScoped<IMapper, ServiceMapper>();
 
-            return services;
-        }
+        return services;
     }
 }

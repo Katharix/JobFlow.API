@@ -1,5 +1,4 @@
-﻿using JobFlow.Business.Onbaording;
-using JobFlow.Domain.Models;
+﻿using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Onboarding;
 
@@ -27,9 +26,13 @@ public static class OnboardingCatalog
         )
     ];
 
-    public static bool IsKnown(string key) =>
-        Steps.Any(s => s.Key == key);
+    public static bool IsKnown(string key)
+    {
+        return Steps.Any(s => s.Key == key);
+    }
 
-    public static IEnumerable<OnboardingStepDefinition> ApplicableSteps(Organization org) =>
-        Steps.Where(s => s.IsApplicable(org)).OrderBy(s => s.Order);
+    public static IEnumerable<OnboardingStepDefinition> ApplicableSteps(Organization org)
+    {
+        return Steps.Where(s => s.IsApplicable(org)).OrderBy(s => s.Order);
+    }
 }

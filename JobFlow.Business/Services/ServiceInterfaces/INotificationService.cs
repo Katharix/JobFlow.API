@@ -1,29 +1,23 @@
 ﻿using JobFlow.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JobFlow.Business.Services.ServiceInterfaces
+namespace JobFlow.Business.Services.ServiceInterfaces;
+
+public interface INotificationService
 {
-    public interface INotificationService
-    {
-        // Organization notifications
-        Task SendOrganizationWelcomeNotificationAsync(Organization organization);
-        Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization);
-        Task SendOrganizationPaymentReceivedNotificationAsync(Organization organization);
+    // Organization notifications
+    Task SendOrganizationWelcomeNotificationAsync(Organization organization);
+    Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization);
+    Task SendOrganizationPaymentReceivedNotificationAsync(Organization organization);
 
-        // Client notifications
-        Task SendClientWelcomeNotificationAsync(OrganizationClient client);
-        Task SendClientJobCreatedNotificationAsync(OrganizationClient client, Job job);
-        Task SendClientJobScheduledNotificationAsync(OrganizationClient client, Job job);
-        Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice);
-        Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
-        Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes);
-        Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job);
+    // Client notifications
+    Task SendClientWelcomeNotificationAsync(OrganizationClient client);
+    Task SendClientJobCreatedNotificationAsync(OrganizationClient client, Job job);
+    Task SendClientJobScheduledNotificationAsync(OrganizationClient client, Job job);
+    Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice);
+    Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
+    Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes);
+    Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job);
 
-        // Employee notifications
-        Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite);
-    }
+    // Employee notifications
+    Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite);
 }

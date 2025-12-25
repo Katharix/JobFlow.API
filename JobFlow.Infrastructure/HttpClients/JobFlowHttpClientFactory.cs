@@ -1,21 +1,19 @@
 ﻿using JobFlow.Business.DI;
 
-namespace JobFlow.Infrastructure.HttpClients
+namespace JobFlow.Infrastructure.HttpClients;
+
+[SingletonService]
+public class JobFlowHttpClientFactory : IJobFlowHttpClientFactory
 {
-    [SingletonService]
-    public class JobFlowHttpClientFactory : IJobFlowHttpClientFactory
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public JobFlowHttpClientFactory(IHttpClientFactory httpClientFactory)
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        public JobFlowHttpClientFactory(IHttpClientFactory httpClientFactory)
-        {
-            _httpClientFactory = httpClientFactory;
-        }
-
-        public HttpClient ForBrevoClient()
-        {
-            return _httpClientFactory.CreateClient(JobFlowNamedClient.Brevo);
-        }
+        _httpClientFactory = httpClientFactory;
     }
 
+    public HttpClient ForBrevoClient()
+    {
+        return _httpClientFactory.CreateClient(JobFlowNamedClient.Brevo);
+    }
 }

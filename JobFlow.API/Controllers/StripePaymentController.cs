@@ -2,113 +2,115 @@
 using Stripe;
 using Stripe.Checkout;
 
-namespace JobFlow.API.Controllers
+namespace JobFlow.API.Controllers;
+
+[Route("api/stripe/")]
+[ApiController]
+public class StripePaymentController : ControllerBase
 {
-    [Route("api/stripe/")]
-    [ApiController]
-    public class StripePaymentController : ControllerBase
+    [HttpPost]
+    [Route("create")]
+    public IActionResult CreateAccount()
     {
-        [HttpPost, Route("create")]
-        public IActionResult CreateAccount()
+        try
         {
-            try
+            var service = new AccountService();
+            var options = new AccountCreateOptions
             {
-                var service = new AccountService();
-                var options = new AccountCreateOptions
+                Type = "express",
+                Country = "US",
+                Capabilities = new AccountCapabilitiesOptions
                 {
-                    Type = "express",
-                    Country = "US",
-                    Capabilities = new AccountCapabilitiesOptions
-                    {
-                        CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true },
-                        Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
-                    }
-                };
+                    CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true },
+                    Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
+                }
+            };
 
-                Account account = service.Create(options);
+            var account = service.Create(options);
 
-                // Store account.Id in your DB here
+            // Store account.Id in your DB here
 
-                return Ok(new { accountId = account.Id });
-            }
-            catch (StripeException stripeEx)
-            {
-                return StatusCode(500, new { error = stripeEx.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { error = "An unexpected error occurred." });
-            }
+            return Ok(new { accountId = account.Id });
         }
-
-        [HttpPost, Route("generate-account-link")]
-        public ActionResult GenerateAccountLink([FromBody] AccountLinkPostBody accountLinkPostBody)
+        catch (StripeException stripeEx)
         {
-            try
-            {
-                var connectedAccountId = accountLinkPostBody.Account;
-                var service = new AccountLinkService();
-
-                AccountLink accountLink = service.Create(new AccountLinkCreateOptions
-                {
-                    Account = connectedAccountId,
-                    ReturnUrl = $"http://localhost:4200/dashboard/stripe-success/{connectedAccountId}",
-                    RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{connectedAccountId}",
-                    Type = "account_onboarding"
-                });
-
-                return Ok(new { url = accountLink.Url });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Stripe error: " + ex.Message);
-                return StatusCode(500, new { error = ex.Message });
-            }
+            return StatusCode(500, new { error = stripeEx.Message });
         }
-
-        [HttpPost, Route("create-checkout-session")]
-        public async Task<IActionResult> CreateCheckoutSession()
+        catch (Exception)
         {
-            var options = new SessionCreateOptions
+            return StatusCode(500, new { error = "An unexpected error occurred." });
+        }
+    }
+
+    [HttpPost]
+    [Route("generate-account-link")]
+    public ActionResult GenerateAccountLink([FromBody] AccountLinkPostBody accountLinkPostBody)
+    {
+        try
+        {
+            var connectedAccountId = accountLinkPostBody.Account;
+            var service = new AccountLinkService();
+
+            var accountLink = service.Create(new AccountLinkCreateOptions
             {
-                LineItems = new List<SessionLineItemOptions>
+                Account = connectedAccountId,
+                ReturnUrl = $"http://localhost:4200/dashboard/stripe-success/{connectedAccountId}",
+                RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{connectedAccountId}",
+                Type = "account_onboarding"
+            });
+
+            return Ok(new { url = accountLink.Url });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Stripe error: " + ex.Message);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    [Route("create-checkout-session")]
+    public async Task<IActionResult> CreateCheckoutSession()
+    {
+        var options = new SessionCreateOptions
+        {
+            LineItems = new List<SessionLineItemOptions>
             {
-                new SessionLineItemOptions
+                new()
                 {
                     PriceData = new SessionLineItemPriceDataOptions
                     {
                         Currency = "usd",
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
-                            Name = "T-shirt",
+                            Name = "T-shirt"
                         },
-                        UnitAmount = 1000, // Amount in cents ($10.00)
+                        UnitAmount = 1000 // Amount in cents ($10.00)
                     },
-                    Quantity = 1,
-                },
+                    Quantity = 1
+                }
             },
-                PaymentIntentData = new SessionPaymentIntentDataOptions
-                {
-                    ApplicationFeeAmount = 75, // Platform fee in cents ($1.23)
-                },
-                Mode = "payment",
-                SuccessUrl = "https://example.com/success?session_id={CHECKOUT_SESSION_ID}",
-            };
-
-            var requestOptions = new RequestOptions
+            PaymentIntentData = new SessionPaymentIntentDataOptions
             {
-                StripeAccount = "{{CONNECTED_ACCOUNT_ID}}", // Set this dynamically if needed
-            };
+                ApplicationFeeAmount = 75 // Platform fee in cents ($1.23)
+            },
+            Mode = "payment",
+            SuccessUrl = "https://example.com/success?session_id={CHECKOUT_SESSION_ID}"
+        };
 
-            var service = new SessionService();
-            Session session = await service.CreateAsync(options, requestOptions);
+        var requestOptions = new RequestOptions
+        {
+            StripeAccount = "{{CONNECTED_ACCOUNT_ID}}" // Set this dynamically if needed
+        };
 
-            return Ok(new { url = session.Url });
-        }
-    }
-    public class AccountLinkPostBody
-    {
-        public string Account { get; set; }
+        var service = new SessionService();
+        var session = await service.CreateAsync(options, requestOptions);
+
+        return Ok(new { url = session.Url });
     }
 }
 
+public class AccountLinkPostBody
+{
+    public string Account { get; set; }
+}

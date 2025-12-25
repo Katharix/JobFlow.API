@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using JobFlow.Business.DI;
 using JobFlow.Business.Models;
@@ -10,83 +9,82 @@ using JobFlow.Infrastructure.HttpClients;
 using Microsoft.Extensions.Options;
 using Polly;
 
-namespace JobFlow.Infrastructure.ExternalServices.Brevo
+namespace JobFlow.Infrastructure.ExternalServices.Brevo;
+
+[SingletonService]
+public class BrevoService : IBrevoService
 {
-    [SingletonService]
-    public class BrevoService : IBrevoService
+    private readonly HttpClient _client;
+    private readonly AsyncPolicy _policy;
+    private readonly BrevoSettings _settings;
+
+    public BrevoService(
+        IJobFlowHttpClientFactory httpFactory,
+        IOptions<BrevoSettings> settings)
     {
-        private readonly BrevoSettings _settings;
-        private readonly HttpClient _client;
-        private readonly AsyncPolicy _policy;
+        _settings = settings.Value;
+        _client = httpFactory.ForBrevoClient();
+        _policy = Policy.WrapAsync(
+            PollyPolicies.DefaultRetryPolicy(),
+            PollyPolicies.DefaultCircuitBreakerPolicy());
+    }
 
-        public BrevoService(
-            IJobFlowHttpClientFactory httpFactory,
-            IOptions<BrevoSettings> settings)
+    public async Task<bool> AddContactAsync(string email, int listId)
+    {
+        var payload = new
         {
-            _settings = settings.Value;
-            _client = httpFactory.ForBrevoClient();
-            _policy = Policy.WrapAsync(
-                PollyPolicies.DefaultRetryPolicy(),
-                PollyPolicies.DefaultCircuitBreakerPolicy());
-        }
+            email,
+            listIds = new[] { listId },
+            updateEnabled = true
+        };
 
-        public async Task<bool> AddContactAsync(string email, int listId)
+        var content = new StringContent(
+            JsonSerializer.Serialize(payload),
+            Encoding.UTF8,
+            "application/json");
+
+        HttpResponseMessage response = null;
+
+        await _policy.ExecuteAsync(async () =>
         {
-            var payload = new
-            {
-                email,
-                listIds = new[] { listId },
-                updateEnabled = true
-            };
+            response = await _client.PostAsync("contacts", content);
+            response.EnsureSuccessStatusCode();
+        });
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(payload),
-                Encoding.UTF8,
-                "application/json");
+        return response.IsSuccessStatusCode;
+    }
 
-            HttpResponseMessage response = null;
-
-            await _policy.ExecuteAsync(async () =>
-            {
-                response = await _client.PostAsync("contacts", content);
-                response.EnsureSuccessStatusCode();
-            });
-
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<bool> SendContactEmailAsync(ContactFormRequest request)
+    public async Task<bool> SendContactEmailAsync(ContactFormRequest request)
+    {
+        var payload = new
         {
-            var payload = new
+            sender = new { email = "hello@katharix.com", name = "Job Flow" },
+            replyTo = new { email = request.Email },
+            to = new[] { new { email = request.Email } },
+            templateId = request.TemplateId,
+            @params = new
             {
-                sender = new { email = "hello@katharix.com", name = "Job Flow" },
-                replyTo = new { email = request.Email },
-                to = new[] { new { email = request.Email } },
-                templateId = request.TemplateId,
-                @params = new
-                {
-                    Name = request.Name,
-                    subject = request.Subject,
-                    Email = request.Email,
-                    Body = request.Message,
-                    InvoiceLink = request.Link
-                }
-            };
+                request.Name,
+                subject = request.Subject,
+                request.Email,
+                Body = request.Message,
+                InvoiceLink = request.Link
+            }
+        };
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(payload),
-                Encoding.UTF8,
-                "application/json");
+        var content = new StringContent(
+            JsonSerializer.Serialize(payload),
+            Encoding.UTF8,
+            "application/json");
 
-            HttpResponseMessage response = null;
+        HttpResponseMessage response = null;
 
-            await _policy.ExecuteAsync(async () =>
-            {
-                response = await _client.PostAsync("smtp/email", content);
-                response.EnsureSuccessStatusCode();
-            });
+        await _policy.ExecuteAsync(async () =>
+        {
+            response = await _client.PostAsync("smtp/email", content);
+            response.EnsureSuccessStatusCode();
+        });
 
-            return response.IsSuccessStatusCode;
-        }
+        return response.IsSuccessStatusCode;
     }
 }

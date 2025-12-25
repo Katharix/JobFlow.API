@@ -1,9 +1,8 @@
 ﻿using JobFlow.Business.Models;
 
-namespace JobFlow.Business.Services.ServiceInterfaces
+namespace JobFlow.Business.Services.ServiceInterfaces;
+
+public interface ITwilioService
 {
-    public interface ITwilioService
-    {
-        Task SendTextMessage(TwilioModel model);
-    }
+    Task SendTextMessage(TwilioModel model);
 }
