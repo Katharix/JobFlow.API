@@ -19,8 +19,7 @@ public static class OrganizationClientMappingExtensions
             State = client.State,
             ZipCode = client.ZipCode,
             PhoneNumber = client.PhoneNumber,
-            EmailAddress = client.EmailAddress,
-            Organization = client.Organization.ToDto()
+            EmailAddress = client.EmailAddress
         };
     }
 
@@ -48,7 +47,7 @@ public static class OrganizationClientMappingExtensions
 
         return new OrganizationClient
         {
-            OrganizationId = dto.OrganizationId.Value,
+            OrganizationId = dto.OrganizationId!.Value,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Address1 = dto.Address1,

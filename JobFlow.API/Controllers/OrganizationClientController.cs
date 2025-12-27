@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
 
-[Route("api/organiztion/clients/")]
+[Route("api/organization/clients/")]
 [ApiController]
 public class OrganizationClientController : ControllerBase
 {
@@ -26,13 +26,16 @@ public class OrganizationClientController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
-    [HttpGet]
-    [Route("all/organizationId")]
-    public async Task<IResult> GetAllClientsByOrganizationId(Guid organizationId)
+    [HttpGet("all/{organizationId:guid}")]
+    public async Task<IResult> GetAllClientsByOrganizationId(
+        [FromRoute] Guid organizationId)
     {
         var result = await organizationClientService.GetAllClientsByOrganizationId(organizationId);
-        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : result.ToProblemDetails();
     }
+
 
     [HttpDelete]
     [Route("delete")]
@@ -42,13 +45,24 @@ public class OrganizationClientController : ControllerBase
         return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 
-    [HttpPost]
-    [Route("upsert")]
-    public async Task<IResult> UpsertClient(OrganizationClientDto model)
+    [HttpPost("{organizationId:guid}/upsert")]
+    public async Task<IResult> UpsertClient(
+        [FromRoute] Guid organizationId,
+        [FromBody] OrganizationClientDto model)
     {
-        var result = await organizationClientService.UpsertClient(model.ToEntity());
-        return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
+        if (organizationId == Guid.Empty)
+            return Results.BadRequest("OrganizationId is required.");
+
+        model.OrganizationId = organizationId;
+        var entity = model.ToEntity();
+
+        var result = await organizationClientService.UpsertClient(entity);
+
+        return result.IsSuccess
+            ? Results.Ok(result)
+            : result.ToProblemDetails();
     }
+
 
     [HttpPost]
     [Route("upsert/multi")]

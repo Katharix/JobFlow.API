@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -13,12 +14,14 @@ public class OrganizationClientService : IOrganizationClientService
 {
     private readonly ILogger<OrganizationClientService> logger;
     private readonly IRepository<OrganizationClient> organizationClient;
+    private readonly IOnboardingService onboardingService;
     private readonly IUnitOfWork unitOfWork;
 
-    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork)
+    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
+        this.onboardingService = onboardingService;
         organizationClient = this.unitOfWork.RepositoryOf<OrganizationClient>();
     }
 
@@ -62,13 +65,30 @@ public class OrganizationClientService : IOrganizationClientService
 
     public async Task<Result> UpsertClient(OrganizationClient model)
     {
-        if (model.Id == Guid.Empty)
-            organizationClient.Add(model);
-        else
+        var exists = await organizationClient.Query()
+            .AnyAsync(c => c.Id == model.Id);
+
+        if (exists)
+        {
             organizationClient.Update(model);
+        }
+        else
+        {
+            await organizationClient.AddAsync(model);
+        }
 
         await unitOfWork.SaveChangesAsync();
-        return Result.Success<OrganizationClient>(model);
+        
+        if (!exists)
+        {
+            await onboardingService.MarkStepCompleteAsync(
+                model.OrganizationId,
+                OnboardingStepKeys.CreateCustomer
+            );
+        }
+
+        return Result.Success(model);
+
     }
 
     public async Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(
