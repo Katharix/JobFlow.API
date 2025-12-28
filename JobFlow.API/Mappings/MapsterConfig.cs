@@ -40,6 +40,12 @@ public class MapsterConfig : IRegister
 
         //InvoiceLineItem → DTO
         config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
+        
+        //Job → DTO
+        config.NewConfig<Job, JobDto>();
+        
+        //DTO → Job
+        config.NewConfig<JobDto, Job>();
 
         //OnboardingDto → Organization
         config.NewConfig<OnboardingDto, OrganizationOnboardingStep>();

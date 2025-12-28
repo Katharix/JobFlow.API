@@ -1,5 +1,7 @@
-﻿using JobFlow.Business.Services.ServiceInterfaces;
+﻿using JobFlow.API.Models;
+using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -9,10 +11,12 @@ namespace JobFlow.API.Controllers;
 public class JobController : ControllerBase
 {
     private readonly IJobService _jobService;
+    private readonly IMapper _mapper;
 
-    public JobController(IJobService jobService)
+    public JobController(IJobService jobService, IMapper mapper)
     {
         _jobService = jobService;
+        _mapper = mapper;
     }
 
     /// <summary>
@@ -60,12 +64,14 @@ public class JobController : ControllerBase
     [HttpPost("{organizationId:guid}")]
     public async Task<IActionResult> UpsertJob(
         [FromRoute] Guid organizationId,
-        [FromBody] Job model)
+        [FromBody] JobDto model)
     {
         if (organizationId == Guid.Empty)
             return BadRequest("OrganizationId is required.");
-
-        var result = await _jobService.UpsertJobAsync(model, organizationId);
+        var mappedJob = _mapper.Map<JobDto, Job>(model);
+        
+        mappedJob.JobStatus = new JobStatus() { Status = "Pending"};
+        var result = await _jobService.UpsertJobAsync(mappedJob, organizationId);
 
         if (result.IsFailure)
             return BadRequest(result.Error);

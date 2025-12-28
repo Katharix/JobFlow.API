@@ -48,18 +48,28 @@ public class JobService : IJobService
         var exists = await jobs.Query().AnyAsync(j => j.Id == model.Id);
 
         if (exists)
-            jobs.Update(model);
+        {
+            var existingModel  = await jobs.Query().FirstOrDefaultAsync(j => j.Id == model.Id);
+            existingModel.ScheduledStart = model.ScheduledStart;
+            existingModel.ScheduledEnd = model.ScheduledEnd;
+            jobs.Update(existingModel);
+        }
         else
+        {
             await jobs.AddAsync(model);
+        }
 
         await unitOfWork.SaveChangesAsync();
         if (!exists)
-        {
             await onboardingService.MarkStepCompleteAsync(
                 organizationId,
                 OnboardingStepKeys.CreateJob
             );
-        }
+        if (model.ScheduledStart != null)
+            await onboardingService.MarkStepCompleteAsync(
+                organizationId,
+                OnboardingStepKeys.ScheduleJob
+            );
 
         return Result<Job>.Success(model);
     }
