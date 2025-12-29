@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -13,13 +14,15 @@ public class InvoiceService : IInvoiceService
 {
     private readonly IRepository<Invoice> invoices;
     private readonly ILogger<InvoiceService> logger;
+    private readonly IOnboardingService _onboardingService;
     private readonly IUnitOfWork unitOfWork;
 
-    public InvoiceService(ILogger<InvoiceService> logger, IUnitOfWork unitOfWork)
+    public InvoiceService(ILogger<InvoiceService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         invoices = unitOfWork.RepositoryOf<Invoice>();
+        _onboardingService = onboardingService;
     }
 
     public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
@@ -63,6 +66,12 @@ public class InvoiceService : IInvoiceService
         }
 
         await unitOfWork.SaveChangesAsync();
+        
+        await _onboardingService.MarkStepCompleteAsync(
+            model.OrganizationId,
+            OnboardingStepKeys.CreateInvoice
+        );
+
         return Result<Invoice>.Success(model);
     }
 
@@ -77,4 +86,20 @@ public class InvoiceService : IInvoiceService
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
+    
+    public async Task MarkInvoiceSentAsync(Guid invoiceId)
+    {
+        var invoice = await invoices
+            .Query()
+            .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+        if (invoice == null)
+            return;
+
+        await _onboardingService.MarkStepCompleteAsync(
+            invoice.OrganizationId,
+            OnboardingStepKeys.SendInvoice
+        );
+    }
+
 }

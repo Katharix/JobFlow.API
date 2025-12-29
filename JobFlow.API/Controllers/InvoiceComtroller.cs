@@ -11,6 +11,7 @@ public class InvoiceController : ControllerBase
 {
     private readonly IInvoiceService invoiceService;
     private readonly IInvoiceLineItemService lineItemService;
+    private readonly IJobService _jobService;
     private readonly INotificationService notificationService;
     private readonly IInvoiceNumberGenerator numberGenerator;
     private readonly IPdfGenerator pdfGenerator;
@@ -20,13 +21,15 @@ public class InvoiceController : ControllerBase
         IInvoiceLineItemService lineItemService,
         IInvoiceNumberGenerator numberGenerator,
         IPdfGenerator pdfGenerator,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IJobService jobService)
     {
         this.invoiceService = invoiceService;
         this.lineItemService = lineItemService;
         this.numberGenerator = numberGenerator;
         this.pdfGenerator = pdfGenerator;
         this.notificationService = notificationService;
+        this._jobService = jobService;
     }
 
     [HttpGet("{id}")]
@@ -43,15 +46,46 @@ public class InvoiceController : ControllerBase
         return Ok(result.Value.ToDto());
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Upsert([FromBody] CreateInvoiceRequest request)
+    [HttpPost("{organizationId:guid}")]
+    public async Task<IActionResult> Upsert(
+        [FromRoute] Guid organizationId,
+        [FromBody] CreateInvoiceRequest request)
     {
-        var invoiceNumber = await numberGenerator.GenerateAsync(request.OrganizationId);
+        var invoiceNumber = await numberGenerator.GenerateAsync(organizationId);
+
+        var jobInfo = await this._jobService.GetJobByIdAsync(request.JobId, organizationId);
+        
+        request.OrganizationClientId = jobInfo.Value.OrganizationClientId;
         var invoice = request.ToInvoice(invoiceNumber);
+        invoice.OrganizationId = organizationId;
 
         var result = await invoiceService.UpsertInvoiceAsync(invoice);
-        return result.IsSuccess ? Ok(result.Value.ToDto()) : BadRequest(result.Error);
+
+        return result.IsSuccess
+            ? Ok(result.Value.ToDto())
+            : BadRequest(result.Error);
     }
+
+    [HttpPost("{id:guid}/send")]
+    public async Task<IActionResult> SendInvoice(Guid id)
+    {
+        var result = await invoiceService.GetInvoiceByIdAsync(id);
+        if (!result.IsSuccess)
+            return NotFound(result.Error);
+
+        var invoice = result.Value;
+
+        await notificationService.SendClientInvoiceCreatedNotificationAsync(
+            invoice.OrganizationClient,
+            invoice
+        );
+
+        await invoiceService.MarkInvoiceSentAsync(invoice.Id);
+
+        return Ok();
+    }
+
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)

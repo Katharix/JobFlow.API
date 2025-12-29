@@ -11,7 +11,7 @@ public static class InvoiceMappingExtensions
         {
             Id = Guid.NewGuid(),
             OrganizationId = request.OrganizationId,
-            OrganizationClientId = request.OrganizationClientId,
+            OrganizationClientId = request.OrganizationClientId.Value,
             InvoiceNumber = invoiceNumber,
             InvoiceDate = DateTime.UtcNow,
             DueDate = request.DueDate,
@@ -46,7 +46,7 @@ public static class InvoiceMappingExtensions
             BalanceDue = invoice.BalanceDue,
             Status = invoice.Status,
             StripeInvoiceId = invoice.StripeInvoiceId,
-            OrganizationClient = invoice.OrganizationClient.ToDto(),
+            
             LineItems = invoice.LineItems.Select(li => li.ToDto()).ToList()
         };
     }

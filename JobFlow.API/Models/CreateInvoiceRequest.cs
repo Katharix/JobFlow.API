@@ -3,7 +3,8 @@
 public class CreateInvoiceRequest
 {
     public Guid OrganizationId { get; set; }
-    public Guid OrganizationClientId { get; set; }
+    public Guid? OrganizationClientId { get; set; }
+    public Guid JobId { get; set; }
     public DateTime DueDate { get; set; }
     public List<InvoiceLineItemDto> LineItems { get; set; } = new();
 }

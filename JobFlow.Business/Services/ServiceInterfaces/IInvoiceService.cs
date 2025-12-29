@@ -8,4 +8,5 @@ public interface IInvoiceService
     Task<Result<IEnumerable<Invoice>>> GetInvoicesByClientAsync(Guid clientId);
     Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model);
     Task<Result> DeleteInvoiceAsync(Guid id);
+    Task MarkInvoiceSentAsync(Guid invoiceId);
 }
