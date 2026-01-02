@@ -33,7 +33,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProces
         var accountLink = await service.CreateAsync(new AccountLinkCreateOptions
         {
             Account = accountId,
-            ReturnUrl = "http://localhost:4200/onboarding",
+            ReturnUrl = "http://localhost:4200/admin",
             RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{accountId}",
             Type = "account_onboarding"
         });
@@ -63,8 +63,15 @@ public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProces
             },
             PaymentIntentData = new SessionPaymentIntentDataOptions
             {
-                ApplicationFeeAmount = (long)(request.ApplicationFeeAmount * 100)
+                ApplicationFeeAmount = request.ApplicationFeeAmount,
+                Metadata = request.InvoiceId.HasValue
+                    ? new Dictionary<string, string>
+                    {
+                        { "invoiceId", request.InvoiceId.Value.ToString() }
+                    }
+                    : null
             },
+            
             Mode = "payment",
             SuccessUrl = request.SuccessUrl,
             CancelUrl = request.CancelUrl

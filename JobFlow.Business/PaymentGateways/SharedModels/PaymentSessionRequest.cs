@@ -9,6 +9,8 @@ public class PaymentSessionRequest
     public string? CancelUrl { get; set; }
     public string? Email { get; set; }
     public Guid? OrgId { get; set; }
+    
+    public Guid? InvoiceId { get; set; }
 
     // Subscription-specific
     public string? StripePriceId { get; set; }
@@ -21,6 +23,6 @@ public class PaymentSessionRequest
     public decimal? Amount { get; set; }
     public decimal? DepositAmount { get; set; }
     public int? Quantity { get; set; }
-    public decimal? ApplicationFeeAmount { get; set; }
+    public long ApplicationFeeAmount { get; set; } = 75;
     public string? ConnectedAccountId { get; set; }
 }

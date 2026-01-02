@@ -12,13 +12,16 @@ public class StripeWebhookService : IStripeWebhookService
 {
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly ISubscriptionRecordService _subscriptionRecordService;
+    private readonly IOrganizationService _organizationService;
 
     public StripeWebhookService(
         IPaymentProfileService paymentProfileService,
-        ISubscriptionRecordService subscriptionRecordService)
+        ISubscriptionRecordService subscriptionRecordService,
+        IOrganizationService organizationService)
     {
         _paymentProfileService = paymentProfileService;
         _subscriptionRecordService = subscriptionRecordService;
+        _organizationService = organizationService;
     }
 
     public async Task HandleEventAsync(Event stripeEvent)
@@ -31,6 +34,18 @@ public class StripeWebhookService : IStripeWebhookService
                 await HandleCheckoutSessionAsync(session);
                 break;
             }
+            case StripeEvents.AccountUpdated:
+            {
+                var account = stripeEvent.Data.Object as Account;
+
+                if (account.ChargesEnabled == true && account.PayoutsEnabled == true)
+                {
+                    await _organizationService.MarkStripeConnectedAsync(account.Id);
+                }
+
+                break;
+            }
+
             case StripeEvents.PaymentIntentSucceeded:
             {
                 var intent = stripeEvent.Data.Object as PaymentIntent;

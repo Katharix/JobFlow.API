@@ -19,19 +19,22 @@ public class PaymentController : ControllerBase
     private readonly IPaymentProcessorFactory _processorFactory;
     private readonly IStripeWebhookService _stripeWebhookService;
     private readonly ISubscriptionRecordService _subscriptionRecordService;
+    private readonly IInvoiceService _invoiceService;
 
     public PaymentController(
         IPaymentProcessorFactory processorFactory,
         IOrganizationService organizationService,
         IPaymentProfileService paymentProfileService,
         ISubscriptionRecordService subscriptionRecordService,
-        IStripeWebhookService stripeWebhookService)
+        IStripeWebhookService stripeWebhookService,
+        IInvoiceService invoiceService)
     {
         _processorFactory = processorFactory;
         _organizationService = organizationService;
         _paymentProfileService = paymentProfileService;
         _subscriptionRecordService = subscriptionRecordService;
         _stripeWebhookService = stripeWebhookService;
+        _invoiceService = invoiceService;
     }
 
     [HttpPost("checkout")]
@@ -51,12 +54,47 @@ public class PaymentController : ControllerBase
         return Ok(new { url = checkoutUrl });
     }
 
+    [HttpPost("invoice/{invoiceId:guid}/checkout")]
+    public async Task<IActionResult> CheckoutInvoice(Guid invoiceId)
+    {
+        var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(invoiceId);
+        if (!invoiceResult.IsSuccess)
+            return NotFound(invoiceResult.Error);
+
+        var invoice = invoiceResult.Value;
+        if (!invoice.OrganizationClient.Organization.IsStripeConnected)
+        {
+            return BadRequest(
+                "Organization must connect a Stripe account before receiving payments."
+            );
+        }
+        var request = new PaymentSessionRequest
+        {
+            Mode = "payment",
+            InvoiceId = invoice.Id,
+            OrgId = invoice.OrganizationId,
+            Amount = invoice.TotalAmount,
+            Quantity = 1,
+            ProductName = $"Invoice #{invoice.InvoiceNumber}",
+            SuccessUrl = "https://app.gojobflow.app/payment-success",
+            CancelUrl = "https://app.gojobflow.app/payment-cancel",
+            ConnectedAccountId = invoice.OrganizationClient.Organization.StripeConnectAccountId,
+        };
+
+        var processor = _processorFactory.GetProcessor(
+            invoice.OrganizationClient.Organization.PaymentProvider.ToString()
+        );
+
+        var checkoutUrl = await processor.CreateCheckoutSessionAsync(request);
+
+        return Ok(new { url = checkoutUrl });
+    }
 
     [HttpPost("{orgId}/create-connected-account")]
     public async Task<IActionResult> CreateConnectedAccount(Guid orgId)
     {
         var org = await _organizationService.GetOrganiztionById(orgId);
-        if (org == null) return NotFound();
+        if (org.IsFailure) return NotFound();
 
         var processor = _processorFactory.GetProcessor(org.Value.PaymentProvider.ToString());
 
@@ -65,6 +103,9 @@ public class PaymentController : ControllerBase
             var accountId = await connected.CreateConnectedAccountAsync();
             if (accountId == null) return NotFound();
 
+            var organization = org.Value;
+            organization.StripeConnectAccountId = accountId;
+            var updatedOrg = await _organizationService.UpsertOrganization(organization);
             var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId);
             return Ok(new { onboarding = onboardingUrl });
         }

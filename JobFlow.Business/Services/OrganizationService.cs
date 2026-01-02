@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -14,11 +15,16 @@ public class OrganizationService : IOrganizationService
     private readonly IQueryable<Organization> _organizations;
     private readonly IUnitOfWork _unitOfWork;
     private ILogger<OrganizationService> _logger;
+    private IOnboardingService _onboardingService;
 
-    public OrganizationService(IUnitOfWork unitOfWork, ILogger<OrganizationService> logger)
+    public OrganizationService(
+        IUnitOfWork unitOfWork, 
+        ILogger<OrganizationService> logger,
+        IOnboardingService onboardingService)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _onboardingService = onboardingService;
         _organizations = _unitOfWork.RepositoryOf<Organization>().Query().Include(e => e.OrganizationType);
     }
 
@@ -47,6 +53,23 @@ public class OrganizationService : IOrganizationService
 
         if (organization == null) return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
         return Result.Success(organization);
+    }
+    public async Task MarkStripeConnectedAsync(string stripeAccountId)
+    {
+        var org = await _organizations
+           .FirstOrDefaultAsync(o => o.StripeConnectAccountId == stripeAccountId);
+
+        if (org == null)
+            return;
+
+        org.IsStripeConnected = true;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        await _onboardingService.MarkStepCompleteAsync(
+            org.Id,
+            OnboardingStepKeys.ConnectStripe
+        );
     }
 
     public async Task<Result<Organization>> UpsertOrganization(Organization model)

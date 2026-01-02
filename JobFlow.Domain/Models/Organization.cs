@@ -18,6 +18,7 @@ public class Organization : Entity
     public bool HasFreeAccount { get; set; }
     public bool OnBoardingComplete { get; set; }
     public string? StripeConnectAccountId { get; set; }
+    public bool IsStripeConnected { get; set; } = false;
 
     public bool CanAcceptPayments =>
         PaymentProvider == PaymentProvider.Stripe &&

@@ -20,4 +20,6 @@ public static class StripeEvents
     public const string CustomerDeleted = "customer.deleted";
     public const string PaymentMethodAttached = "payment_method.attached";
     public const string PaymentMethodDetached = "payment_method.detached";
+    public const string AccountUpdated = "account.updated";
+    public const string AccountDeleted = "account.deleted";
 }

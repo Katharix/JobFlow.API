@@ -8,4 +8,5 @@ public static class OnboardingStepKeys
     public const string CreateInvoice = "create_invoice";
     public const string SendInvoice = "send_invoice";
     public const string ReceivePayment = "receive_payment";
+    public const string ConnectStripe  = "connect_stripe";
 }
