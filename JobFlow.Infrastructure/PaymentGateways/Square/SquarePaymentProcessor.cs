@@ -60,6 +60,11 @@ public class SquarePaymentProcessor : IPaymentProcessor
         }
     }
 
+    public Task<PaymentSessionResult> CreatePaymentIntentAsync(PaymentSessionRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
     {
         throw new NotImplementedException();

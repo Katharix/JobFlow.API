@@ -4,6 +4,6 @@ namespace JobFlow.Business.PaymentGateways;
 
 public interface IPaymentProcessor
 {
-    Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request);
+    Task<PaymentSessionResult> CreatePaymentIntentAsync(PaymentSessionRequest request);
     Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request);
 }

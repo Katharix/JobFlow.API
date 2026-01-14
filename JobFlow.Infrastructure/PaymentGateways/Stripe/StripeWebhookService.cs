@@ -1,7 +1,10 @@
 ﻿using JobFlow.Business.DI;
+using JobFlow.Business.Extensions;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Infrastructure.PaymentGateways.Stripe.StripeModels;
+using Microsoft.Extensions.Logging;
 using Stripe;
 using Stripe.Checkout;
 
@@ -13,141 +16,179 @@ public class StripeWebhookService : IStripeWebhookService
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly ISubscriptionRecordService _subscriptionRecordService;
     private readonly IOrganizationService _organizationService;
+    private readonly IInvoiceService _invoiceService;
+    private readonly IOnboardingService _onboardingService;
+    private readonly INotificationService _notificationService;
+    private readonly ILogger<StripeWebhookService> _logger;
 
     public StripeWebhookService(
         IPaymentProfileService paymentProfileService,
         ISubscriptionRecordService subscriptionRecordService,
-        IOrganizationService organizationService)
+        IOrganizationService organizationService,
+        IInvoiceService invoiceService,
+        IOnboardingService onboardingService,
+        INotificationService notificationService,
+        ILogger<StripeWebhookService> logger)
     {
         _paymentProfileService = paymentProfileService;
         _subscriptionRecordService = subscriptionRecordService;
         _organizationService = organizationService;
+        _invoiceService = invoiceService;
+        _onboardingService = onboardingService;
+        _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task HandleEventAsync(Event stripeEvent)
+{
+    _logger.LogInformation(
+        "Stripe webhook received: EventId={EventId}, Type={Type}, ObjectType={ObjectType}",
+        stripeEvent.Id,
+        stripeEvent.Type,
+        stripeEvent.Data.Object?.GetType().Name
+    );
+
+    switch (stripeEvent.Type)
     {
-        switch (stripeEvent.Type)
+        case StripeEvents.CheckoutSessionCompleted:
         {
-            case StripeEvents.CheckoutSessionCompleted:
-            {
-                var session = stripeEvent.Data.Object as Session;
+            var session = Deserialize<Session>(stripeEvent);
+            if (session != null)
                 await HandleCheckoutSessionAsync(session);
-                break;
-            }
-            case StripeEvents.AccountUpdated:
-            {
-                var account = stripeEvent.Data.Object as Account;
+            break;
+        }
 
-                if (account.ChargesEnabled == true && account.PayoutsEnabled == true)
-                {
-                    await _organizationService.MarkStripeConnectedAsync(account.Id);
-                }
+        case StripeEvents.AccountUpdated:
+        {
+            var account = Deserialize<Account>(stripeEvent);
+            if (account?.ChargesEnabled == true && account.PayoutsEnabled == true)
+                await _organizationService.MarkStripeConnectedAsync(account.Id);
+            break;
+        }
 
-                break;
-            }
+        case StripeEvents.PaymentIntentSucceeded:
+        {
+            var intent = Deserialize<PaymentIntent>(stripeEvent);
 
-            case StripeEvents.PaymentIntentSucceeded:
-            {
-                var intent = stripeEvent.Data.Object as PaymentIntent;
-                await HandlePaymentIntentAsync(intent);
-                break;
-            }
-            case StripeEvents.PaymentIntentFailed:
-            {
-                var intent = stripeEvent.Data.Object as PaymentIntent;
+            if (intent == null)
+                throw new InvalidOperationException(
+                    $"Stripe webhook deserialization failed. EventId={stripeEvent.Id}, Type={stripeEvent.Type}"
+                );
+
+            await HandlePaymentIntentAsync(intent);
+            break;
+        }
+
+
+        case StripeEvents.PaymentIntentFailed:
+        {
+            var intent = Deserialize<PaymentIntent>(stripeEvent);
+            if (intent != null)
                 await HandlePaymentIntentFailedAsync(intent);
-                break;
-            }
-            case StripeEvents.InvoicePaymentSucceeded:
-            {
-                var invoice = stripeEvent.Data.Object as Invoice;
-                await HandleInvoicePaymentSucceededAsync(invoice);
-                break;
-            }
-            case StripeEvents.InvoicePaymentFailed:
-            {
-                var invoice = stripeEvent.Data.Object as Invoice;
-                await HandleInvoicePaymentFailedAsync(invoice);
-                break;
-            }
-            case StripeEvents.InvoiceCreated:
-            {
-                var invoice = stripeEvent.Data.Object as Invoice;
+            break;
+        }
+
+        case StripeEvents.InvoiceCreated:
+        {
+            var invoice = Deserialize<Invoice>(stripeEvent);
+            if (invoice != null)
                 await HandleInvoiceCreatedAsync(invoice);
-                break;
-            }
-            case StripeEvents.InvoiceFinalized:
-            {
-                var invoice = stripeEvent.Data.Object as Invoice;
+            break;
+        }
+
+        case StripeEvents.InvoiceFinalized:
+        {
+            var invoice = Deserialize<Invoice>(stripeEvent);
+            if (invoice != null)
                 await HandleInvoiceFinalizedAsync(invoice);
-                break;
-            }
-            case StripeEvents.InvoiceMarkedUncollectible:
-            {
-                var invoice = stripeEvent.Data.Object as Invoice;
+            break;
+        }
+
+        case StripeEvents.InvoiceMarkedUncollectible:
+        {
+            var invoice = Deserialize<Invoice>(stripeEvent);
+            if (invoice != null)
                 await HandleInvoiceMarkedUncollectibleAsync(invoice);
-                break;
-            }
-            case StripeEvents.CustomerSubscriptionUpdated:
-            {
-                var updated = stripeEvent.Data.Object as Subscription;
-                await HandleSubscriptionUpdatedAsync(updated);
-                break;
-            }
-            case StripeEvents.CustomerSubscriptionDeleted:
-            {
-                var deletedSub = stripeEvent.Data.Object as Subscription;
+            break;
+        }
+
+        case StripeEvents.CustomerSubscriptionUpdated:
+        {
+            var subscription = Deserialize<Subscription>(stripeEvent);
+            if (subscription != null)
+                await HandleSubscriptionUpdatedAsync(subscription);
+            break;
+        }
+
+        case StripeEvents.CustomerSubscriptionDeleted:
+        {
+            var subscription = Deserialize<Subscription>(stripeEvent);
+            if (subscription != null)
                 await _subscriptionRecordService.CancelAsync(
-                    deletedSub.Id,
+                    subscription.Id,
                     DateTime.UtcNow
                 );
-                break;
-            }
-            case StripeEvents.SubscriptionCreated:
-            {
-                var subscription = stripeEvent.Data.Object as Subscription;
+            break;
+        }
+
+        case StripeEvents.SubscriptionCreated:
+        {
+            var subscription = Deserialize<Subscription>(stripeEvent);
+            if (subscription != null)
                 await HandleSubscriptionCreatedAsync(subscription);
-                break;
-            }
-            case StripeEvents.SubscriptionTrialWillEnd:
-            {
-                var subscription = stripeEvent.Data.Object as Subscription;
+            break;
+        }
+
+        case StripeEvents.SubscriptionTrialWillEnd:
+        {
+            var subscription = Deserialize<Subscription>(stripeEvent);
+            if (subscription != null)
                 await HandleSubscriptionTrialWillEndAsync(subscription);
-                break;
-            }
-            case StripeEvents.CustomerCreated:
-            {
-                var customer = stripeEvent.Data.Object as Customer;
+            break;
+        }
+
+        case StripeEvents.CustomerCreated:
+        {
+            var customer = Deserialize<Customer>(stripeEvent);
+            if (customer != null)
                 await HandleCustomerCreatedAsync(customer);
-                break;
-            }
-            case StripeEvents.CustomerUpdated:
-            {
-                var customer = stripeEvent.Data.Object as Customer;
+            break;
+        }
+
+        case StripeEvents.CustomerUpdated:
+        {
+            var customer = Deserialize<Customer>(stripeEvent);
+            if (customer != null)
                 await HandleCustomerUpdatedAsync(customer);
-                break;
-            }
-            case StripeEvents.CustomerDeleted:
-            {
-                var customer = stripeEvent.Data.Object as Customer;
+            break;
+        }
+
+        case StripeEvents.CustomerDeleted:
+        {
+            var customer = Deserialize<Customer>(stripeEvent);
+            if (customer != null)
                 await HandleCustomerDeletedAsync(customer);
-                break;
-            }
-            case StripeEvents.PaymentMethodAttached:
-            {
-                var paymentMethod = stripeEvent.Data.Object as PaymentMethod;
-                await HandlePaymentMethodAttachedAsync(paymentMethod);
-                break;
-            }
-            case StripeEvents.PaymentMethodDetached:
-            {
-                var paymentMethod = stripeEvent.Data.Object as PaymentMethod;
-                await HandlePaymentMethodDetachedAsync(paymentMethod);
-                break;
-            }
+            break;
+        }
+
+        case StripeEvents.PaymentMethodAttached:
+        {
+            var method = Deserialize<PaymentMethod>(stripeEvent);
+            if (method != null)
+                await HandlePaymentMethodAttachedAsync(method);
+            break;
+        }
+
+        case StripeEvents.PaymentMethodDetached:
+        {
+            var method = Deserialize<PaymentMethod>(stripeEvent);
+            if (method != null)
+                await HandlePaymentMethodDetachedAsync(method);
+            break;
         }
     }
-
+}
+    
     private async Task HandleCheckoutSessionAsync(Session session)
     {
         var subscriptionService = new SubscriptionService();
@@ -174,15 +215,38 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandlePaymentIntentAsync(PaymentIntent intent)
     {
-        // Mark payment as successful, set default payment method if available
-        if (!string.IsNullOrEmpty(intent.CustomerId) && !string.IsNullOrEmpty(intent.PaymentMethodId))
-        {
-            var profileResult = await _paymentProfileService.GetForOrganizationAsync(Guid.Parse(intent.CustomerId));
-            if (profileResult.IsSuccess)
-                await _paymentProfileService.SetDefaultPaymentMethodAsync(profileResult.Value.Id,
-                    intent.PaymentMethodId);
-        }
+        if (intent.Status != "succeeded")
+            return;
+
+        if (!intent.Metadata.TryGetValue("invoiceId", out var invoiceIdRaw))
+            return;
+
+        if (!Guid.TryParse(invoiceIdRaw, out var invoiceId))
+            return;
+
+        var result = await _invoiceService.MarkPaidAsync(
+            invoiceId,
+            PaymentProvider.Stripe,
+            intent.Id,
+            intent.AmountReceived / 100m
+        );
+
+        if (!result.IsSuccess)
+            return;
+
+        var invoice = result.Value;
+
+        // await _notificationService.SendClientPaymentReceivedNotificationAsync(
+        //     invoice.OrganizationClient,
+        //     invoice
+        // );
+
+        await _onboardingService.MarkStepCompleteAsync(
+            invoice.OrganizationClient.OrganizationId,
+            OnboardingStepKeys.ReceivePayment
+        );
     }
+
 
     private async Task HandlePaymentIntentFailedAsync(PaymentIntent intent)
     {
@@ -196,35 +260,7 @@ public class StripeWebhookService : IStripeWebhookService
                 // Persist changes if needed
             }
         }
-    }
-
-    private async Task HandleInvoicePaymentSucceededAsync(Invoice invoice)
-    {
-        // Mark subscription as active
-        if (!string.IsNullOrEmpty(invoice.SubscriptionId))
-        {
-            var subResult = await _subscriptionRecordService.GetByProviderIdAsync(invoice.SubscriptionId);
-            if (subResult.IsSuccess)
-            {
-                subResult.Value.Status = "active";
-                // Persist changes if needed
-            }
-        }
-    }
-
-    private async Task HandleInvoicePaymentFailedAsync(Invoice invoice)
-    {
-        // Mark subscription as past_due
-        if (!string.IsNullOrEmpty(invoice.SubscriptionId))
-        {
-            var subResult = await _subscriptionRecordService.GetByProviderIdAsync(invoice.SubscriptionId);
-            if (subResult.IsSuccess)
-            {
-                subResult.Value.Status = "past_due";
-                // Persist changes if needed
-            }
-        }
-    }
+    } 
 
     private async Task HandleInvoiceCreatedAsync(Invoice invoice)
     {
@@ -301,6 +337,11 @@ public class StripeWebhookService : IStripeWebhookService
     private async Task HandlePaymentMethodDetachedAsync(PaymentMethod paymentMethod)
     {
         // Remove payment method from profile if needed
+    }
+    
+    private static T? Deserialize<T>(Event stripeEvent) where T : StripeEntity
+    {
+        return stripeEvent.Data.Object as T;
     }
 }
 

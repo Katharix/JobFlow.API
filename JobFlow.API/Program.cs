@@ -65,6 +65,9 @@ builder.Services.AddSingleton<IFrontendSettings>(sp => sp.GetRequiredService<IOp
 builder.Services.Configure<BackendSettings>(builder.Configuration.GetSection("Backend"));
 builder.Services.AddSingleton<IBackendSettings>(sp => sp.GetRequiredService<IOptions<BackendSettings>>().Value);
 
+builder.Services.Configure<PaymentSettings>(builder.Configuration.GetSection("Payments"));
+builder.Services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOptions<PaymentSettings>>().Value);
+
 // ============================================================
 // FIREBASE INITIALIZATION
 // ============================================================

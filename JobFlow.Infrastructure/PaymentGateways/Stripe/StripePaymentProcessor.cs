@@ -1,4 +1,6 @@
-﻿using JobFlow.Business.DI;
+﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
+using JobFlow.Business.DI;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Domain.Enums;
@@ -10,6 +12,11 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe;
 [ScopedService]
 public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProcessor
 {
+    private readonly IPaymentSettings _paymentSettings;
+    public StripePaymentProcessor(IPaymentSettings paymentSettings)
+    {
+        _paymentSettings = paymentSettings;
+    }
     public async Task<string> CreateConnectedAccountAsync()
     {
         var service = new AccountService();
@@ -19,8 +26,25 @@ public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProces
             Country = "US",
             Capabilities = new AccountCapabilitiesOptions
             {
-                CardPayments = new AccountCapabilitiesCardPaymentsOptions { Requested = true },
-                Transfers = new AccountCapabilitiesTransfersOptions { Requested = true }
+                CardPayments = new AccountCapabilitiesCardPaymentsOptions
+                {
+                    Requested = true
+                },
+                Transfers = new AccountCapabilitiesTransfersOptions
+                {
+                    Requested = true
+                }
+            },
+
+            Settings = new AccountSettingsOptions
+            {
+                Payouts = new AccountSettingsPayoutsOptions
+                {
+                    Schedule = new AccountSettingsPayoutsScheduleOptions
+                    {
+                        Interval = "daily"
+                    }
+                }
             }
         });
 
@@ -40,52 +64,50 @@ public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProces
 
         return accountLink.Url;
     }
-
-    public async Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request)
+    public async Task<PaymentSessionResult> CreatePaymentIntentAsync(
+        PaymentSessionRequest request)
     {
-        var options = new SessionCreateOptions
+        if (string.IsNullOrWhiteSpace(request.ConnectedAccountId))
+            throw new InvalidOperationException("Connected account is required.");
+
+        var amountInCents =
+            request.Amount?.ToCents()
+            ?? throw new InvalidOperationException("Payment amount is required.");
+        long applicationFee = 75L;
+        var options = new PaymentIntentCreateOptions
         {
-            LineItems = new List<SessionLineItemOptions>
+            Amount = amountInCents,
+            Currency = "usd",
+
+            AutomaticPaymentMethods = new()
             {
-                new()
-                {
-                    PriceData = new SessionLineItemPriceDataOptions
-                    {
-                        Currency = "usd",
-                        ProductData = new SessionLineItemPriceDataProductDataOptions
-                        {
-                            Name = request.ProductName
-                        },
-                        UnitAmount = (long)(request.Amount ?? request.DepositAmount) * 100
-                    },
-                    Quantity = request.Quantity
-                }
+                Enabled = true
             },
-            PaymentIntentData = new SessionPaymentIntentDataOptions
-            {
-                ApplicationFeeAmount = request.ApplicationFeeAmount,
-                Metadata = request.InvoiceId.HasValue
-                    ? new Dictionary<string, string>
-                    {
-                        { "invoiceId", request.InvoiceId.Value.ToString() }
-                    }
-                    : null
-            },
+
+            ApplicationFeeAmount = applicationFee,
             
-            Mode = "payment",
-            SuccessUrl = request.SuccessUrl,
-            CancelUrl = request.CancelUrl
+            TransferData = new PaymentIntentTransferDataOptions
+            {
+                Destination = request.ConnectedAccountId
+            },
+
+            Metadata = new Dictionary<string, string>
+            {
+                { "invoiceId", request.InvoiceId!.Value.ToString() }
+            }
         };
 
-        var requestOptions = new RequestOptions
+        var service = new PaymentIntentService();
+
+        // ⚠️ IMPORTANT: NO StripeAccount header here
+        var paymentIntent = await service.CreateAsync(options);
+
+        return new PaymentSessionResult
         {
-            StripeAccount = request.ConnectedAccountId
+            ClientSecret = paymentIntent.ClientSecret
         };
-
-        var sessionService = new SessionService();
-        var session = await sessionService.CreateAsync(options, requestOptions);
-        return session.Url;
     }
+
 
     public async Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
     {

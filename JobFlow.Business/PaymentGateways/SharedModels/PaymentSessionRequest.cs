@@ -19,10 +19,11 @@ public class PaymentSessionRequest
 
 
     // Payment-specific
+    public Guid? OrganizationId { get; set; }
+    public Guid? OrganizationClientId { get; set; }
     public string? ProductName { get; set; }
     public decimal? Amount { get; set; }
     public decimal? DepositAmount { get; set; }
     public int? Quantity { get; set; }
-    public long ApplicationFeeAmount { get; set; } = 75;
     public string? ConnectedAccountId { get; set; }
 }

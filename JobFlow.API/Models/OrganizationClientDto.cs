@@ -16,7 +16,7 @@ public class OrganizationClientDto
 
     public string? PhoneNumber { get; set; }
     public string? EmailAddress { get; set; }
-
+    public OrganizationDto? Organization { get; set; }
     public string? FullName => $"{FirstName} {LastName}".Trim();
     
 }

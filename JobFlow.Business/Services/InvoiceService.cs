@@ -3,6 +3,7 @@ using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -100,6 +101,32 @@ public class InvoiceService : IInvoiceService
             invoice.OrganizationId,
             OnboardingStepKeys.SendInvoice
         );
+    }
+    public async Task<Result<Invoice>> MarkPaidAsync(
+        Guid invoiceId,
+        PaymentProvider provider,
+        string externalPaymentId,
+        decimal amountReceived)
+    {
+        var invoice = await invoices.Query()
+            .Include(e => e.OrganizationClient)
+            .ThenInclude(e => e.Organization)
+            .FirstOrDefaultAsync(i => i.Id == invoiceId);
+        if (invoice == null)
+            return Result.Failure<Invoice>(InvoiceErrors.NotFound);
+
+        // 🔒 Idempotency guard
+        if (invoice.Status == InvoiceStatus.Paid)
+            return Result.Success(invoice);
+
+        invoice.Status = InvoiceStatus.Paid;
+        invoice.AmountPaid = amountReceived;
+        invoice.PaidAt = DateTimeOffset.UtcNow;
+        invoice.PaymentProvider = provider;
+        invoice.ExternalPaymentId = externalPaymentId;
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success(invoice);
     }
 
 }

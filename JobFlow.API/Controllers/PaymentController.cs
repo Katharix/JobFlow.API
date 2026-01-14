@@ -3,10 +3,15 @@ using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using JobFlow.Infrastructure.PaymentGateways;
 using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using Square.Models;
 using Stripe;
+using CreateSubscriptionRequest = JobFlow.Business.Models.DTOs.CreateSubscriptionRequest;
+using Event = Stripe.Event;
 
 namespace JobFlow.API.Controllers;
 
@@ -20,6 +25,7 @@ public class PaymentController : ControllerBase
     private readonly IStripeWebhookService _stripeWebhookService;
     private readonly ISubscriptionRecordService _subscriptionRecordService;
     private readonly IInvoiceService _invoiceService;
+    private readonly IStripeSettings _stripeSettings;
 
     public PaymentController(
         IPaymentProcessorFactory processorFactory,
@@ -27,7 +33,8 @@ public class PaymentController : ControllerBase
         IPaymentProfileService paymentProfileService,
         ISubscriptionRecordService subscriptionRecordService,
         IStripeWebhookService stripeWebhookService,
-        IInvoiceService invoiceService)
+        IInvoiceService invoiceService,
+        IStripeSettings stripeSettings)
     {
         _processorFactory = processorFactory;
         _organizationService = organizationService;
@@ -35,6 +42,7 @@ public class PaymentController : ControllerBase
         _subscriptionRecordService = subscriptionRecordService;
         _stripeWebhookService = stripeWebhookService;
         _invoiceService = invoiceService;
+        _stripeSettings = stripeSettings;
     }
 
     [HttpPost("checkout")]
@@ -49,44 +57,15 @@ public class PaymentController : ControllerBase
         if (request.Mode == "subscription")
             checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
         else
-            checkoutUrl = await processor.CreateCheckoutSessionAsync(request);
-
-        return Ok(new { url = checkoutUrl });
-    }
-
-    [HttpPost("invoice/{invoiceId:guid}/checkout")]
-    public async Task<IActionResult> CheckoutInvoice(Guid invoiceId)
-    {
-        var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(invoiceId);
-        if (!invoiceResult.IsSuccess)
-            return NotFound(invoiceResult.Error);
-
-        var invoice = invoiceResult.Value;
-        if (!invoice.OrganizationClient.Organization.IsStripeConnected)
         {
-            return BadRequest(
-                "Organization must connect a Stripe account before receiving payments."
-            );
+            request.ConnectedAccountId = org.Value.StripeConnectAccountId;
+            var paymentIntent = await processor.CreatePaymentIntentAsync(request);
+
+            return Ok(new
+            {
+                clientSecret = paymentIntent.ClientSecret
+            });
         }
-        var request = new PaymentSessionRequest
-        {
-            Mode = "payment",
-            InvoiceId = invoice.Id,
-            OrgId = invoice.OrganizationId,
-            Amount = invoice.TotalAmount,
-            Quantity = 1,
-            ProductName = $"Invoice #{invoice.InvoiceNumber}",
-            SuccessUrl = "https://app.gojobflow.app/payment-success",
-            CancelUrl = "https://app.gojobflow.app/payment-cancel",
-            ConnectedAccountId = invoice.OrganizationClient.Organization.StripeConnectAccountId,
-        };
-
-        var processor = _processorFactory.GetProcessor(
-            invoice.OrganizationClient.Organization.PaymentProvider.ToString()
-        );
-
-        var checkoutUrl = await processor.CreateCheckoutSessionAsync(request);
-
         return Ok(new { url = checkoutUrl });
     }
 
@@ -164,6 +143,7 @@ public class PaymentController : ControllerBase
 
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
     }
+    
 
     [HttpPost("webhook")]
     public async Task<IActionResult> HandleStripeWebhook()
@@ -176,7 +156,7 @@ public class PaymentController : ControllerBase
             stripeEvent = EventUtility.ConstructEvent(
                 json,
                 Request.Headers["Stripe-Signature"],
-                "whsec_449239427e6f306629fdd3cf4a2d4e8157b1817c8ae85de887bd76380a12bf9a"
+                _stripeSettings.WebhookKey
             );
         }
         catch (StripeException e)

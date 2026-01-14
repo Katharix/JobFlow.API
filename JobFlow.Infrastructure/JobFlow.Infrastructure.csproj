@@ -23,7 +23,7 @@
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1"/>
         <PackageReference Include="Polly" Version="8.5.2"/>
         <PackageReference Include="QuestPDF" Version="2025.4.0"/>
-        <PackageReference Include="Stripe.net" Version="47.4.0"/>
+        <PackageReference Include="Stripe.net" Version="50.0.0" />
         <PackageReference Include="System.Formats.Asn1" Version="9.0.2"/>
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1"/>
         <PackageReference Include="System.Net.Http" Version="4.3.4"/>

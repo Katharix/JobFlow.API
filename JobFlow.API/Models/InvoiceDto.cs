@@ -1,4 +1,5 @@
 ﻿using JobFlow.Domain.Enums;
+using Square.Models;
 
 namespace JobFlow.API.Models;
 
@@ -15,8 +16,9 @@ public class InvoiceDto
     public decimal AmountPaid { get; set; }
     public decimal BalanceDue { get; set; }
     public InvoiceStatus Status { get; set; }
-    public string? StripeInvoiceId { get; set; }
-
+    public PaymentProvider PaymentProvider { get; set; }
+    public string? ExternalPaymentId { get; set; }
+    public DateTimeOffset? PaidAt { get; set; }
 
     public OrganizationClientDto OrganizationClient { get; set; } = null!;
     public List<InvoiceLineItemDto> LineItems { get; set; } = new();

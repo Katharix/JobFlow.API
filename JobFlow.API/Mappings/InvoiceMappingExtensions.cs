@@ -45,7 +45,7 @@ public static class InvoiceMappingExtensions
             AmountPaid = invoice.AmountPaid,
             BalanceDue = invoice.BalanceDue,
             Status = invoice.Status,
-            StripeInvoiceId = invoice.StripeInvoiceId,
+            ExternalPaymentId =  invoice.ExternalPaymentId,
             
             LineItems = invoice.LineItems.Select(li => li.ToDto()).ToList()
         };

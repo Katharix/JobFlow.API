@@ -1,6 +1,7 @@
 ﻿using JobFlow.API.Mappings;
 using JobFlow.API.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -15,6 +16,7 @@ public class InvoiceController : ControllerBase
     private readonly INotificationService notificationService;
     private readonly IInvoiceNumberGenerator numberGenerator;
     private readonly IPdfGenerator pdfGenerator;
+    private readonly IMapper _mapper;
 
     public InvoiceController(
         IInvoiceService invoiceService,
@@ -22,7 +24,9 @@ public class InvoiceController : ControllerBase
         IInvoiceNumberGenerator numberGenerator,
         IPdfGenerator pdfGenerator,
         INotificationService notificationService,
-        IJobService jobService)
+        IJobService jobService,
+        IMapper mapper
+        )
     {
         this.invoiceService = invoiceService;
         this.lineItemService = lineItemService;
@@ -30,13 +34,15 @@ public class InvoiceController : ControllerBase
         this.pdfGenerator = pdfGenerator;
         this.notificationService = notificationService;
         this._jobService = jobService;
+        this._mapper = mapper;
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id)
     {
         var result = await invoiceService.GetInvoiceByIdAsync(id);
-        return result.IsSuccess ? Ok(result.Value.ToDto()) : NotFound(result.Error);
+        var value = _mapper.Map<InvoiceDto>(result.Value);
+        return result.IsSuccess ? Ok(value) : NotFound(result.Error);
     }
 
     [HttpGet("client/{clientId}")]
