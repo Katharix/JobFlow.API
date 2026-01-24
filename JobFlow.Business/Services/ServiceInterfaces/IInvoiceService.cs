@@ -10,6 +10,7 @@ public interface IInvoiceService
     Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model);
     Task<Result> DeleteInvoiceAsync(Guid id);
     Task MarkInvoiceSentAsync(Guid invoiceId);
+    Task<bool> IsPaidAsync(Guid invoiceId);
 
     Task<Result<Invoice>> MarkPaidAsync(
         Guid invoiceId,

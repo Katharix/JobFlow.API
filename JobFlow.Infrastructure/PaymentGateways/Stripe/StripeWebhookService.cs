@@ -1,5 +1,4 @@
 ﻿using JobFlow.Business.DI;
-using JobFlow.Business.Extensions;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
@@ -61,10 +60,22 @@ public class StripeWebhookService : IStripeWebhookService
         case StripeEvents.AccountUpdated:
         {
             var account = Deserialize<Account>(stripeEvent);
-            if (account?.ChargesEnabled == true && account.PayoutsEnabled == true)
+            if (account == null) return;
+
+            if (account.ChargesEnabled &&
+                account.PayoutsEnabled &&
+                account.DetailsSubmitted)
+            {
                 await _organizationService.MarkStripeConnectedAsync(account.Id);
+            }
+            else
+            {
+                //await _organizationService.MarkStripeDisconnectedAsync(account.Id);
+            }
+
             break;
         }
+
 
         case StripeEvents.PaymentIntentSucceeded:
         {
@@ -223,6 +234,9 @@ public class StripeWebhookService : IStripeWebhookService
 
         if (!Guid.TryParse(invoiceIdRaw, out var invoiceId))
             return;
+        
+        if (await _invoiceService.IsPaidAsync(invoiceId))
+            return;
 
         var result = await _invoiceService.MarkPaidAsync(
             invoiceId,
@@ -235,11 +249,6 @@ public class StripeWebhookService : IStripeWebhookService
             return;
 
         var invoice = result.Value;
-
-        // await _notificationService.SendClientPaymentReceivedNotificationAsync(
-        //     invoice.OrganizationClient,
-        //     invoice
-        // );
 
         await _onboardingService.MarkStepCompleteAsync(
             invoice.OrganizationClient.OrganizationId,

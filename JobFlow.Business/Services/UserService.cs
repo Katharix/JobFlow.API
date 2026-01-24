@@ -88,7 +88,11 @@ public class UserService : IUserService
 
     public async Task<Result<User>> GetUserByFirebaseUid(string uid)
     {
-        var user = await unitOfWork.RepositoryOf<User>().Query().Include(e => e.Organization)
+        var user = await unitOfWork.RepositoryOf<User>()
+            .Query()
+            .Include(u => u.Organization)
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.FirebaseUid == uid);
 
         if (user == null)
@@ -96,4 +100,13 @@ public class UserService : IUserService
 
         return Result.Success(user);
     }
+
+    
+    private static string ResolvePrimaryRole(User user)
+    {
+        return user.UserRoles
+            .Select(ur => ur.Role?.Name)
+            .FirstOrDefault() ?? "User";
+    }
+
 }

@@ -4,6 +4,7 @@ using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
+using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -16,13 +17,15 @@ public class OrganizationClientService : IOrganizationClientService
     private readonly IRepository<OrganizationClient> organizationClient;
     private readonly IOnboardingService onboardingService;
     private readonly IUnitOfWork unitOfWork;
+    private readonly IMapper _mapper;
 
-    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService)
+    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService, IMapper mapper)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         this.onboardingService = onboardingService;
         organizationClient = this.unitOfWork.RepositoryOf<OrganizationClient>();
+        _mapper = mapper;
     }
 
     public async Task<Result> DeleteClient(Guid clientId)
@@ -86,9 +89,7 @@ public class OrganizationClientService : IOrganizationClientService
                 OnboardingStepKeys.CreateCustomer
             );
         }
-
         return Result.Success(model);
-
     }
 
     public async Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(
