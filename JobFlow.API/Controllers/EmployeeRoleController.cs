@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Extensions;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
@@ -19,9 +20,10 @@ public class EmployeeRolesController : ControllerBase
         this.logger = logger;
     }
 
-    [HttpGet("organization/{organizationId}")]
-    public async Task<IActionResult> GetByOrganization(Guid organizationId)
+    [HttpGet("organization")]
+    public async Task<IActionResult> GetByOrganization()
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await employeeRoleService.GetRolesByOrganizationAsync(organizationId);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
@@ -36,10 +38,11 @@ public class EmployeeRolesController : ControllerBase
     [HttpPost]
     public async Task<IResult> Create(EmployeeRoleDto model)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var employeeRole = new EmployeeRole
         {
             Name = model.Name.ToUpper(),
-            OrganizationId = model.OrganizationId
+            OrganizationId = organizationId
         };
         var result = await employeeRoleService.UpsertAsync(employeeRole);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
@@ -48,7 +51,9 @@ public class EmployeeRolesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, EmployeeRole model)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         model.Id = id;
+        model.OrganizationId = organizationId;
         var result = await employeeRoleService.UpsertAsync(model);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }

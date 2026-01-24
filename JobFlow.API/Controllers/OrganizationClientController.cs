@@ -1,4 +1,5 @@
-﻿using JobFlow.API.Mappings;
+﻿using JobFlow.API.Extensions;
+using JobFlow.API.Mappings;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
@@ -26,10 +27,10 @@ public class OrganizationClientController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
-    [HttpGet("all/{organizationId:guid}")]
-    public async Task<IResult> GetAllClientsByOrganizationId(
-        [FromRoute] Guid organizationId)
+    [HttpGet("orgall")]
+    public async Task<IResult> GetAllClientsByOrganizationId()
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await organizationClientService.GetAllClientsByOrganizationId(organizationId);
         return result.IsSuccess
             ? Results.Ok(result.Value)
@@ -45,11 +46,11 @@ public class OrganizationClientController : ControllerBase
         return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 
-    [HttpPost("{organizationId:guid}/upsert")]
+    [HttpPost("upsert")]
     public async Task<IResult> UpsertClient(
-        [FromRoute] Guid organizationId,
         [FromBody] OrganizationClientDto model)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         if (organizationId == Guid.Empty)
             return Results.BadRequest("OrganizationId is required.");
 

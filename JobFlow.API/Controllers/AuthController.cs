@@ -210,49 +210,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { Message = "Failed to delete user.", Error = ex.Message });
         }
     }
-
-    // ============================================================
-    // HELPER TOKEN GENERATORS
-    // ============================================================
-    private string GenerateJwtToken(List<Claim> claims)
-    {
-        var jwtKey = _configuration.GetSection("JWTKey").Value ?? throw new Exception("JWT Key is missing.");
-        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-
-        var token = new JwtSecurityToken(
-            expires: DateTime.UtcNow.AddHours(12),
-            claims: claims,
-            signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private string GenerateJwtToken(User user, IList<string> roles)
-    {
-        var jwtKey = _configuration.GetSection("JWTKey").Value;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new("FirebaseUid", user.FirebaseUid),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        foreach (var role in roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
-
-        var token = new JwtSecurityToken(
-            expires: DateTime.UtcNow.AddHours(2),
-            claims: claims,
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
+    
 }
 
 // ============================================================

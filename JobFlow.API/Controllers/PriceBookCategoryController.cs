@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Extensions;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace JobFlow.Web.Controllers;
 
 [ApiController]
-[Route("api/organizations/{organizationId:guid}/pricebook/categories")]
+[Route("api/pricebook/categories")]
 public class PriceBookCategoriesController : ControllerBase
 {
     private readonly IPriceBookCategoryService _service;
@@ -17,32 +18,35 @@ public class PriceBookCategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IResult> GetAll(Guid organizationId)
+    public async Task<IResult> GetAll()
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _service.GetAllAsync(organizationId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
     [HttpGet("{id:Guid}")]
-    public async Task<IResult> GetById(Guid organizationId, Guid id)
+    public async Task<IResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
     [HttpPost]
-    public async Task<IResult> Create(Guid organizationId, [FromBody] PriceBookCategory body)
+    public async Task<IResult> Create([FromBody] PriceBookCategory body)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         body.OrganizationId = organizationId;
         var result = await _service.CreateAsync(body);
         if (!result.IsSuccess) return result.ToProblemDetails();
-        var location = $"/api/organizations/{organizationId}/pricebook/categories/{result.Value!.Id}";
+        var location = $"/api/pricebook/categories/{result.Value!.Id}";
         return Results.Created(location, result.Value);
     }
 
     [HttpPut("{id:Guid}")]
-    public async Task<IResult> Update(Guid organizationId, Guid id, [FromBody] PriceBookCategory body)
+    public async Task<IResult> Update(Guid id, [FromBody] PriceBookCategory body)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         body.Id = id;
         body.OrganizationId = organizationId;
         var result = await _service.UpdateAsync(body);
@@ -50,7 +54,7 @@ public class PriceBookCategoriesController : ControllerBase
     }
 
     [HttpDelete("{id:Guid}")]
-    public async Task<IResult> Delete(Guid organizationId, Guid id)
+    public async Task<IResult> Delete(Guid id)
     {
         var result = await _service.DeleteAsync(id);
         return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();

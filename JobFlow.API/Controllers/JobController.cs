@@ -1,4 +1,5 @@
-﻿using JobFlow.API.Models;
+﻿using JobFlow.API.Extensions;
+using JobFlow.API.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using MapsterMapper;
@@ -22,9 +23,10 @@ public class JobController : ControllerBase
     /// <summary>
     ///     Get a single job by Id (with org context).
     /// </summary>
-    [HttpGet("{id:guid}/organization/{organizationId:guid}")]
-    public async Task<IActionResult> GetJobById(Guid id, Guid organizationId)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetJobById(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _jobService.GetJobByIdAsync(id, organizationId);
         if (result.IsFailure)
             return NotFound(result.Error);
@@ -48,9 +50,10 @@ public class JobController : ControllerBase
     /// <summary>
     ///     Get jobs by status and organization.
     /// </summary>
-    [HttpGet("status/{statusId:guid}/organization/{organizationId:guid}")]
-    public async Task<IActionResult> GetJobsByStatus(Guid statusId, Guid organizationId)
+    [HttpGet("status/{statusId:guid}")]
+    public async Task<IActionResult> GetJobsByStatus(Guid statusId)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _jobService.GetJobsByStatusAsync(statusId, organizationId);
         if (result.IsFailure)
             return BadRequest(result.Error);
@@ -61,23 +64,30 @@ public class JobController : ControllerBase
     /// <summary>
     ///     Create or update a job.
     /// </summary>
-    [HttpPost("{organizationId:guid}")]
-    public async Task<IActionResult> UpsertJob(
-        [FromRoute] Guid organizationId,
-        [FromBody] JobDto model)
+
+    [HttpPost]
+    public async Task<IActionResult> UpsertJob([FromBody] JobDto model)
     {
-        if (organizationId == Guid.Empty)
-            return BadRequest("OrganizationId is required.");
+        var orgId = HttpContext.GetOrganizationId();
+
+        if (orgId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
         var mappedJob = _mapper.Map<JobDto, Job>(model);
-        
-        mappedJob.JobStatus = new JobStatus() { Status = "Pending"};
-        var result = await _jobService.UpsertJobAsync(mappedJob, organizationId);
+
+        mappedJob.JobStatus = new JobStatus
+        {
+            Status = "Pending"
+        };
+
+        var result = await _jobService.UpsertJobAsync(mappedJob, orgId);
 
         if (result.IsFailure)
             return BadRequest(result.Error);
 
         return Ok(result.Value);
     }
+
 
     /// <summary>
     ///     Delete a job.
@@ -91,4 +101,17 @@ public class JobController : ControllerBase
 
         return NoContent();
     }
+    
+    [HttpGet("all")]
+    public async Task<IActionResult> GetJobs()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _jobService.GetJobsAsync(organizationId);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
 }

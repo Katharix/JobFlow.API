@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Extensions;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
@@ -20,9 +21,10 @@ public class EmployeeInviteController : ControllerBase
     [HttpPost]
     public async Task<IResult> Invite([FromBody] EmployeeInviteDto invite)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var employeeInvite = new EmployeeInvite
         {
-            OrganizationId = invite.OrganizationId,
+            OrganizationId = organizationId,
             Email = invite.Email,
             FirstName = invite.FirstName,
             LastName = invite.LastName,

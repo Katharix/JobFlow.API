@@ -1,4 +1,5 @@
-﻿using JobFlow.API.Models;
+﻿using JobFlow.API.Extensions;
+using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
@@ -24,19 +25,21 @@ public class PriceBookController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
-    [HttpGet("org/{orgId}/category/{categoryId}")]
-    public async Task<IResult> GetAllByCategory(Guid orgId, Guid categoryId)
+    [HttpGet("category/{categoryId}")]
+    public async Task<IResult> GetAllByCategory(Guid categoryId)
     {
-        var result = await _service.GetAllAsync(orgId, categoryId);
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _service.GetAllAsync(organizationId, categoryId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
     [HttpPost]
     public async Task<IResult> Create([FromBody] CreatePriceBookItemRequest dto)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var item = new PriceBookItem
         {
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = organizationId,
             Name = dto.Name,
             Description = dto.Description,
             Unit = dto.Unit,
@@ -55,10 +58,11 @@ public class PriceBookController : ControllerBase
     [HttpPut]
     public async Task<IResult> Update([FromBody] UpdatePriceBookItemRequest dto)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var item = new PriceBookItem
         {
             Id = dto.Id,
-            OrganizationId = dto.OrganizationId,
+            OrganizationId = organizationId,
             Name = dto.Name,
             Description = dto.Description,
             Unit = dto.Unit,

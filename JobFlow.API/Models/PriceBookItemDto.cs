@@ -3,7 +3,7 @@
 namespace JobFlow.API.Models;
 
 public record CreatePriceBookItemRequest(
-    Guid OrganizationId,
+    Guid? OrganizationId,
     string Name,
     string? Description,
     string? PartNumber,
@@ -17,7 +17,7 @@ public record CreatePriceBookItemRequest(
 
 public record UpdatePriceBookItemRequest(
     Guid Id,
-    Guid OrganizationId,
+    Guid? OrganizationId,
     string Name,
     string? Description,
     string? PartNumber,

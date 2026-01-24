@@ -1,4 +1,5 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Extensions;
+using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +19,10 @@ public class EmployeesController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("organization/{organizationId}")]
-    public async Task<IResult> GetByOrganizationId(Guid organizationId)
+    [HttpGet("organization")]
+    public async Task<IResult> GetByOrganizationId()
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _employeeService.GetByOrganizationIdAsync(organizationId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
@@ -35,6 +37,8 @@ public class EmployeesController : ControllerBase
     [HttpPost]
     public async Task<IResult> Create(CreateEmployeeRequest request)
     {
+        var organizationId = HttpContext.GetOrganizationId();
+        request.OrganizationId = organizationId;
         var result = await _employeeService.CreateAsync(request);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
@@ -53,9 +57,10 @@ public class EmployeesController : ControllerBase
         return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 
-    [HttpGet("{organizationId}/employees/{email}")]
-    public async Task<IResult> EmployeeEmailExist(Guid organizationId, string email)
+    [HttpGet("email/{email}")]
+    public async Task<IResult> EmployeeEmailExist(string email)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _employeeService.EmployeeExistByEmailAsync(organizationId, email);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
