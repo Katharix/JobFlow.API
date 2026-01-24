@@ -2,35 +2,34 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace JobFlow.Infrastructure.Persistence.Configurations
+namespace JobFlow.Infrastructure.Persistence.Configurations;
+
+internal class SubscriptionRecordConfiguration : IEntityTypeConfiguration<SubscriptionRecord>
 {
-    internal class SubscriptionRecordConfiguration : IEntityTypeConfiguration<SubscriptionRecord>
+    public void Configure(EntityTypeBuilder<SubscriptionRecord> builder)
     {
-        public void Configure(EntityTypeBuilder<SubscriptionRecord> builder)
-        {
-            builder.ToTable("SubscriptionRecord", "payment");
+        builder.ToTable("SubscriptionRecord", "payment");
 
-            builder.HasKey(e => e.Id);
+        builder.HasKey(e => e.Id);
 
-            builder.Property(e => e.ProviderSubscriptionId)
-                   .IsRequired()
-                   .HasMaxLength(128);
+        builder.Property(e => e.ProviderSubscriptionId)
+            .IsRequired()
+            .HasMaxLength(128);
 
-            builder.Property(e => e.ProviderPriceId)
-                   .IsRequired()
-                   .HasMaxLength(128);
+        builder.Property(e => e.ProviderPriceId)
+            .IsRequired()
+            .HasMaxLength(128);
 
-            builder.Property(e => e.Status)
-                   .IsRequired()
-                   .HasMaxLength(64);
+        builder.Property(e => e.Status)
+            .IsRequired()
+            .HasMaxLength(64);
 
-            builder.Property(e => e.StartDate)
-                   .IsRequired();
+        builder.Property(e => e.StartDate)
+            .IsRequired();
 
-            builder.HasOne(e => e.PaymentProfile)
-                   .WithMany()
-                   .HasForeignKey(e => e.PaymentProfileId)
-                   .OnDelete(DeleteBehavior.Cascade);
-        }
+        builder.HasOne(e => e.PaymentProfile)
+            .WithMany()
+            .HasForeignKey(e => e.PaymentProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

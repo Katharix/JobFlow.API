@@ -3,117 +3,110 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
-namespace JobFlow.Infrastructure.Persistence
+namespace JobFlow.Infrastructure.Persistence;
+
+public class JobFlowUnitOfWork : IUnitOfWork
 {
-    public class JobFlowUnitOfWork : IUnitOfWork
+    private readonly IDbContextFactory<JobFlowDbContext> _factory;
+    private readonly ILogger<JobFlowUnitOfWork> _logger;
+    private JobFlowDbContext _context;
+
+    public JobFlowUnitOfWork(ILogger<JobFlowUnitOfWork> logger, IDbContextFactory<JobFlowDbContext> factory)
     {
-        private readonly ILogger<JobFlowUnitOfWork> _logger;
-        private readonly IDbContextFactory<JobFlowDbContext> _factory;
-        private JobFlowDbContext _context;
+        _factory = factory;
+        _logger = logger;
+    }
 
-        public JobFlowUnitOfWork(ILogger<JobFlowUnitOfWork> logger, IDbContextFactory<JobFlowDbContext> factory)
+    public DbContext Context => _context;
+
+    public IRepository<TEntity> RepositoryOf<TEntity>() where TEntity : class
+    {
+        EnsureDbContext();
+        return new Repository<TEntity>(_context);
+    }
+
+    DbContext IUnitOfWork.Context => Context;
+
+    public void SaveChanges()
+    {
+        if (_context == null)
+            return;
+
+        try
         {
-            _factory = factory;
-            _logger = logger;
-
+            _context.SaveChanges();
         }
-        public IRepository<TEntity> RepositoryOf<TEntity>() where TEntity : class
+        catch (Exception e)
         {
-            EnsureDbContext();
-            return new Repository<TEntity>(_context);
+            _logger.LogError("An unknown error occured saving changes to the database", e);
+
+            throw;
         }
+    }
 
-        public DbContext Context => _context;
+    public async Task<IDbContextTransaction> BeginTransactionAsync()
+    {
+        EnsureDbContext();
+        return await _context.Database.BeginTransactionAsync();
+    }
 
-        DbContext IUnitOfWork.Context { get => Context; }
+    public IExecutionStrategy CreateExecutionStrategy()
+    {
+        EnsureDbContext();
+        return _context.Database.CreateExecutionStrategy();
+    }
 
-        public void SaveChanges()
+
+    public async Task SaveChangesAsync(bool resetDbContext = true)
+    {
+        if (_context == null)
+            return;
+
+        try
         {
-            if (_context == null)
-                return;
-
-            try
-            {
-                _context.SaveChanges();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("An unknown error occured saving changes to the database", e);
-
-                throw;
-            }
-
+            await _context.SaveChangesAsync();
         }
-        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        catch (Exception e)
         {
-            EnsureDbContext();
-            return await _context.Database.BeginTransactionAsync();
+            _logger.LogError("An unknown error occured saving changes to the database", e);
+
+            throw;
         }
+    }
 
-        public IExecutionStrategy CreateExecutionStrategy()
-        {
-            EnsureDbContext();
-            return _context.Database.CreateExecutionStrategy();
-        }
+    public TEntity GetAddedEntity<TEntity>(TEntity entity) where TEntity : class
+    {
+        if (_context.Entry(entity).State == EntityState.Added) return entity;
+        return null;
+    }
 
+    public void Dispose()
+    {
+        ClearDbContext();
+    }
 
-        public async Task SaveChangesAsync(bool resetDbContext = true)
-        {
-            if (_context == null)
-                return;
+    public bool HasChanges()
+    {
+        return _context != null && _context.ChangeTracker.HasChanges();
+    }
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("An unknown error occured saving changes to the database", e);
+    private void ResetDbContext()
+    {
+        ClearDbContext();
+        EnsureDbContext();
+    }
 
-                throw;
-            }
+    private void ClearDbContext()
+    {
+        if (_context != null) _context.Dispose();
+        _context = null;
+    }
 
-        }
+    private void EnsureDbContext()
+    {
+        if (_context != null)
+            return;
 
-        public TEntity GetAddedEntity<TEntity>(TEntity entity) where TEntity : class
-        {
-            if (_context.Entry(entity).State == EntityState.Added)
-            {
-                return entity;
-            }
-            return null;
-        }
-
-        public void Dispose()
-        {
-            ClearDbContext();
-        }
-
-        private void ResetDbContext()
-        {
-            ClearDbContext();
-            EnsureDbContext();
-        }
-
-        private void ClearDbContext()
-        {
-            if (_context != null)
-            {
-                _context.Dispose();
-            }
-            _context = null;
-        }
-
-        private void EnsureDbContext()
-        {
-            if (_context != null)
-                return;
-
-            _context = _factory.CreateDbContext();
-        }
-        public bool HasChanges()
-        {
-            return (_context != null) && _context.ChangeTracker.HasChanges();
-        }
+        _context = _factory.CreateDbContext();
     }
 }

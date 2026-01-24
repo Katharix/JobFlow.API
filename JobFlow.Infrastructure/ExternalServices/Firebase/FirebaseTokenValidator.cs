@@ -1,36 +1,29 @@
 ﻿using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JobFlow.Infrastructure.ExternalServices.Firebase
+namespace JobFlow.Infrastructure.ExternalServices.Firebase;
+
+public interface IFirebaseTokenValidator
 {
-    public interface IFirebaseTokenValidator
+    Task<GoogleJsonWebSignature.Payload> ValidateTokenAsync(string idToken);
+}
+
+public class FirebaseTokenValidator : IFirebaseTokenValidator
+{
+    private readonly string _firebaseProjectId;
+
+    public FirebaseTokenValidator(IConfiguration config)
     {
-        Task<GoogleJsonWebSignature.Payload> ValidateTokenAsync(string idToken);
+        _firebaseProjectId = config["Firebase:ProjectId"];
     }
 
-    public class FirebaseTokenValidator : IFirebaseTokenValidator
+    public async Task<GoogleJsonWebSignature.Payload> ValidateTokenAsync(string idToken)
     {
-        private readonly string _firebaseProjectId;
-
-        public FirebaseTokenValidator(IConfiguration config)
+        var settings = new GoogleJsonWebSignature.ValidationSettings
         {
-            _firebaseProjectId = config["Firebase:ProjectId"];
-        }
+            Audience = new[] { _firebaseProjectId }
+        };
 
-        public async Task<GoogleJsonWebSignature.Payload> ValidateTokenAsync(string idToken)
-        {
-            var settings = new GoogleJsonWebSignature.ValidationSettings()
-            {
-                Audience = new[] { _firebaseProjectId }
-            };
-
-            return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
-        }
+        return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
     }
-
 }

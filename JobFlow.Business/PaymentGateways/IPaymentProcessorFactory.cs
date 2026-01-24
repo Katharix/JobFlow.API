@@ -1,12 +1,9 @@
 ﻿using JobFlow.Domain.Enums;
 
+namespace JobFlow.Business.PaymentGateways;
 
-namespace JobFlow.Business.PaymentGateways
+public interface IPaymentProcessorFactory
 {
-    public interface IPaymentProcessorFactory
-    {
-        IPaymentProcessor GetProcessor(string provider);
-        IPaymentProcessor GetProcessor(PaymentProvider provider);
-    }
-
+    IPaymentProcessor GetProcessor(string provider);
+    IPaymentProcessor GetProcessor(PaymentProvider provider);
 }

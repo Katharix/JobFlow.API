@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 
-namespace JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces
+public interface IReCAPTCHASettings
 {
-    public interface IReCAPTCHASettings
-    {
-        string SecretKey { get; set; }
-    }
+    string SecretKey { get; set; }
 }

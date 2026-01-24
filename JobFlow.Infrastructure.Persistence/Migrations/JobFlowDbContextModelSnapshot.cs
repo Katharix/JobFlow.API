@@ -380,6 +380,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ExternalPaymentId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("datetime2");
 
@@ -397,11 +400,14 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Status")
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("PaymentProvider")
                         .HasColumnType("int");
 
-                    b.Property<string>("StripeInvoiceId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
@@ -769,6 +775,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("HasFreeAccount")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsStripeConnected")
                         .HasColumnType("bit");
 
                     b.Property<bool>("OnBoardingComplete")

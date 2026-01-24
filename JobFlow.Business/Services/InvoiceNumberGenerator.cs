@@ -1,75 +1,68 @@
-﻿using JobFlow.Business.DI;
+﻿using System.Data;
+using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
-using JobFlow.Domain.Models;
 using JobFlow.Domain;
+using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.Services;
+
+[ScopedService]
+public class InvoiceNumberGenerator : IInvoiceNumberGenerator
 {
-    [ScopedService]
-    public class InvoiceNumberGenerator : IInvoiceNumberGenerator
+    private readonly ILogger<InvoiceNumberGenerator> _logger;
+    private readonly IRepository<InvoiceSequence> _sequenceRepo;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public InvoiceNumberGenerator(
+        IUnitOfWork unitOfWork,
+        ILogger<InvoiceNumberGenerator> logger)
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IRepository<InvoiceSequence> _sequenceRepo;
-        private readonly ILogger<InvoiceNumberGenerator> _logger;
+        _unitOfWork = unitOfWork;
+        _sequenceRepo = _unitOfWork.RepositoryOf<InvoiceSequence>();
+        _logger = logger;
+    }
 
-        public InvoiceNumberGenerator(
-            IUnitOfWork unitOfWork,
-            ILogger<InvoiceNumberGenerator> logger)
+    public async Task<string> GenerateAsync(Guid organizationId)
+    {
+        var year = DateTime.UtcNow.Year;
+        var invoiceNumber = string.Empty;
+
+        var dbContext = _unitOfWork.Context;
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
         {
-            _unitOfWork = unitOfWork;
-            _sequenceRepo = _unitOfWork.RepositoryOf<InvoiceSequence>();
-            _logger = logger;
-        }
+            using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        public async Task<string> GenerateAsync(Guid organizationId)
-        {
-            var year = DateTime.UtcNow.Year;
-            string invoiceNumber = string.Empty;
+            var sequence = await _sequenceRepo.Query()
+                .SingleOrDefaultAsync(s => s.OrganizationId == organizationId && s.Year == year);
 
-            var dbContext = _unitOfWork.Context;
-            var strategy = dbContext.Database.CreateExecutionStrategy();
-
-            await strategy.ExecuteAsync(async () =>
+            if (sequence == null)
             {
-                using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-                var sequence = await _sequenceRepo.Query()
-                    .SingleOrDefaultAsync(s => s.OrganizationId == organizationId && s.Year == year);
-
-                if (sequence == null)
+                sequence = new InvoiceSequence
                 {
-                    sequence = new InvoiceSequence
-                    {
-                        OrganizationId = organizationId,
-                        Year = year,
-                        LastSequence = 0
-                    };
-                    await _sequenceRepo.AddAsync(sequence);
-                }
+                    OrganizationId = organizationId,
+                    Year = year,
+                    LastSequence = 0
+                };
+                await _sequenceRepo.AddAsync(sequence);
+            }
 
-                sequence.LastSequence++;
-                int nextSeq = sequence.LastSequence;
+            sequence.LastSequence++;
+            var nextSeq = sequence.LastSequence;
 
-                await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
+            await _unitOfWork.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-                invoiceNumber = $"{year}-{nextSeq:D4}";
-            });
+            invoiceNumber = $"{year}-{nextSeq:D4}";
+        });
 
-            _logger.LogInformation(
-                "Generated invoice number {InvoiceNumber} for organization {OrgId}",
-                invoiceNumber, organizationId);
+        _logger.LogInformation(
+            "Generated invoice number {InvoiceNumber} for organization {OrgId}",
+            invoiceNumber, organizationId);
 
-            return invoiceNumber;
-        }
-
+        return invoiceNumber;
     }
 }

@@ -6,118 +6,96 @@ using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.Services;
+
+[ScopedService]
+public class OrganizationTypeService : IOrganizationTypeService
 {
-    [ScopedService]
-    public class OrganizationTypeService : IOrganizationTypeService
+    private readonly ILogger<OrganizationTypeService> logger;
+    private readonly IRepository<OrganizationType> organizationTypes;
+    private readonly IUnitOfWork unitOfWork;
+
+    public OrganizationTypeService(ILogger<OrganizationTypeService> logger, IUnitOfWork unitOfWork)
     {
-        private readonly ILogger<OrganizationTypeService> logger;
-        private readonly IUnitOfWork unitOfWork;
-        private readonly IRepository<OrganizationType> organizationTypes;
-        public OrganizationTypeService(ILogger<OrganizationTypeService> logger, IUnitOfWork unitOfWork)
-        {
-            this.logger = logger;
-            this.unitOfWork = unitOfWork;
-            organizationTypes = this.unitOfWork.RepositoryOf<OrganizationType>();
-        }
-        public async Task<Result> DeleteMultipleOrganizationTypes(IEnumerable<Guid> idList)
-        {
-            var organizationTypesToDelete = organizationTypes.Query().Where(org => idList.Contains(org.Id));
-            if (!organizationTypesToDelete.Any())
-            {
-                return Result.Failure(OrganizationTypeErrors.OrganizationTypeNotFound);
-            }
-            var organizationTypeNames = organizationTypesToDelete.Select(org => org.TypeName);
-            var commaDelimitedOrganizationTypeNames = string.Join(", ", organizationTypeNames);
+        this.logger = logger;
+        this.unitOfWork = unitOfWork;
+        organizationTypes = this.unitOfWork.RepositoryOf<OrganizationType>();
+    }
 
-            organizationTypes.RemoveRange(organizationTypesToDelete);
-            await this.unitOfWork.SaveChangesAsync();
+    public async Task<Result> DeleteMultipleOrganizationTypes(IEnumerable<Guid> idList)
+    {
+        var organizationTypesToDelete = organizationTypes.Query().Where(org => idList.Contains(org.Id));
+        if (!organizationTypesToDelete.Any()) return Result.Failure(OrganizationTypeErrors.OrganizationTypeNotFound);
+        var organizationTypeNames = organizationTypesToDelete.Select(org => org.TypeName);
+        var commaDelimitedOrganizationTypeNames = string.Join(", ", organizationTypeNames);
 
-            return Result.Success($"The following types were deleted successfully: {commaDelimitedOrganizationTypeNames}.");
-        }
+        organizationTypes.RemoveRange(organizationTypesToDelete);
+        await unitOfWork.SaveChangesAsync();
 
-        public async Task<Result> DeleteOrganizationType(Guid organizationTypeId)
-        {
-            var organizationTypeToDelete = organizationTypes.Query().FirstOrDefault(org => org.Id == organizationTypeId);
-            if (organizationTypeToDelete == null)
-            {
-                return Result.Failure(OrganizationTypeErrors.OrganizationTypeNotFound);
-            }
+        return Result.Success($"The following types were deleted successfully: {commaDelimitedOrganizationTypeNames}.");
+    }
 
-            organizationTypes.Remove(organizationTypeToDelete);
-            await this.unitOfWork.SaveChangesAsync();
+    public async Task<Result> DeleteOrganizationType(Guid organizationTypeId)
+    {
+        var organizationTypeToDelete = organizationTypes.Query().FirstOrDefault(org => org.Id == organizationTypeId);
+        if (organizationTypeToDelete == null) return Result.Failure(OrganizationTypeErrors.OrganizationTypeNotFound);
 
-            return Result.Success($"The {organizationTypeToDelete.TypeName} type has been deleted successfully.");
-        }
+        organizationTypes.Remove(organizationTypeToDelete);
+        await unitOfWork.SaveChangesAsync();
 
-        public async Task<Result<OrganizationType>> GetTypeById(Guid organizationTypeId)
-        {
-            var organizationType = await organizationTypes.Query().FirstOrDefaultAsync(org => org.Id == organizationTypeId);
-            if (organizationType == null)
-            {
-                return Result.Failure<OrganizationType>(OrganizationTypeErrors.OrganizationTypeNotFound);
-            }
+        return Result.Success($"The {organizationTypeToDelete.TypeName} type has been deleted successfully.");
+    }
 
-            return Result.Success<OrganizationType>(organizationType);
-        }
+    public async Task<Result<OrganizationType>> GetTypeById(Guid organizationTypeId)
+    {
+        var organizationType = await organizationTypes.Query().FirstOrDefaultAsync(org => org.Id == organizationTypeId);
+        if (organizationType == null)
+            return Result.Failure<OrganizationType>(OrganizationTypeErrors.OrganizationTypeNotFound);
 
-        public async Task<Result<IEnumerable<OrganizationType>>> GetTypes()
-        {
-            var organizationTypesList = organizationTypes.Query();
-            if (!organizationTypesList.Any())
-            {
-                return Result.Failure<IEnumerable<OrganizationType>>(OrganizationTypeErrors.OrganizationTypeNotFound);
-            }
+        return Result.Success<OrganizationType>(organizationType);
+    }
 
-            return Result.Success<IEnumerable<OrganizationType>>(organizationTypesList);
-        }
+    public async Task<Result<IEnumerable<OrganizationType>>> GetTypes()
+    {
+        var organizationTypesList = organizationTypes.Query();
+        if (!organizationTypesList.Any())
+            return Result.Failure<IEnumerable<OrganizationType>>(OrganizationTypeErrors.OrganizationTypeNotFound);
 
-        public async Task<Result<IEnumerable<OrganizationType>>> UpsertOrganizationList(IEnumerable<OrganizationType> modelList)
-        {
-            if (modelList == null || !modelList.Any())
-            {
-                return Result.Failure<IEnumerable<OrganizationType>>(OrganizationTypeErrors.NoOrganizationTypesToUpsert);
-            }
+        return Result.Success<IEnumerable<OrganizationType>>(organizationTypesList);
+    }
 
-            var modelsToInsert = new List<OrganizationType>();
-            var modelsToUpdate = new List<OrganizationType>();
+    public async Task<Result<IEnumerable<OrganizationType>>> UpsertOrganizationList(
+        IEnumerable<OrganizationType> modelList)
+    {
+        if (modelList == null || !modelList.Any())
+            return Result.Failure<IEnumerable<OrganizationType>>(OrganizationTypeErrors.NoOrganizationTypesToUpsert);
 
-            foreach (var org in modelList)
-            {
-                if (org.Id == Guid.Empty)
-                    modelsToInsert.Add(org);
-                else
-                    modelsToUpdate.Add(org);
-            }
+        var modelsToInsert = new List<OrganizationType>();
+        var modelsToUpdate = new List<OrganizationType>();
 
-            if (modelsToInsert.Count > 0)
-            {
-                organizationTypes.AddRange(modelsToInsert);
-            }
-
-            if (modelsToUpdate.Count > 0)
-            {
-                organizationTypes.UpdateRange(modelsToUpdate);
-            }
-
-            await unitOfWork.SaveChangesAsync();
-            return Result.Success(modelList);
-        }
-
-
-        public async Task<Result<OrganizationType>> UpsertOrganizationType(OrganizationType model)
-        {
-            if (model.Id == Guid.Empty)
-            {
-                organizationTypes.Add(model);
-            }
+        foreach (var org in modelList)
+            if (org.Id == Guid.Empty)
+                modelsToInsert.Add(org);
             else
-            {
-                organizationTypes.Update(model);
-            }
+                modelsToUpdate.Add(org);
 
-            await this.unitOfWork.SaveChangesAsync();
-            return Result.Success<OrganizationType>(model);
-        }
+        if (modelsToInsert.Count > 0) organizationTypes.AddRange(modelsToInsert);
+
+        if (modelsToUpdate.Count > 0) organizationTypes.UpdateRange(modelsToUpdate);
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success(modelList);
+    }
+
+
+    public async Task<Result<OrganizationType>> UpsertOrganizationType(OrganizationType model)
+    {
+        if (model.Id == Guid.Empty)
+            organizationTypes.Add(model);
+        else
+            organizationTypes.Update(model);
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success<OrganizationType>(model);
     }
 }

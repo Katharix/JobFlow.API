@@ -1,14 +1,13 @@
 ﻿using JobFlow.Domain.Models;
 
-namespace JobFlow.Business.Services.ServiceInterfaces
+namespace JobFlow.Business.Services.ServiceInterfaces;
+
+public interface IOrganizationClientService
 {
-    public interface IOrganizationClientService
-    {
-        Task<Result> DeleteClient(Guid clientId);
-        Task<Result<OrganizationClient>> GetClientById(Guid clientId);
-        Task<Result<IEnumerable<OrganizationClient>>> GetAllClients();
-        Task<Result<IEnumerable<OrganizationClient>>> GetAllClientsByOrganizationId(Guid organizationId);
-        Task<Result> UpsertClient(OrganizationClient model);
-        Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList);
-    }
+    Task<Result> DeleteClient(Guid clientId);
+    Task<Result<OrganizationClient>> GetClientById(Guid clientId);
+    Task<Result<IEnumerable<OrganizationClient>>> GetAllClients();
+    Task<Result<IEnumerable<OrganizationClient>>> GetAllClientsByOrganizationId(Guid organizationId);
+    Task<Result> UpsertClient(OrganizationClient model);
+    Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList);
 }

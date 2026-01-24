@@ -2,7 +2,6 @@
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Mvc;
 
-
 namespace JobFlow.API.Controllers;
 
 [ApiController]

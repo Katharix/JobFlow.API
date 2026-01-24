@@ -1,24 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace JobFlow.Infrastructure
+namespace JobFlow.Infrastructure;
+
+public abstract class EntityTypeConfiguration<TEntity> where TEntity : class
 {
-    public abstract class EntityTypeConfiguration<TEntity> where TEntity : class
-    {
-        public abstract void Map(EntityTypeBuilder<TEntity> builder);
-    }
+    public abstract void Map(EntityTypeBuilder<TEntity> builder);
+}
 
-    public static class ModelBuilderExtensions
+public static class ModelBuilderExtensions
+{
+    public static void AddConfiguration<TEntity>(ModelBuilder modelBuilder,
+        EntityTypeConfiguration<TEntity> configuration)
+        where TEntity : class
     {
-        public static void AddConfiguration<TEntity>(ModelBuilder modelBuilder, EntityTypeConfiguration<TEntity> configuration)
-            where TEntity : class
-        {
-            configuration.Map(modelBuilder.Entity<TEntity>());
-        }
+        configuration.Map(modelBuilder.Entity<TEntity>());
     }
 }

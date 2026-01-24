@@ -1,9 +1,8 @@
 ﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 
-namespace JobFlow.Business.ConfigurationSettings
+namespace JobFlow.Business.ConfigurationSettings;
+
+public class FrontEndSettings : IFrontendSettings
 {
-    public class FrontEndSettings : IFrontendSettings
-    {
-        public string BaseUrl { get; set; } = string.Empty;
-    }
+    public string BaseUrl { get; set; } = string.Empty;
 }

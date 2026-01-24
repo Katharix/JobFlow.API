@@ -1,5 +1,4 @@
-﻿using JobFlow.Business.Onbaording;
-using JobFlow.Domain.Models;
+﻿using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Onboarding;
 
@@ -18,18 +17,23 @@ public static class OnboardingCatalog
         new(OnboardingStepKeys.CreateJob, "Create your first job", 20, _ => true),
         new(OnboardingStepKeys.ScheduleJob, "Schedule the job", 30, _ => true),
         new(OnboardingStepKeys.CreateInvoice, "Create an invoice", 40, _ => true),
-        new(OnboardingStepKeys.SendInvoice, "Send the invoice", 50, _ => true),
+        new(OnboardingStepKeys.ConnectStripe, "Create Stripe connected account", 50, _ => true),
+        new(OnboardingStepKeys.SendInvoice, "Send the invoice", 60, _ => true),
         new(
             OnboardingStepKeys.ReceivePayment,
             "Get paid",
-            60,
-            org => !string.IsNullOrEmpty(org.StripeConnectAccountId)
+            70,
+            org => org.IsStripeConnected
         )
     ];
 
-    public static bool IsKnown(string key) =>
-        Steps.Any(s => s.Key == key);
+    public static bool IsKnown(string key)
+    {
+        return Steps.Any(s => s.Key == key);
+    }
 
-    public static IEnumerable<OnboardingStepDefinition> ApplicableSteps(Organization org) =>
-        Steps.Where(s => s.IsApplicable(org)).OrderBy(s => s.Order);
+    public static IEnumerable<OnboardingStepDefinition> ApplicableSteps(Organization org)
+    {
+        return Steps.Where(s => s.IsApplicable(org)).OrderBy(s => s.Order);
+    }
 }
