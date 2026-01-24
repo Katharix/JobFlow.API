@@ -9,4 +9,6 @@ public interface IJobService
     Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(Guid statusId, Guid organizationId);
     Task<Result<Job>> UpsertJobAsync(Job model, Guid organizationId);
     Task<Result> DeleteJobAsync(Guid id);
+    Task<Result<IEnumerable<Job>>> GetJobsAsync(Guid organizationId);
+
 }

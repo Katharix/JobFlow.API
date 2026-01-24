@@ -38,6 +38,16 @@ public class InvoiceService : IInvoiceService
 
         return Result<Invoice>.Success(invoice);
     }
+    public async Task<bool> IsPaidAsync(Guid invoiceId)
+    {
+        var invoice = await invoices
+            .Query()
+            .Where(i => i.Id == invoiceId)
+            .Select(i => new { i.Status })
+            .FirstOrDefaultAsync();
+
+        return invoice?.Status == InvoiceStatus.Paid;
+    }
 
     public async Task<Result<IEnumerable<Invoice>>> GetInvoicesByClientAsync(Guid clientId)
     {

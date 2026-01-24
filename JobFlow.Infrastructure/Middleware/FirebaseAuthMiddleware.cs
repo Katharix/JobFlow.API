@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using FirebaseAdmin.Auth;
+using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Http;
 
 namespace JobFlow.Infrastructure.Middleware;
@@ -13,7 +14,7 @@ public class FirebaseAuthMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context)
+    public async Task Invoke(HttpContext context, IUserService userService)
     {
         var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
@@ -26,7 +27,7 @@ public class FirebaseAuthMiddleware
 
                 var claims = new List<Claim>
                 {
-                    new(ClaimTypes.NameIdentifier, decodedToken.Uid)
+                    new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
                 };
 
                 if (decodedToken.Claims.TryGetValue("role", out var role))
@@ -35,11 +36,22 @@ public class FirebaseAuthMiddleware
                 if (decodedToken.Claims.TryGetValue("email", out var email))
                     claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
 
+                // 🔑 THIS IS THE FIX
+                var userResult = await userService.GetUserByFirebaseUid(decodedToken.Uid);
+                if (userResult.IsSuccess)
+                {
+                    claims.Add(new Claim(
+                        "organizationId",
+                        userResult.Value.OrganizationId.ToString()
+                    ));
+                }
+
                 var identity = new ClaimsIdentity(claims, "Firebase");
                 context.User = new ClaimsPrincipal(identity);
             }
-            catch
-            {
+            catch (Exception ex)
+            { 
+                var test = ex.Message;
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
@@ -47,4 +59,5 @@ public class FirebaseAuthMiddleware
 
         await _next(context);
     }
+
 }

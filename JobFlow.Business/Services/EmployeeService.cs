@@ -38,7 +38,7 @@ public class EmployeeService : IEmployeeService
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
-            OrganizationId = request.OrganizationId,
+            OrganizationId = request.OrganizationId.Value,
             UserId = request.UserId,
             FirstName = request.FirstName,
             LastName = request.LastName,

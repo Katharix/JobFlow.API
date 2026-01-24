@@ -42,6 +42,18 @@ public class JobService : IJobService
         var list = await jobs.Query().Where(j => j.JobStatusId == statusId).ToListAsync();
         return Result<IEnumerable<Job>>.Success(list.AsEnumerable());
     }
+    public async Task<Result<IEnumerable<Job>>> GetJobsAsync(Guid organizationId)
+    {
+        var returnedJobs = await jobs
+            .Query()
+            .Include(j => j.JobStatus)
+            .Include(j => j.OrganizationClient)
+            .Where(j => j.OrganizationClient.OrganizationId == organizationId)
+            .OrderByDescending(j => j.ScheduledStart)
+            .ToListAsync();
+
+        return Result.Success<IEnumerable<Job>>(returnedJobs);
+    }
 
     public async Task<Result<Job>> UpsertJobAsync(Job model, Guid organizationId)
     {
