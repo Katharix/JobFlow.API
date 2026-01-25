@@ -1,10 +1,11 @@
-﻿namespace JobFlow.Domain.Models;
+﻿using JobFlow.Domain.Enums;
+
+namespace JobFlow.Domain.Models;
 
 public class Job : Entity
 {
     public Guid JobStatusId { get; set; }
-    public virtual JobStatus JobStatus { get; set; }
-
+    public JobLifecycleStatus LifecycleStatus { get; set; }
     public string? Title { get; set; }
     public string? Comments { get; set; }
 

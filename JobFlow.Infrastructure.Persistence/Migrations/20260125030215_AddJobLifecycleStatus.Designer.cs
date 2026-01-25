@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260125030215_AddJobLifecycleStatus")]
+    partial class AddJobLifecycleStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -559,6 +562,8 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("JobStatusId");
+
                     b.HasIndex("OrganizationClientId");
 
                     b.ToTable("Job", (string)null);
@@ -582,6 +587,33 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("JobOrder", (string)null);
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.JobStatus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JobStatus", (string)null);
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.JobTracking", b =>
@@ -1381,11 +1413,19 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.Job", b =>
                 {
+                    b.HasOne("JobFlow.Domain.Models.JobStatus", "JobStatus")
+                        .WithMany()
+                        .HasForeignKey("JobStatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("JobFlow.Domain.Models.OrganizationClient", "OrganizationClient")
                         .WithMany("Jobs")
                         .HasForeignKey("OrganizationClientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("JobStatus");
 
                     b.Navigation("OrganizationClient");
                 });

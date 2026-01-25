@@ -17,7 +17,11 @@ internal class JobConfiguration : IEntityTypeConfiguration<Job>
 
         builder.Property(e => e.Comments)
             .HasMaxLength(2000);
-
+        
+        builder.Property(j => j.LifecycleStatus)
+            .HasConversion<int>()
+            .IsRequired();
+        
         // ✅ Relationship with OrganizationClient
         builder.HasOne(j => j.OrganizationClient)
             .WithMany(c => c.Jobs) // assuming you added ICollection<Job> Jobs to OrganizationClient

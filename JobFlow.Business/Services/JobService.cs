@@ -3,6 +3,7 @@ using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -46,7 +47,6 @@ public class JobService : IJobService
     {
         var returnedJobs = await jobs
             .Query()
-            .Include(j => j.JobStatus)
             .Include(j => j.OrganizationClient)
             .Where(j => j.OrganizationClient.OrganizationId == organizationId)
             .OrderByDescending(j => j.ScheduledStart)
@@ -64,10 +64,12 @@ public class JobService : IJobService
             var existingModel  = await jobs.Query().FirstOrDefaultAsync(j => j.Id == model.Id);
             existingModel.ScheduledStart = model.ScheduledStart;
             existingModel.ScheduledEnd = model.ScheduledEnd;
+            existingModel.LifecycleStatus = JobLifecycleStatus.Approved;
             jobs.Update(existingModel);
         }
         else
         {
+            model.LifecycleStatus = JobLifecycleStatus.Draft;
             await jobs.AddAsync(model);
         }
 

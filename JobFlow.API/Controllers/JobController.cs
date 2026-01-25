@@ -1,6 +1,7 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
@@ -65,7 +66,7 @@ public class JobController : ControllerBase
     ///     Create or update a job.
     /// </summary>
 
-    [HttpPost]
+    [HttpPost("upsert")]
     public async Task<IActionResult> UpsertJob([FromBody] JobDto model)
     {
         var orgId = HttpContext.GetOrganizationId();
@@ -74,12 +75,7 @@ public class JobController : ControllerBase
             return Unauthorized("Organization context missing.");
 
         var mappedJob = _mapper.Map<JobDto, Job>(model);
-
-        mappedJob.JobStatus = new JobStatus
-        {
-            Status = "Pending"
-        };
-
+        
         var result = await _jobService.UpsertJobAsync(mappedJob, orgId);
 
         if (result.IsFailure)
