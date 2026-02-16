@@ -1,5 +1,6 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Models;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
@@ -36,26 +37,13 @@ public class JobController : ControllerBase
     }
 
     /// <summary>
-    ///     Get jobs scheduled for a specific date.
-    /// </summary>
-    [HttpGet("date/{date}")]
-    public async Task<IActionResult> GetJobsByDate(DateTime date)
-    {
-        var result = await _jobService.GetJobsByDate(date);
-        if (result.IsFailure)
-            return BadRequest(result.Error);
-
-        return Ok(result.Value);
-    }
-
-    /// <summary>
     ///     Get jobs by status and organization.
     /// </summary>
-    [HttpGet("status/{statusId:guid}")]
-    public async Task<IActionResult> GetJobsByStatus(Guid statusId)
+    [HttpGet("status/{status:int}")]
+    public async Task<IActionResult> GetJobsByStatus(JobLifecycleStatus status)
     {
         var organizationId = HttpContext.GetOrganizationId();
-        var result = await _jobService.GetJobsByStatusAsync(statusId, organizationId);
+        var result = await _jobService.GetJobsByStatusAsync(organizationId, status);
         if (result.IsFailure)
             return BadRequest(result.Error);
 
@@ -109,5 +97,6 @@ public class JobController : ControllerBase
 
         return Ok(result.Value);
     }
+    
 
 }

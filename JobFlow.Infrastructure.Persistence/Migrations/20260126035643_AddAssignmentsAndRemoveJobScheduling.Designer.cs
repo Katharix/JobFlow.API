@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260126035643_AddAssignmentsAndRemoveJobScheduling")]
+    partial class AddAssignmentsAndRemoveJobScheduling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,11 +31,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTimeOffset?>("ActualEnd")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ActualEnd")
+                        .HasColumnType("datetime2");
 
-                    b.Property<DateTimeOffset?>("ActualStart")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ActualStart")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Address1")
                         .HasColumnType("nvarchar(max)");
@@ -55,11 +58,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<int>("ScheduleType")
                         .HasColumnType("int");
 
-                    b.Property<DateTimeOffset?>("ScheduledEnd")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ScheduledEnd")
+                        .HasColumnType("datetime2");
 
-                    b.Property<DateTimeOffset>("ScheduledStart")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("ScheduledStart")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("State")
                         .HasColumnType("nvarchar(max)");

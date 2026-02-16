@@ -2,8 +2,10 @@
 using JobFlow.API.Mappings;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -13,10 +15,14 @@ namespace JobFlow.API.Controllers;
 public class OrganizationClientController : ControllerBase
 {
     private readonly IOrganizationClientService organizationClientService;
+    private readonly IMapper _mapper;
 
-    public OrganizationClientController(IOrganizationClientService organizationClientService)
+    public OrganizationClientController(
+        IOrganizationClientService organizationClientService,
+        IMapper mapper)
     {
         this.organizationClientService = organizationClientService;
+        _mapper = mapper;
     }
 
     [HttpGet]
@@ -55,7 +61,7 @@ public class OrganizationClientController : ControllerBase
             return Results.BadRequest("OrganizationId is required.");
 
         model.OrganizationId = organizationId;
-        var entity = model.ToEntity();
+        var entity = _mapper.Map<OrganizationClient>(model);
 
         var result = await organizationClientService.UpsertClient(entity);
 
