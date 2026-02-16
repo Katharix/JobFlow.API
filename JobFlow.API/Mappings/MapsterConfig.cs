@@ -44,6 +44,7 @@ public class MapsterConfig : IRegister
         //Job → DTO
         config.NewConfig<Job, JobDto>();
         
+        config.NewConfig<Assignment, AssignmentDto>();
         //DTO → Job
         config.NewConfig<JobDto, Job>();
 

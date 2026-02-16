@@ -80,8 +80,8 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"{client.Organization.OrganizationName} scheduled an appointment for you.",
-            Body = $"Your appointment was scheduled for {job.ScheduledStart:MMMM dd, yyyy}.",
-            Sms = $"Appointment scheduled for {job.ScheduledStart:MM/dd/yyyy}."
+            Body = $"Your appointment was scheduled for .",
+            Sms = $"Appointment scheduled for ."
         };
     }
 
@@ -94,8 +94,8 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Phone = client.PhoneNumber,
             Subject = "Appointment Scheduled",
             Body =
-                $"Reminder: your appointment is scheduled for {job.ScheduledStart:MMMM dd, yyyy} at {job.ScheduledStart:hh:mm tt}.",
-            Sms = $"Reminder: appointment on {job.ScheduledStart:MM/dd/yyyy}."
+                $"Reminder: your appointment is scheduled for .",
+            Sms = $"Reminder: appointment on ."
         };
     }
 

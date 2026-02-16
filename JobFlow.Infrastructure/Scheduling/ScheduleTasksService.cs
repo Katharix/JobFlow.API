@@ -1,4 +1,4 @@
-﻿using JobFlow.Business.DI;
+﻿/*using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.Extensions.Logging;
 
@@ -7,17 +7,17 @@ namespace JobFlow.Infrastructure.Scheduling;
 [ScopedService]
 public class ScheduledTasksService
 {
-    private readonly IJobService _jobService;
+    private readonly IAssignmentService _assignmentService;
     private readonly ILogger<ScheduledTasksService> _logger;
     private readonly INotificationService _notifications;
 
     public ScheduledTasksService(
         INotificationService notifications,
-        IJobService jobService,
+        IAssignmentService assignmentService,
         ILogger<ScheduledTasksService> logger)
     {
         _notifications = notifications;
-        _jobService = jobService;
+        _assignmentService = assignmentService;
         _logger = logger;
     }
 
@@ -29,7 +29,7 @@ public class ScheduledTasksService
         var targetDate = DateTime.UtcNow.Date.AddDays(1);
 
         // 1) Fetch jobs, bail out on failure
-        var result = await _jobService.GetJobsByDate(targetDate);
+        var result = await _assignmentService.;
         if (result.IsFailure)
         {
             _logger.LogWarning("Could not retrieve jobs for {Date}: {Error}", targetDate, result.Error);
@@ -65,4 +65,4 @@ public class ScheduledTasksService
 
         await Task.WhenAll(notifyTasks);
     }
-}
+}*/
