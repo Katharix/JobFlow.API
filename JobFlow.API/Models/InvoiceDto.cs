@@ -1,6 +1,5 @@
 ﻿using JobFlow.Business.Models.DTOs;
 using JobFlow.Domain.Enums;
-using Square.Models;
 
 namespace JobFlow.API.Models;
 

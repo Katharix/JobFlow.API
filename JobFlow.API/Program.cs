@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Azure.Identity;
 using FirebaseAdmin;
 using FluentValidation;
+using FluentValidation.AspNetCore;
 using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.SqlServer;
@@ -22,12 +23,13 @@ using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using QuestPDF;
 using QuestPDF.Infrastructure;
 using Stripe;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -74,7 +76,20 @@ builder.Services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOpt
 
 var firebaseFilePath = Path.Combine(env.ContentRootPath, "job-flow-firebase-adminsdk.json");
 
-if (FirebaseApp.DefaultInstance == null)
+if (!System.IO.File.Exists(firebaseFilePath))
+    throw new InvalidOperationException($"Firebase service account file not found: {firebaseFilePath}");
+
+string firebaseProjectId;
+using (var doc = JsonDocument.Parse(System.IO.File.ReadAllText(firebaseFilePath)))
+{
+    firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+}
+
+if (string.IsNullOrWhiteSpace(firebaseProjectId))
+    throw new InvalidOperationException("Firebase project_id is missing in job-flow-firebase-adminsdk.json");
+
+// Create the Firebase Admin default app instance so FirebaseAuth.DefaultInstance is available.
+if (FirebaseApp.DefaultInstance is null)
 {
     FirebaseApp.Create(new AppOptions
     {
@@ -82,19 +97,39 @@ if (FirebaseApp.DefaultInstance == null)
     });
 }
 
+builder.Services
+    .AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}",
+            ValidateAudience = true,
+            ValidAudience = firebaseProjectId,
+            ValidateLifetime = true
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // ============================================================
-// VALIDATION, CONTROLLERS, JSON
+// MVC / CONTROLLERS
 // ============================================================
 
-builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
-builder.Services.AddControllers()
-    .AddJsonOptions(options => { options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; })
-    .ConfigureApiBehaviorOptions(options => options.SuppressMapClientErrors = false);
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
-builder.Services.AddProblemDetails();
+// ============================================================
+// SIGNALR
+// ============================================================
+
 builder.Services.AddSignalR();
-builder.Services.AddAuthentication();
 
 // ============================================================
 // DATABASE
@@ -147,24 +182,21 @@ builder.Services.AddHangfireServer();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "JobFlow API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo { Title = "JobFlow API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,
+        Type = Microsoft.OpenApi.SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
+        In = Microsoft.OpenApi.ParameterLocation.Header,
         Description = "Enter 'Bearer' [space] and then your valid JWT token."
     });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(_ => new Microsoft.OpenApi.OpenApiSecurityRequirement
     {
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            new string[] { }
+            new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer"),
+            new List<string>()
         }
     });
 });
@@ -297,10 +329,13 @@ app.UseCors(apiAllowOrigins);
 if (app.Environment.IsDevelopment()) app.UseHangfireDashboard();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Must run after UseAuthentication/UseAuthorization so we can augment the authenticated principal
+// with application-specific context (e.g., organizationId) without it getting overwritten.
+app.UseMiddleware<FirebaseAuthMiddleware>();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
