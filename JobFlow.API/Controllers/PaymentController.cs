@@ -8,7 +8,6 @@ using JobFlow.Infrastructure.PaymentGateways;
 using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
-using Square.Models;
 using Stripe;
 using CreateSubscriptionRequest = JobFlow.Business.Models.DTOs.CreateSubscriptionRequest;
 using Event = Stripe.Event;
