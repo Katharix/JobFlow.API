@@ -1,38 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="FirebaseAdmin" Version="3.1.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
-    <PackageReference Include="Polly" Version="8.5.2" />
-    <PackageReference Include="QuestPDF" Version="2025.4.0" />
-    <PackageReference Include="Stripe.net" Version="47.4.0" />
-    <PackageReference Include="System.Formats.Asn1" Version="9.0.2" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="Twilio" Version="7.9.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+        <PackageReference Include="Polly" Version="8.6.5" />
+        <PackageReference Include="QuestPDF" Version="2026.2.0" />
+        <PackageReference Include="Square" Version="43.0.0" />
+        <PackageReference Include="Stripe.net" Version="50.3.0" />
+        <PackageReference Include="System.Formats.Asn1" Version="10.0.3" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+        <PackageReference Include="System.Net.Http" Version="4.3.4" />
+        <PackageReference Include="Twilio" Version="7.14.3" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
-    <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
+        <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
+    </ItemGroup>
 
 </Project>

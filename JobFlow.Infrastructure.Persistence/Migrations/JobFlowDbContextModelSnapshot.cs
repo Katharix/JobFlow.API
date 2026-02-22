@@ -22,6 +22,89 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("JobFlow.Domain.Models.Assignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ActualEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ActualStart")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Address1")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ScheduleType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("ScheduledEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ScheduledStart")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ZipCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("ScheduledStart");
+
+                    b.ToTable("Assignment", (string)null);
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.AssignmentOrder", b =>
+                {
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AssignmentId", "OrderId");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("AssignmentOrder", (string)null);
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.Conversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -230,20 +313,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("InviteToken")
-                        .IsRequired()
+                    b.Property<Guid>("InviteToken")
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<bool>("IsAccepted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsRevoked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -263,7 +335,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ShortCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -273,9 +350,22 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InviteToken")
+                        .IsUnique();
+
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("ShortCode")
+                        .IsUnique()
+                        .HasFilter("[ShortCode] IS NOT NULL");
+
+                    b.HasIndex("OrganizationId", "Email")
+                        .IsUnique()
+                        .HasFilter("[Status] = 1");
+
+                    b.HasIndex("Status", "ExpiresAt");
 
                     b.ToTable("EmployeeInvites", (string)null);
                 });
@@ -373,6 +463,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ExternalPaymentId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("datetime2");
 
@@ -390,11 +483,14 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Status")
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("PaymentProvider")
                         .HasColumnType("int");
 
-                    b.Property<string>("StripeInvoiceId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
@@ -491,12 +587,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Address1")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("City")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Comments")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -507,26 +597,17 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("JobStatusId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<double?>("Latitude")
                         .HasColumnType("float");
+
+                    b.Property<int>("LifecycleStatus")
+                        .HasColumnType("int");
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("float");
 
                     b.Property<Guid>("OrganizationClientId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ScheduledEnd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ScheduledStart")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("State")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
@@ -538,63 +619,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ZipCode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("JobStatusId");
 
                     b.HasIndex("OrganizationClientId");
 
                     b.ToTable("Job", (string)null);
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.JobOrder", b =>
-                {
-                    b.Property<Guid>("JobId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.HasKey("JobId", "OrderId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("JobOrder", (string)null);
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.JobStatus", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("JobStatus", (string)null);
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.JobTracking", b =>
@@ -764,6 +793,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<bool>("HasFreeAccount")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsStripeConnected")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("OnBoardingComplete")
                         .HasColumnType("bit");
 
@@ -780,6 +812,9 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StripeConnectAccountId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1272,6 +1307,36 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("JobFlow.Domain.Models.Assignment", b =>
+                {
+                    b.HasOne("JobFlow.Domain.Models.Job", "Job")
+                        .WithMany("Assignments")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.AssignmentOrder", b =>
+                {
+                    b.HasOne("JobFlow.Domain.Models.Assignment", "Assignment")
+                        .WithMany("AssignmentOrders")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobFlow.Domain.Models.Order", "Order")
+                        .WithMany("AssignmentOrders")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.ConversationParticipant", b =>
                 {
                     b.HasOne("JobFlow.Domain.Models.Conversation", "Conversation")
@@ -1388,40 +1453,13 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.Job", b =>
                 {
-                    b.HasOne("JobFlow.Domain.Models.JobStatus", "JobStatus")
-                        .WithMany()
-                        .HasForeignKey("JobStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("JobFlow.Domain.Models.OrganizationClient", "OrganizationClient")
                         .WithMany("Jobs")
                         .HasForeignKey("OrganizationClientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("JobStatus");
-
                     b.Navigation("OrganizationClient");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.JobOrder", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.Job", "Job")
-                        .WithMany("JobOrders")
-                        .HasForeignKey("JobId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("JobFlow.Domain.Models.Order", "Order")
-                        .WithMany("JobOrders")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Job");
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.JobTracking", b =>
@@ -1590,6 +1628,11 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("JobFlow.Domain.Models.Assignment", b =>
+                {
+                    b.Navigation("AssignmentOrders");
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.Conversation", b =>
                 {
                     b.Navigation("Messages");
@@ -1611,16 +1654,16 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.Job", b =>
                 {
-                    b.Navigation("JobOrders");
+                    b.Navigation("Assignments");
 
                     b.Navigation("JobTrackings");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Order", b =>
                 {
-                    b.Navigation("Invoices");
+                    b.Navigation("AssignmentOrders");
 
-                    b.Navigation("JobOrders");
+                    b.Navigation("Invoices");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Organization", b =>

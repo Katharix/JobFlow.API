@@ -1,56 +1,81 @@
-﻿using JobFlow.API.Mappings;
+﻿using JobFlow.API.Extensions;
+using JobFlow.API.Mappings;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JobFlow.API.Controllers
+namespace JobFlow.API.Controllers;
+
+[Route("api/organization/clients/")]
+[ApiController]
+public class OrganizationClientController : ControllerBase
 {
-    [Route("api/organiztion/clients/")]
-    [ApiController]
-    public class OrganizationClientController : ControllerBase
+    private readonly IOrganizationClientService organizationClientService;
+    private readonly IMapper _mapper;
+
+    public OrganizationClientController(
+        IOrganizationClientService organizationClientService,
+        IMapper mapper)
     {
-        private readonly IOrganizationClientService organizationClientService;
+        this.organizationClientService = organizationClientService;
+        _mapper = mapper;
+    }
 
-        public OrganizationClientController(IOrganizationClientService organizationClientService)
-        {
-            this.organizationClientService = organizationClientService;
-        }
+    [HttpGet]
+    [Route("all")]
+    public async Task<IResult> GetAllClients()
+    {
+        var result = await organizationClientService.GetAllClients();
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
 
-        [HttpGet, Route("all")]
-        public async Task<IResult> GetAllClients()
-        {
-            var result = await this.organizationClientService.GetAllClients();
-            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
-        }
+    [HttpGet("orgall")]
+    public async Task<IResult> GetAllClientsByOrganizationId()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await organizationClientService.GetAllClientsByOrganizationId(organizationId);
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : result.ToProblemDetails();
+    }
 
-        [HttpGet, Route("all/organizationId")]
-        public async Task<IResult> GetAllClientsByOrganizationId(Guid organizationId)
-        {
-            var result = await this.organizationClientService.GetAllClientsByOrganizationId(organizationId);
-            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
-        }
 
-        [HttpDelete, Route("delete")]
-        public async Task<IResult> DeleteClient(Guid clientId)
-        {
-            var result = await this.organizationClientService.DeleteClient(clientId);
-            return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
-        }
+    [HttpDelete]
+    [Route("delete")]
+    public async Task<IResult> DeleteClient(Guid clientId)
+    {
+        var result = await organizationClientService.DeleteClient(clientId);
+        return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
+    }
 
-        [HttpPost, Route("upsert")]
-        public async Task<IResult> UpsertClient(OrganizationClientDto model)
-        {
-            var result = await this.organizationClientService.UpsertClient(model.ToEntity());
-            return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
-        }
+    [HttpPost("upsert")]
+    public async Task<IResult> UpsertClient(
+        [FromBody] OrganizationClientDto model)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Results.BadRequest("OrganizationId is required.");
 
-        [HttpPost, Route("upsert/multi")]
-        public async Task<IResult> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList)
-        {
-            var result = await this.organizationClientService.UpsertMultipleClients(modelList);
-            return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
-        }
+        model.OrganizationId = organizationId;
+        var entity = _mapper.Map<OrganizationClient>(model);
+
+        var result = await organizationClientService.UpsertClient(entity);
+
+        return result.IsSuccess
+            ? Results.Ok(result)
+            : result.ToProblemDetails();
+    }
+
+
+    [HttpPost]
+    [Route("upsert/multi")]
+    public async Task<IResult> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList)
+    {
+        var result = await organizationClientService.UpsertMultipleClients(modelList);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 }

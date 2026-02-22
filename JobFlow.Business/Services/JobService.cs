@@ -1,79 +1,160 @@
-﻿using JobFlow.Business.ModelErrors;
+﻿using JobFlow.Business.DI;
+using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
-using JobFlow.Domain.Models;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
+using JobFlow.Domain.Models;
+using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using JobFlow.Business.DI;
 
-namespace JobFlow.Business.Services
+namespace JobFlow.Business.Services;
+
+[ScopedService]
+public class JobService : IJobService
 {
-    [ScopedService]
-    public class JobService : IJobService
+    private readonly IRepository<Job> jobs;
+    private readonly ILogger<JobService> logger;
+    private readonly IOnboardingService onboardingService;
+    private readonly IUnitOfWork unitOfWork;
+    private readonly IMapper _mapper;
+
+    public JobService(
+        ILogger<JobService> logger,
+        IUnitOfWork unitOfWork,
+        IOnboardingService onboardingService,
+        IMapper mapper)
     {
-        private readonly ILogger<JobService> logger;
-        private readonly IUnitOfWork unitOfWork;
-        private readonly IRepository<Job> jobs;
-
-        public JobService(ILogger<JobService> logger, IUnitOfWork unitOfWork)
-        {
-            this.logger = logger;
-            this.unitOfWork = unitOfWork;
-            this.jobs = unitOfWork.RepositoryOf<Job>();
-        }
-
-        public async Task<Result<Job>> GetJobByIdAsync(Guid id, Guid OrganizationId)
-        {
-            var job = await jobs.Query().FirstOrDefaultAsync(j => j.Id == id);
-            if (job == null)
-                return Result.Failure<Job>(JobErrors.NotFound);
-
-            return Result<Job>.Success(job);
-        }
-
-        public async Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(Guid organizationId, Guid statusId)
-        {
-            var list = await jobs.Query().Where(j => j.JobStatusId == statusId).ToListAsync();
-            return Result<IEnumerable<Job>>.Success(list.AsEnumerable());
-        }
-
-        public async Task<Result<Job>> UpsertJobAsync(Job model)
-        {
-            var exists = await jobs.Query().AnyAsync(j => j.Id == model.Id);
-
-            if (exists)
-                jobs.Update(model);
-            else
-                await jobs.AddAsync(model);
-
-            await unitOfWork.SaveChangesAsync();
-            return Result<Job>.Success(model);
-        }
-
-        public async Task<Result> DeleteJobAsync(Guid id)
-        {
-            var job = await jobs.Query().FirstOrDefaultAsync(j => j.Id == id);
-            if (job == null)
-                return Result.Failure(JobErrors.NotFound);
-
-            jobs.Remove(job);
-            await unitOfWork.SaveChangesAsync();
-            return Result.Success();
-        }
-
-        public async Task<Result<IEnumerable<Job>>> GetJobsByDate(DateTime date)
-        {
-            // Define the start and end of the day
-            var start = date.Date;
-            var end = start.AddDays(1);
-
-            // Fetch jobs scheduled within that day
-            var list = await jobs.Query()
-                .Where(j => j.ScheduledStart >= start && j.ScheduledStart < end)
-                .ToListAsync();
-
-            return Result<IEnumerable<Job>>.Success(list.AsEnumerable());
-        }
+        this.logger = logger;
+        this.unitOfWork = unitOfWork;
+        this.onboardingService = onboardingService;
+        jobs = unitOfWork.RepositoryOf<Job>();
+        _mapper = mapper;
     }
 
+    public async Task<Result<Job>> GetJobByIdAsync(Guid id, Guid organizationId)
+    {
+        var job = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j =>
+                j.Id == id &&
+                j.OrganizationClient.OrganizationId == organizationId);
+
+        if (job == null)
+            return Result.Failure<Job>(JobErrors.NotFound);
+
+        return Result.Success(job);
+    }
+
+    public async Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(
+        Guid organizationId,
+        JobLifecycleStatus status)
+    {
+        var list = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .Where(j =>
+                j.LifecycleStatus == status &&
+                j.OrganizationClient.OrganizationId == organizationId)
+            .ToListAsync();
+
+        return Result.Success<IEnumerable<Job>>(list);
+    }
+
+    public async Task<Result<IEnumerable<JobDto>>> GetJobsAsync(Guid organizationId)
+    {
+        var returnedJobs = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .Include(e => e.Assignments)
+            .Where(j => j.OrganizationClient.OrganizationId == organizationId)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+        
+        var dto = returnedJobs.Select(e => new JobDto
+        {
+            Id = e.Id,
+            OrganizationClientId = e.OrganizationClient.Id,
+            Title =  e.Title,
+            Comments = e.Comments,
+            LifecycleStatus = e.LifecycleStatus,
+            Assignments = e.Assignments.Select(a => new AssignmentDto
+            {
+                ScheduledStart = a.ScheduledStart,
+                ScheduledEnd = a.ScheduledEnd,
+                ActualEnd = a.ActualEnd,
+                ActualStart = a.ActualStart,
+                Id =  a.Id,
+                JobId =  e.Id,
+                JobTitle =   e.Title,
+                Status = a.Status,
+                OrganizationClientId =  e.OrganizationClientId,
+            }),
+            OrganizationClient = new OrganizationClientDto
+            {
+                OrganizationId =  e.OrganizationClient.OrganizationId,
+                FirstName =  e.OrganizationClient.FirstName,
+                LastName =  e.OrganizationClient.LastName,
+                EmailAddress =  e.OrganizationClient.EmailAddress,
+                PhoneNumber = e.OrganizationClient.PhoneNumber,
+                Address1 =  e.OrganizationClient.Address1,
+                Address2 = e.OrganizationClient.Address2,
+                City =  e.OrganizationClient.City,
+                State =  e.OrganizationClient.State,    
+                ZipCode =  e.OrganizationClient.ZipCode
+            }
+        }).ToList();
+        return Result.Success<IEnumerable<JobDto>>(dto);
+    }
+
+    public async Task<Result<Job>> UpsertJobAsync(Job model, Guid organizationId)
+    {
+        var exists = await jobs.Query()
+            .AnyAsync(j =>
+                j.Id == model.Id &&
+                j.OrganizationClient.OrganizationId == organizationId);
+
+        if (exists)
+        {
+            var existingModel = await jobs.Query()
+                .Include(j => j.OrganizationClient)
+                .FirstAsync(j => j.Id == model.Id);
+
+            // Explicitly DO NOT touch scheduling here
+            existingModel.Title = model.Title;
+            existingModel.Comments = model.Comments;
+            existingModel.Latitude = model.Latitude;
+            existingModel.Longitude = model.Longitude;
+
+            jobs.Update(existingModel);
+        }
+        else
+        {
+            model.LifecycleStatus = JobLifecycleStatus.Draft;
+            await jobs.AddAsync(model);
+
+            // Onboarding: job creation
+            await onboardingService.MarkStepCompleteAsync(
+                organizationId,
+                OnboardingStepKeys.CreateJob
+            );
+        }
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success(model);
+    }
+
+    public async Task<Result> DeleteJobAsync(Guid id)
+    {
+        var job = await jobs.Query()
+            .FirstOrDefaultAsync(j => j.Id == id);
+
+        if (job == null)
+            return Result.Failure(JobErrors.NotFound);
+
+        jobs.Remove(job);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
+    }
 }

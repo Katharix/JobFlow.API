@@ -1,67 +1,83 @@
-﻿using Square;
-using Square.Models;
-using Square.Exceptions;
-using Square.Authentication;
-using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
+﻿using JobFlow.Business.DI;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
-using JobFlow.Business.DI;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
+using Square;
 
-namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment
+using Square.Checkout.PaymentLinks;
+
+
+namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
+
+[ScopedService]
+public class SquarePaymentProcessor : IPaymentProcessor
 {
-    [ScopedService]
-    public class SquarePaymentProcessor : IPaymentProcessor
+    private readonly SquareClient _client;
+    private readonly string _locationId;
+
+    public SquarePaymentProcessor(ISquareSettings settings)
     {
-        private readonly SquareClient _client;
-        private readonly string _locationId;
+        ArgumentNullException.ThrowIfNull(settings);
+        if (string.IsNullOrWhiteSpace(settings.AccessToken))
+            throw new InvalidOperationException("Square access token is not configured.");
 
-        public SquarePaymentProcessor(ISquareSettings settings)
+        _client = new SquareClient(settings.AccessToken, new ClientOptions
         {
-            var bearerAuth = new BearerAuthModel.Builder(settings.AccessToken).Build();
+            BaseUrl = "https://connect.squareupsandbox.com"
+        });
 
-            _client = new SquareClient.Builder()
-                .Environment(Square.Environment.Sandbox)
-                .BearerAuthCredentials(bearerAuth)
-                .Build();
+        _locationId = settings.LocationId ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(_locationId))
+            throw new InvalidOperationException("Square location id is not configured.");
+    }
 
-            _locationId = settings.LocationId ?? "";
+    public async Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.ProductName))
+            throw new InvalidOperationException("Product name is required.");
+
+        var amountDecimal = request.Amount ?? throw new InvalidOperationException("Payment amount is required.");
+        var amount = (long)decimal.Round(amountDecimal * 100m, 0, MidpointRounding.AwayFromZero); // dollars -> cents
+        var idempotencyKey = Guid.NewGuid().ToString();
+
+        var money = new Money
+        {
+            Amount = amount,
+            Currency = Currency.Usd
+        };
+
+        var quickPay = new QuickPay
+        {
+            Name = request.ProductName,
+            PriceMoney = money,
+            LocationId = _locationId
+        };
+
+        var paymentLinkRequest = new CreatePaymentLinkRequest
+        {
+            QuickPay = quickPay,
+            IdempotencyKey = idempotencyKey
+        };
+
+        try
+        {
+            var result = await _client.Checkout.PaymentLinks.CreateAsync(paymentLinkRequest);
+            return result.PaymentLink?.Url ?? throw new Exception("Square returned an empty payment link.");
         }
-
-
-        public async Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request)
+        catch (SquareApiException ex)
         {
-            var amount = (long)(request.Amount * 100); // Convert dollars to cents
-            var idempotencyKey = Guid.NewGuid().ToString();
-
-            var quickPay = new QuickPay(
-                name: request.ProductName,
-                priceMoney: new Money(amount, "USD"),
-                locationId: _locationId
-            );
-
-            var paymentLinkRequest = new CreatePaymentLinkRequest(
-                quickPay: quickPay,
-                idempotencyKey: idempotencyKey
-            );
-
-            try
-            {
-                var result = await _client.CheckoutApi.CreatePaymentLinkAsync(paymentLinkRequest);
-                return result.PaymentLink?.Url ?? throw new Exception("Square returned an empty payment link.");
-            }
-            catch (ApiException ex)
-            {
-                throw new Exception($"Square API error: {ex.Message}", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while creating the Square checkout session.", ex);
-            }
+            throw new Exception($"Square API error: {ex.Message}", ex);
         }
-
-        public Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
+        catch (Exception ex)
         {
-            throw new NotImplementedException();
+            throw new Exception("An error occurred while creating the Square checkout session.", ex);
         }
     }
+
+    public Task<PaymentSessionResult> CreatePaymentIntentAsync(PaymentSessionRequest request)
+        => throw new NotImplementedException();
+
+    public Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
+        => throw new NotImplementedException();
 }

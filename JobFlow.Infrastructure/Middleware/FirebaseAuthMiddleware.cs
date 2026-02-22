@@ -1,60 +1,78 @@
-﻿using Google.Apis.Auth;
-using Microsoft.AspNetCore.Http;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
+﻿using System.Security.Claims;
 using FirebaseAdmin.Auth;
+using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Http;
 
-namespace JobFlow.Infrastructure.Middleware
+namespace JobFlow.Infrastructure.Middleware;
+
+public class FirebaseAuthMiddleware
 {
-    public class FirebaseAuthMiddleware
+    private readonly RequestDelegate _next;
+
+    public FirebaseAuthMiddleware(RequestDelegate next)
     {
-        private readonly RequestDelegate _next;
+        _next = next;
+    }
 
-        public FirebaseAuthMiddleware(RequestDelegate next)
+    public async Task Invoke(HttpContext context, IUserService userService)
+    {
+        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
         {
-            _next = next;
-        }
+            var token = authHeader.Substring("Bearer ".Length);
 
-        public async Task Invoke(HttpContext context)
-        {
-            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+            try
             {
-                var token = authHeader.Substring("Bearer ".Length);
+                var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
 
-                try
+                var claims = new List<Claim>
                 {
-                    var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
+                    new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
+                };
 
-                    var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
-            };
+                if (decodedToken.Claims.TryGetValue("role", out var role))
+                    claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
 
-                    if (decodedToken.Claims.TryGetValue("role", out var role))
-                    {
-                        claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
-                    }
+                if (decodedToken.Claims.TryGetValue("email", out var email))
+                    claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
 
-                    if (decodedToken.Claims.TryGetValue("email", out var email))
-                    {
-                        claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
-                    }
-
-                    var identity = new ClaimsIdentity(claims, "Firebase");
-                    context.User = new ClaimsPrincipal(identity);
-                }
-                catch
+                // Resolve the application user/org context.
+                // If this fails, do not continue the pipeline with a partial identity.
+                var userResult = await userService.GetUserByFirebaseUid(decodedToken.Uid);
+                if (!userResult.IsSuccess)
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsync("User is not linked to an organization.");
                     return;
                 }
-            }
 
-            await _next(context);
+                claims.Add(new Claim(
+                    "organizationId",
+                    userResult.Value.OrganizationId.ToString()
+                ));
+
+                // Augment the current principal instead of replacing it.
+                // This avoids losing claims set by the ASP.NET Core authentication handler.
+                var identity = new ClaimsIdentity(claims, authenticationType: "Firebase");
+
+                if (context.User?.Identity?.IsAuthenticated == true)
+                {
+                    context.User.AddIdentity(identity);
+                }
+                else
+                {
+                    context.User = new ClaimsPrincipal(identity);
+                }
+            }
+            catch (Exception ex)
+            { 
+                var test = ex.Message;
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
         }
 
+        await _next(context);
     }
+
 }

@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Domain.Enums;
 
-namespace JobFlow.Domain.Enums
+public enum InvoiceStatus
 {
-    public enum InvoiceStatus 
-    { 
-        None,
-        Paid, 
-        Unpaid, 
-        Overdue 
-    }
+    Draft,
+    Sent,
+    Paid,
+    Overdue
 }

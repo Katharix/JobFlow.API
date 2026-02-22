@@ -1,29 +1,22 @@
 ﻿using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JobFlow.Infrastructure.Persistence.Configurations
+namespace JobFlow.Infrastructure.Persistence.Configurations;
+
+internal class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
 {
-    internal class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
+    public void Configure(EntityTypeBuilder<Conversation> builder)
     {
-        public void Configure(EntityTypeBuilder<Conversation> builder)
-        {
-            builder.ToTable("Conversation", "messaging");
-            builder.HasKey(e => e.Id);
+        builder.ToTable("Conversation", "messaging");
+        builder.HasKey(e => e.Id);
 
-            builder.HasMany(c => c.Participants)
-                   .WithOne(p => p.Conversation)
-                   .HasForeignKey(p => p.ConversationId);
+        builder.HasMany(c => c.Participants)
+            .WithOne(p => p.Conversation)
+            .HasForeignKey(p => p.ConversationId);
 
-            builder.HasMany(c => c.Messages)
-                   .WithOne(m => m.Conversation)
-                   .HasForeignKey(m => m.ConversationId);
-        }
+        builder.HasMany(c => c.Messages)
+            .WithOne(m => m.Conversation)
+            .HasForeignKey(m => m.ConversationId);
     }
-
 }

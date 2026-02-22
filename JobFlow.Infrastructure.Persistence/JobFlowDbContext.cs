@@ -1,31 +1,24 @@
 ﻿using JobFlow.Domain.Models;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
-using System.Reflection;
 
-namespace JobFlow.Infrastructure.Persistence
+namespace JobFlow.Infrastructure.Persistence;
+
+public class JobFlowDbContext : DbContext
 {
-    public class JobFlowDbContext : DbContext
+    public JobFlowDbContext(DbContextOptions options) : base(options)
     {
-        public JobFlowDbContext(DbContextOptions options) : base(options)
-        {        
-        }
-        public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
+    }
 
-        public DbSet<Organization> Organizations { get; set; }
-        public DbSet<OrganizationType> OrganizationTypes { get; set; }
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            //Calling this first prevents EF Core from overriding custom Identity table names
-            base.OnModelCreating(modelBuilder);
+    public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
+    public DbSet<Organization> Organizations { get; set; }
+    public DbSet<OrganizationType> OrganizationTypes { get; set; }
 
-            // Automatically applies all IEntityTypeConfiguration<T> implementations in the assembly
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(JobFlowDbContext).Assembly);
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        //Calling this first prevents EF Core from overriding custom Identity table names
+        base.OnModelCreating(modelBuilder);
 
-            
-        }
-
+        // Automatically applies all IEntityTypeConfiguration<T> implementations in the assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(JobFlowDbContext).Assembly);
     }
 }

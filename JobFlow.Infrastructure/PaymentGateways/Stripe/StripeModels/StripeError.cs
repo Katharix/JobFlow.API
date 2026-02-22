@@ -1,25 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace JobFlow.Infrastructure.PaymentGateways.Stripe.StripeModels;
 
-namespace JobFlow.Infrastructure.PaymentGateways.Stripe.StripeModels
+public class StripeError
 {
-    public class StripeError
-    {
-        public string? Code { get; set; }
-        public string? DeclineCode { get; set; }
-        public string? Message { get; set; }
-        public string? Param { get; set; }
-        public StripeErrorEnum Type { get; set; }
+    public string? Code { get; set; }
+    public string? DeclineCode { get; set; }
+    public string? Message { get; set; }
+    public string? Param { get; set; }
+    public StripeErrorEnum Type { get; set; }
+}
 
-    }
-    public enum StripeErrorEnum
-    {
-        ApiError,
-        CardError,
-        IdempotencyError,
-        InvalidRequestError
-    }
+public enum StripeErrorEnum
+{
+    ApiError,
+    CardError,
+    IdempotencyError,
+    InvalidRequestError
 }

@@ -1,0 +1,1564 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": "net10.0",
+    "targetDisplayName": ".NETCoreApp,Version=v10.0"
+  },
+  "analysisStartTime": "2026-02-16T03:55:56.47544Z",
+  "analysisEndTime": "2026-02-16T03:55:58.7865906Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 5,
+      "issues": 8,
+      "incidents": 52,
+      "effort": 52
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 10,
+        "Optional": 2,
+        "Potential": 40,
+        "Information": 0
+      },
+      "category": {
+        "NuGet": 26,
+        "Project": 5,
+        "Api": 21
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "JobFlow.API.csproj",
+      "startingProject": true,
+      "issues": 7,
+      "storyPoints": 26,
+      "properties": {
+        "appName": "JobFlow.API",
+        "projectKind": "AspNetCore",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 42,
+        "numberOfCodeFiles": 39,
+        "linesTotal": 2576,
+        "linesOfCode": 2518,
+        "totalApiScanned": 3487,
+        "minLinesOfCodeToChange": 14,
+        "maxLinesOfCodeToChange": 14
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "63351a2c-6a6e-4b1e-85cc-1dd7c231c685",
+          "ruleId": "NuGet.0001",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNet.WebApi.Core, 5.3.0\n\nRecommendation:\n\nNo supported version found",
+              "protected": "Microsoft.AspNet.WebApi.Core, 5.3.0\n\nRecommendation:\n\nNo supported version found"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.AspNet.WebApi.Core, 5.3.0\n\nRecommendation:\n\nNo supported version found",
+            "protectedSnippet": "Microsoft.AspNet.WebApi.Core, 5.3.0\n\nRecommendation:\n\nNo supported version found",
+            "label": "Microsoft.AspNet.WebApi.Core 5.3.0",
+            "properties": {
+              "PackageId": "Microsoft.AspNet.WebApi.Core",
+              "PackageVersion": "5.3.0",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "e7306e40-c157-4373-954e-da8bf086caae",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Authentication.JwtBearer, and replace with new package Microsoft.AspNetCore.Authentication.JwtBearer 10.0.3",
+              "protected": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Authentication.JwtBearer, and replace with new package Microsoft.AspNetCore.Authentication.JwtBearer 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Authentication.JwtBearer, and replace with new package Microsoft.AspNetCore.Authentication.JwtBearer 10.0.3",
+            "protectedSnippet": "Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Authentication.JwtBearer, and replace with new package Microsoft.AspNetCore.Authentication.JwtBearer 10.0.3",
+            "label": "Microsoft.AspNetCore.Authentication.JwtBearer 8.0.14",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Authentication.JwtBearer",
+              "PackageVersion": "8.0.14",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d9fcf41a-6a75-4efe-931c-1a1d10db3a5e",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.14",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.14",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "de4dca3e-2114-4a88-b061-b0013d5201bd",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.SignalR, 1.2.0\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.SignalR, and replace with new package Microsoft.AspNetCore.SignalR.Client 10.0.3",
+              "protected": "Microsoft.AspNetCore.SignalR, 1.2.0\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.SignalR, and replace with new package Microsoft.AspNetCore.SignalR.Client 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.AspNetCore.SignalR, 1.2.0\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.SignalR, and replace with new package Microsoft.AspNetCore.SignalR.Client 10.0.3",
+            "protectedSnippet": "Microsoft.AspNetCore.SignalR, 1.2.0\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.SignalR, and replace with new package Microsoft.AspNetCore.SignalR.Client 10.0.3",
+            "label": "Microsoft.AspNetCore.SignalR 1.2.0",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.SignalR",
+              "PackageVersion": "1.2.0",
+              "PackageNewVersion": null,
+              "PackageReplacements": "Replace with new package Microsoft.AspNetCore.SignalR.Client=10.0.3"
+            }
+          }
+        },
+        {
+          "incidentId": "85eb2553-39f4-4fce-9f33-b53901b1cc71",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "b90b747f-069b-4362-b380-c72ec4926ae3",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Design 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "b208d37c-f5bc-4dbb-9710-fe61e51956e5",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.SqlServer 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.SqlServer",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ac94fcd6-0085-4a0d-b2a8-21a6d7fb18a6",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Tools 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Tools",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "192bdffd-5eeb-47d4-b8f6-1b41fa8878c4",
+          "ruleId": "NuGet.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Text.Json, 9.0.2\n\nRecommendation:\n\nRemove System.Text.Json, and replace with new package System.Text.Json 10.0.3",
+              "protected": "System.Text.Json, 9.0.2\n\nRecommendation:\n\nRemove System.Text.Json, and replace with new package System.Text.Json 10.0.3"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "System.Text.Json, 9.0.2\n\nRecommendation:\n\nRemove System.Text.Json, and replace with new package System.Text.Json 10.0.3",
+            "protectedSnippet": "System.Text.Json, 9.0.2\n\nRecommendation:\n\nRemove System.Text.Json, and replace with new package System.Text.Json 10.0.3",
+            "label": "System.Text.Json 9.0.2",
+            "properties": {
+              "PackageId": "System.Text.Json",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "7679c236-a287-4529-a4bd-fb114925d776",
+          "ruleId": "NuGet.0005",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Azure.Identity, 1.13.2\n\nRecommendation:\n\nThis version takes a dependency on a deprecated version of MSAL .NET (Microsoft.Identity.Client).\nRemove Azure.Identity, and replace with new package Azure.Identity, 1.17.1",
+              "protected": "Azure.Identity, 1.13.2\n\nRecommendation:\n\nThis version takes a dependency on a deprecated version of MSAL .NET (Microsoft.Identity.Client).\nRemove Azure.Identity, and replace with new package Azure.Identity, 1.17.1"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Azure.Identity, 1.13.2\n\nRecommendation:\n\nThis version takes a dependency on a deprecated version of MSAL .NET (Microsoft.Identity.Client).\nRemove Azure.Identity, and replace with new package Azure.Identity, 1.17.1",
+            "protectedSnippet": "Azure.Identity, 1.13.2\n\nRecommendation:\n\nThis version takes a dependency on a deprecated version of MSAL .NET (Microsoft.Identity.Client).\nRemove Azure.Identity, and replace with new package Azure.Identity, 1.17.1",
+            "label": "Azure.Identity 1.13.2",
+            "properties": {
+              "PackageId": "Azure.Identity",
+              "PackageVersion": "1.13.2",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "e756b5fb-3475-4418-86c7-0b4058064ad6",
+          "ruleId": "NuGet.0005",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "FluentValidation.AspNetCore, 11.3.0\n\nRecommendation:\n\nShould be replaced.\nRemove FluentValidation.AspNetCore, and replace with new package FluentValidation.AspNetCore, 11.3.1",
+              "protected": "FluentValidation.AspNetCore, 11.3.0\n\nRecommendation:\n\nShould be replaced.\nRemove FluentValidation.AspNetCore, and replace with new package FluentValidation.AspNetCore, 11.3.1"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "FluentValidation.AspNetCore, 11.3.0\n\nRecommendation:\n\nShould be replaced.\nRemove FluentValidation.AspNetCore, and replace with new package FluentValidation.AspNetCore, 11.3.1",
+            "protectedSnippet": "FluentValidation.AspNetCore, 11.3.0\n\nRecommendation:\n\nShould be replaced.\nRemove FluentValidation.AspNetCore, and replace with new package FluentValidation.AspNetCore, 11.3.1",
+            "label": "FluentValidation.AspNetCore 11.3.0",
+            "properties": {
+              "PackageId": "FluentValidation.AspNetCore",
+              "PackageVersion": "11.3.0",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "3e89ac02-9a0d-4188-a5a5-25527587b8ac",
+          "ruleId": "Project.0002",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "JobFlow.API.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "dab7d225-e523-4a69-b33f-b0dd34feb8fc",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: Exception diagnostics are suppressed when IExceptionHandler.TryHandleAsync returns true ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "app.UseExceptionHandler(app.Environment.IsProduction() ? \u0022/error\u0022 : \u0022/error-development\u0022);",
+              "protected": "M:Microsoft.AspNetCore.Builder.ExceptionHandlerExtensions.UseExceptionHandler(Microsoft.AspNetCore.Builder.IApplicationBuilder,System.String)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "app.UseExceptionHandler(app.Environment.IsProduction() ? \u0022/error\u0022 : \u0022/error-development\u0022);",
+            "protectedSnippet": "M:Microsoft.AspNetCore.Builder.ExceptionHandlerExtensions.UseExceptionHandler(Microsoft.AspNetCore.Builder.IApplicationBuilder,System.String)",
+            "label": "M:Microsoft.AspNetCore.Builder.ExceptionHandlerExtensions.UseExceptionHandler(Microsoft.AspNetCore.Builder.IApplicationBuilder,System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/aspnet-core/10/exception-handler-diagnostics-suppressed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 292,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "ff551eef-ccdb-44b6-b4d0-549da5904cf5",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: Message no longer duplicated in Console log output ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Logging.AddConsole();",
+              "protected": "M:Microsoft.Extensions.Logging.ConsoleLoggerExtensions.AddConsole(Microsoft.Extensions.Logging.ILoggingBuilder)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Logging.AddConsole();",
+            "protectedSnippet": "M:Microsoft.Extensions.Logging.ConsoleLoggerExtensions.AddConsole(Microsoft.Extensions.Logging.ILoggingBuilder)",
+            "label": "M:Microsoft.Extensions.Logging.ConsoleLoggerExtensions.AddConsole(Microsoft.Extensions.Logging.ILoggingBuilder)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/extensions/10.0/console-json-logging-duplicate-messages.md",
+                "isCustom": false
+              }
+            ],
+            "line": 261,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "36915b2b-893e-40e8-a544-d35d778643ae",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var host = new Uri(origin).Host;",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "var host = new Uri(origin).Host;",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 181,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "05855a2b-0618-4e5e-bafe-6dd67ce758c6",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var host = new Uri(origin).Host;",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "var host = new Uri(origin).Host;",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 181,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "50bbbd8a-b595-4014-9af3-35570ffd9f8f",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 130,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "962cf2a0-d6ba-4650-9a99-91d680171bd2",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+              "protected": "M:System.TimeSpan.FromMinutes(System.Double)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+            "protectedSnippet": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "label": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 130,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "c1a9f5ec-f9c7-4dde-af88-4996f0103b7f",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+              "protected": "M:System.TimeSpan.FromMinutes(System.Double)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.AddHangfire(cfg =\u003E\r\n    cfg.UseSqlServerStorage(appConnectionString, new SqlServerStorageOptions\r\n    {\r\n        SchemaName = ConfigConstants.HANGFIRE_SCHEMA_NAME,\r\n        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),\r\n        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),\r\n        QueuePollInterval = TimeSpan.FromSeconds(15),\r\n        UseRecommendedIsolationLevel = true,\r\n        DisableGlobalLocks = true\r\n    }));",
+            "protectedSnippet": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "label": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 130,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "2493cc47-59aa-44c0-93a7-6e6157633869",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "b.EnableRetryOnFailure(8, TimeSpan.FromSeconds(10), null);",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "b.EnableRetryOnFailure(8, TimeSpan.FromSeconds(10), null);",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 123,
+            "column": 4
+          }
+        },
+        {
+          "incidentId": "01256900-baaa-4e8d-b41e-ff01ddcddd17",
+          "ruleId": "Api.0001",
+          "description": "Breaking change: DynamicallyAccessedMembers annotation removed from trim-unsafe configuration APIs ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.Configure\u003CPaymentSettings\u003E(builder.Configuration.GetSection(\u0022Payments\u0022));",
+              "protected": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.Configure\u003CPaymentSettings\u003E(builder.Configuration.GetSection(\u0022Payments\u0022));",
+            "protectedSnippet": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "label": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/extensions/10.0/dynamically-accessed-members-configuration.md",
+                "isCustom": false
+              }
+            ],
+            "line": 67,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "bbeec096-6aba-4097-a4ea-1af80c9e87bb",
+          "ruleId": "Api.0001",
+          "description": "Breaking change: DynamicallyAccessedMembers annotation removed from trim-unsafe configuration APIs ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.Configure\u003CBackendSettings\u003E(builder.Configuration.GetSection(\u0022Backend\u0022));",
+              "protected": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.Configure\u003CBackendSettings\u003E(builder.Configuration.GetSection(\u0022Backend\u0022));",
+            "protectedSnippet": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "label": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/extensions/10.0/dynamically-accessed-members-configuration.md",
+                "isCustom": false
+              }
+            ],
+            "line": 64,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "534adaca-e7d5-4846-9800-8a10f3cf9131",
+          "ruleId": "Api.0001",
+          "description": "Breaking change: DynamicallyAccessedMembers annotation removed from trim-unsafe configuration APIs ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Services.Configure\u003CFrontEndSettings\u003E(builder.Configuration.GetSection(\u0022Frontend\u0022));",
+              "protected": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Services.Configure\u003CFrontEndSettings\u003E(builder.Configuration.GetSection(\u0022Frontend\u0022));",
+            "protectedSnippet": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "label": "M:Microsoft.Extensions.DependencyInjection.OptionsConfigurationServiceCollectionExtensions.Configure\u0060\u00601(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/extensions/10.0/dynamically-accessed-members-configuration.md",
+                "isCustom": false
+              }
+            ],
+            "line": 61,
+            "column": 0
+          }
+        },
+        {
+          "incidentId": "9fb8693c-8bfb-4be5-8eb7-bc1ce418f40a",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 54,
+            "column": 4
+          }
+        },
+        {
+          "incidentId": "4760026e-9b71-4ca4-9eef-51c5baa38237",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 54,
+            "column": 4
+          }
+        },
+        {
+          "incidentId": "3955891d-d089-4091-9d47-cafb08381624",
+          "ruleId": "Api.0002",
+          "description": "API is available in package Azure.Extensions.AspNetCore.Configuration.Secrets, 1.3.1. Add package reference to Azure.Extensions.AspNetCore.Configuration.Secrets, 1.3.1",
+          "projectPath": "JobFlow.API.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+              "protected": "T:Microsoft.Extensions.Configuration.AzureKeyVaultConfigurationExtensions"
+            },
+            "kind": "File",
+            "path": "Program.cs",
+            "snippet": "builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());",
+            "protectedSnippet": "T:Microsoft.Extensions.Configuration.AzureKeyVaultConfigurationExtensions",
+            "label": "T:Microsoft.Extensions.Configuration.AzureKeyVaultConfigurationExtensions",
+            "properties": {
+              "PackageId": "Azure.Extensions.AspNetCore.Configuration.Secrets",
+              "PackageNewVersion": "1.3.1"
+            },
+            "line": 54,
+            "column": 4
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 3,
+      "properties": {
+        "appName": "JobFlow.Business",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 120,
+        "numberOfCodeFiles": 120,
+        "linesTotal": 4132,
+        "linesOfCode": 4132,
+        "totalApiScanned": 3651,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "f89419cb-58e8-48af-92b8-d89b8e15f66f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "7d869356-7b5a-445f-b403-cb5fde044f77",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Design 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "25cde3bf-e672-4dc4-9415-d4d20ac99d1f",
+          "ruleId": "Project.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Business\\JobFlow.Business.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Domain\\JobFlow.Domain.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "JobFlow.Domain",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 41,
+        "numberOfCodeFiles": 41,
+        "linesTotal": 588,
+        "linesOfCode": 588,
+        "totalApiScanned": 928,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "2de6090a-0cbb-4316-b8ac-a33cb34d6f66",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Domain\\JobFlow.Domain.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Domain\\JobFlow.Domain.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.14",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.14",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "66383756-628c-41e8-9562-a5a6528abd06",
+          "ruleId": "Project.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Domain\\JobFlow.Domain.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Domain\\JobFlow.Domain.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+      "startingProject": true,
+      "issues": 5,
+      "storyPoints": 15,
+      "properties": {
+        "appName": "JobFlow.Infrastructure",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 31,
+        "numberOfCodeFiles": 31,
+        "linesTotal": 1472,
+        "linesOfCode": 1472,
+        "totalApiScanned": 1674,
+        "minLinesOfCodeToChange": 7,
+        "maxLinesOfCodeToChange": 7
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "7c06be4f-0c68-4f56-81d9-00aaf1c4ce34",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "6f5b6eed-18b7-4031-ad13-90233fbc6c63",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Design 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "566f9024-0b7c-413f-9df7-f6bb30cf70cd",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Tools 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Tools",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5029cd47-5791-4572-a2b0-755839834de3",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Hosting.Abstractions, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Hosting.Abstractions, and replace with new package Microsoft.Extensions.Hosting.Abstractions 10.0.3",
+              "protected": "Microsoft.Extensions.Hosting.Abstractions, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Hosting.Abstractions, and replace with new package Microsoft.Extensions.Hosting.Abstractions 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Microsoft.Extensions.Hosting.Abstractions, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Hosting.Abstractions, and replace with new package Microsoft.Extensions.Hosting.Abstractions 10.0.3",
+            "protectedSnippet": "Microsoft.Extensions.Hosting.Abstractions, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Hosting.Abstractions, and replace with new package Microsoft.Extensions.Hosting.Abstractions 10.0.3",
+            "label": "Microsoft.Extensions.Hosting.Abstractions 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Hosting.Abstractions",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "3cd1f63a-f0a1-4ae2-b705-3d0e69a26a4f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.Extensions.Http, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Http, and replace with new package Microsoft.Extensions.Http 10.0.3",
+              "protected": "Microsoft.Extensions.Http, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Http, and replace with new package Microsoft.Extensions.Http 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Microsoft.Extensions.Http, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Http, and replace with new package Microsoft.Extensions.Http 10.0.3",
+            "protectedSnippet": "Microsoft.Extensions.Http, 8.0.1\n\nRecommendation:\n\nRemove Microsoft.Extensions.Http, and replace with new package Microsoft.Extensions.Http 10.0.3",
+            "label": "Microsoft.Extensions.Http 8.0.1",
+            "properties": {
+              "PackageId": "Microsoft.Extensions.Http",
+              "PackageVersion": "8.0.1",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "acb25673-d9e0-4a89-b6b2-6cc529e5c4ca",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Formats.Asn1, 9.0.2\n\nRecommendation:\n\nRemove System.Formats.Asn1, and replace with new package System.Formats.Asn1 10.0.3",
+              "protected": "System.Formats.Asn1, 9.0.2\n\nRecommendation:\n\nRemove System.Formats.Asn1, and replace with new package System.Formats.Asn1 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "System.Formats.Asn1, 9.0.2\n\nRecommendation:\n\nRemove System.Formats.Asn1, and replace with new package System.Formats.Asn1 10.0.3",
+            "protectedSnippet": "System.Formats.Asn1, 9.0.2\n\nRecommendation:\n\nRemove System.Formats.Asn1, and replace with new package System.Formats.Asn1 10.0.3",
+            "label": "System.Formats.Asn1 9.0.2",
+            "properties": {
+              "PackageId": "System.Formats.Asn1",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "1e8f2249-8c66-47b5-8862-e0abac0be30b",
+          "ruleId": "NuGet.0003",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "System.Net.Http, 4.3.4\n\nRecommendation:\n\nPackage functionality included with new framework reference",
+              "protected": "System.Net.Http, 4.3.4\n\nRecommendation:\n\nPackage functionality included with new framework reference"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "System.Net.Http, 4.3.4\n\nRecommendation:\n\nPackage functionality included with new framework reference",
+            "protectedSnippet": "System.Net.Http, 4.3.4\n\nRecommendation:\n\nPackage functionality included with new framework reference",
+            "label": "System.Net.Http 4.3.4",
+            "properties": {
+              "PackageId": "System.Net.Http",
+              "PackageVersion": "4.3.4",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "82881b02-64bb-4612-a8a8-fe310b113ef8",
+          "ruleId": "Project.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        },
+        {
+          "incidentId": "9818b5b0-11da-4645-a63c-12b8fc6d006a",
+          "ruleId": "Api.0003",
+          "description": "Breaking change - Streaming HTTP responses enabled by default in browser HTTP clients ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "var json = await response.Content.ReadAsStringAsync();",
+              "protected": "T:System.Net.Http.HttpContent"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\ExternalServices\\ReCAPTCHA\\ReCAPTCHAService.cs",
+            "snippet": "var json = await response.Content.ReadAsStringAsync();",
+            "protectedSnippet": "T:System.Net.Http.HttpContent",
+            "label": "T:System.Net.Http.HttpContent",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/default-http-streaming.md",
+                "isCustom": false
+              }
+            ],
+            "line": 36,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "87a8fe58-a6bb-4f01-a06c-f9b9faaf2330",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Extensions\\ServiceCollectionExtensions.cs",
+            "snippet": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "875dd0cf-890b-4de3-8277-79814a392a32",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+              "protected": "M:System.Uri.#ctor(System.String)"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Extensions\\ServiceCollectionExtensions.cs",
+            "snippet": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+            "protectedSnippet": "M:System.Uri.#ctor(System.String)",
+            "label": "M:System.Uri.#ctor(System.String)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "9a7055fd-27bb-40ee-a6f0-354868b68d01",
+          "ruleId": "Api.0003",
+          "description": "Breaking change: URI length limits removed ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+              "protected": "T:System.Uri"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Extensions\\ServiceCollectionExtensions.cs",
+            "snippet": "client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);",
+            "protectedSnippet": "T:System.Uri",
+            "label": "T:System.Uri",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/10.0/uri-length-limits-removed.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 12
+          }
+        },
+        {
+          "incidentId": "3cdd055e-b657-4b6e-b047-39dbaef4d28b",
+          "ruleId": "Api.0003",
+          "description": "URI query redaction in IHttpClientFactory logs ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "services.AddHttpClient(JobFlowNamedClient.Brevo, (sp, client) =\u003E\r\n        {\r\n            var brevoSettings = sp.GetRequiredService\u003CIBrevoSettings\u003E();\r\n            client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);\r\n            client.DefaultRequestHeaders.Add(\u0022api-key\u0022, brevoSettings.ApiKey);\r\n        });",
+              "protected": "M:Microsoft.Extensions.DependencyInjection.HttpClientFactoryServiceCollectionExtensions.AddHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String,System.Action{System.IServiceProvider,System.Net.Http.HttpClient})"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Extensions\\ServiceCollectionExtensions.cs",
+            "snippet": "services.AddHttpClient(JobFlowNamedClient.Brevo, (sp, client) =\u003E\r\n        {\r\n            var brevoSettings = sp.GetRequiredService\u003CIBrevoSettings\u003E();\r\n            client.BaseAddress = new Uri(\u0022https://api.brevo.com/v3/\u0022);\r\n            client.DefaultRequestHeaders.Add(\u0022api-key\u0022, brevoSettings.ApiKey);\r\n        });",
+            "protectedSnippet": "M:Microsoft.Extensions.DependencyInjection.HttpClientFactoryServiceCollectionExtensions.AddHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String,System.Action{System.IServiceProvider,System.Net.Http.HttpClient})",
+            "label": "M:Microsoft.Extensions.DependencyInjection.HttpClientFactoryServiceCollectionExtensions.AddHttpClient(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String,System.Action{System.IServiceProvider,System.Net.Http.HttpClient})",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/networking/9.0/query-redaction-logs.md",
+                "isCustom": false
+              }
+            ],
+            "line": 10,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "ab8d26fa-c131-49c7-b437-d2ab9ef280d4",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "return Policy.Handle\u003CException\u003E()\r\n            .CircuitBreakerAsync(\r\n                5,\r\n                TimeSpan.FromMinutes(1),\r\n                (ex, breakDelay) =\u003E\r\n                {\r\n                    Console.WriteLine($\u0022[Polly] Circuit open for {breakDelay.TotalSeconds}s: {ex.Message}\u0022);\r\n                },\r\n                () =\u003E Console.WriteLine(\u0022[Polly] Circuit closed.\u0022),\r\n                () =\u003E Console.WriteLine(\u0022[Polly] Circuit half-open; testing\u2026\u0022));",
+              "protected": "M:System.TimeSpan.FromMinutes(System.Double)"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Common\\PollyPolicies.cs",
+            "snippet": "return Policy.Handle\u003CException\u003E()\r\n            .CircuitBreakerAsync(\r\n                5,\r\n                TimeSpan.FromMinutes(1),\r\n                (ex, breakDelay) =\u003E\r\n                {\r\n                    Console.WriteLine($\u0022[Polly] Circuit open for {breakDelay.TotalSeconds}s: {ex.Message}\u0022);\r\n                },\r\n                () =\u003E Console.WriteLine(\u0022[Polly] Circuit closed.\u0022),\r\n                () =\u003E Console.WriteLine(\u0022[Polly] Circuit half-open; testing\u2026\u0022));",
+            "protectedSnippet": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "label": "M:System.TimeSpan.FromMinutes(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 29,
+            "column": 8
+          }
+        },
+        {
+          "incidentId": "b037c205-1b01-469e-bf4a-4c3785e42171",
+          "ruleId": "Api.0002",
+          "description": "Breaking change: New TimeSpan.From*() overloads that take integers ",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\JobFlow.Infrastructure.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "return Policy.Handle\u003CException\u003E()\r\n            .WaitAndRetryAsync(\r\n                3,\r\n                attempt =\u003E TimeSpan.FromSeconds(Math.Pow(2, attempt)),\r\n                (ex, ts, retry, ctx) =\u003E\r\n                {\r\n                    // TODO: Replace with your ILogger if you want\r\n                    Console.WriteLine($\u0022[Polly] Retry {retry} after {ts.TotalSeconds}s: {ex.Message}\u0022);\r\n                });",
+              "protected": "M:System.TimeSpan.FromSeconds(System.Double)"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure\\Common\\PollyPolicies.cs",
+            "snippet": "return Policy.Handle\u003CException\u003E()\r\n            .WaitAndRetryAsync(\r\n                3,\r\n                attempt =\u003E TimeSpan.FromSeconds(Math.Pow(2, attempt)),\r\n                (ex, ts, retry, ctx) =\u003E\r\n                {\r\n                    // TODO: Replace with your ILogger if you want\r\n                    Console.WriteLine($\u0022[Polly] Retry {retry} after {ts.TotalSeconds}s: {ex.Message}\u0022);\r\n                });",
+            "protectedSnippet": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "label": "M:System.TimeSpan.FromSeconds(System.Double)",
+            "links": [
+              {
+                "title": "API documentation",
+                "url": "https://github.com/dotnet/docs/blob/main/docs/core/compatibility/core-libraries/9.0/timespan-from-overloads.md",
+                "isCustom": false
+              }
+            ],
+            "line": 13,
+            "column": 8
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+      "startingProject": true,
+      "issues": 2,
+      "storyPoints": 6,
+      "properties": {
+        "appName": "JobFlow.Infrastructure.Persistence",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "numberOfFiles": 58,
+        "numberOfCodeFiles": 58,
+        "linesTotal": 25919,
+        "linesOfCode": 25919,
+        "totalApiScanned": 37645,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "d264a2cb-c97a-4943-9f2b-02be8d73085f",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.AspNetCore.Identity.EntityFrameworkCore, 8.0.14\n\nRecommendation:\n\nRemove Microsoft.AspNetCore.Identity.EntityFrameworkCore, and replace with new package Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.14",
+            "properties": {
+              "PackageId": "Microsoft.AspNetCore.Identity.EntityFrameworkCore",
+              "PackageVersion": "8.0.14",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "b7b14d8c-55d9-4dbb-9110-0c34f3365863",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore, and replace with new package Microsoft.EntityFrameworkCore 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "cd676660-e8a4-4769-af56-c7970908f562",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Design, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Design, and replace with new package Microsoft.EntityFrameworkCore.Design 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Design 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Design",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "cd2e2746-2ccb-49af-a11a-c845b59d2c26",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.SqlServer, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.SqlServer, and replace with new package Microsoft.EntityFrameworkCore.SqlServer 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.SqlServer 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.SqlServer",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ee45a009-a6b4-4b77-971c-185d1346f849",
+          "ruleId": "NuGet.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+              "protected": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "protectedSnippet": "Microsoft.EntityFrameworkCore.Tools, 9.0.2\n\nRecommendation:\n\nRemove Microsoft.EntityFrameworkCore.Tools, and replace with new package Microsoft.EntityFrameworkCore.Tools 10.0.3",
+            "label": "Microsoft.EntityFrameworkCore.Tools 9.0.2",
+            "properties": {
+              "PackageId": "Microsoft.EntityFrameworkCore.Tools",
+              "PackageVersion": "9.0.2",
+              "PackageNewVersion": "10.0.3",
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "a36efa0d-8b41-425c-80b9-d8f0afa404fa",
+          "ruleId": "Project.0002",
+          "projectPath": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "Current target framework: net8.0\nRecommended target framework: net10.0",
+              "protected": "Current target framework: net8.0\nRecommended target framework: net10.0"
+            },
+            "kind": "File",
+            "path": "%USERPROFILE%\\repos\\JobFlow-API\\JobFlow.Infrastructure.Persistence\\JobFlow.Infrastructure.Persistence.csproj",
+            "snippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "protectedSnippet": "Current target framework: net8.0\nRecommended target framework: net10.0",
+            "properties": {
+              "CurrentTargetFramework": "net8.0",
+              "RecommendedTargetFramework": "net10.0"
+            }
+          }
+        }
+      ],
+      "features": []
+    }
+  ],
+  "rules": {
+    "NuGet.0002": {
+      "id": "NuGet.0002",
+      "isFeature": false,
+      "description": "NuGet package upgrade is recommended for selected target framework.\n\nStandard .NET packages are recommended to have versions matching version of .NET that project targets.\n\nSome other packages also are known to work better for selected target frameworks.",
+      "label": "NuGet package upgrade is recommended",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262530",
+          "isCustom": false
+        }
+      ]
+    },
+    "Project.0002": {
+      "id": "Project.0002",
+      "isFeature": false,
+      "description": "Project\u0027s target framework(s) needs to be changed to the new target framework that you selected for this upgrade.\n\nDuring upgrade target framework will be adjusted to corresponding platform when applicable. In some cases project would result in multiple target frameworks after the upgrade if it was using features that now have their own platforms in modern .NET frameworks (windows, iOS, Android etc).",
+      "label": "Project\u0027s target framework(s) needs to be changed",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Overview of porting from .NET Framework to .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265227",
+          "isCustom": false
+        },
+        {
+          "title": ".NET project SDKs",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2265226",
+          "isCustom": false
+        }
+      ]
+    },
+    "NuGet.0003": {
+      "id": "NuGet.0003",
+      "isFeature": false,
+      "description": "NuGet package functionality is included with framework reference.\n\nPackage needs to be removed.",
+      "label": "NuGet package functionality is included with framework reference",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262609",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0003": {
+      "id": "Api.0003",
+      "isFeature": false,
+      "description": "API has a behavioral change in selected .NET version: code and binaries may behave differently at runtime without needing recompilation, but the new behavior might be undesirable and require updates.",
+      "label": "Behavioral change in selected .NET version",
+      "severity": "Potential",
+      "effort": 1
+    },
+    "Api.0002": {
+      "id": "Api.0002",
+      "isFeature": false,
+      "description": "API is source incompatible for selected .NET version: requires code changes to compile successfully when targeting a new version, such as removing obsolete APIs or changing method signatures.",
+      "label": "Source incompatible for selected .NET version",
+      "severity": "Potential",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Breaking changes in .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    },
+    "NuGet.0001": {
+      "id": "NuGet.0001",
+      "isFeature": false,
+      "description": "NuGet package is incompatible with selected target framework.\n\nPackage needs to be upgraded to a version supporting selected project target framework. If there no new package versions supporting new target framework, different package needs to be used and all code needs to be upgraded to new API.",
+      "label": "NuGet package is incompatible",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262529",
+          "isCustom": false
+        }
+      ]
+    },
+    "NuGet.0005": {
+      "id": "NuGet.0005",
+      "isFeature": false,
+      "description": "NuGet package is deprecated.\n\nGo to its documentation and if there is a guidance for replacement of functionality provided by this package.",
+      "label": "NuGet package is deprecated",
+      "severity": "Optional",
+      "effort": 1,
+      "links": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262531",
+          "isCustom": false
+        }
+      ]
+    },
+    "Api.0001": {
+      "id": "Api.0001",
+      "isFeature": false,
+      "description": "API is binary incompatible for selected .NET version: affects existing binaries, often requiring recompilation, because the API has changed in a way that prevents older binaries from loading or executing.",
+      "label": "Binary incompatible for selected .NET version",
+      "severity": "Mandatory",
+      "effort": 1,
+      "links": [
+        {
+          "title": "Breaking changes in .NET",
+          "url": "https://go.microsoft.com/fwlink/?linkid=2262679",
+          "isCustom": false
+        }
+      ]
+    }
+  }
+}

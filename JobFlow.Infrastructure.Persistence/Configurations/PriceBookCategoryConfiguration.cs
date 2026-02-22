@@ -1,32 +1,25 @@
 ﻿using JobFlow.Domain.Models;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace JobFlow.Infrastructure.Persistence.Configurations
+namespace JobFlow.Infrastructure.Persistence.Configurations;
+
+public class PriceBookCategoryConfiguration : IEntityTypeConfiguration<PriceBookCategory>
 {
-    public class PriceBookCategoryConfiguration : IEntityTypeConfiguration<PriceBookCategory>
+    public void Configure(EntityTypeBuilder<PriceBookCategory> builder)
     {
-        public void Configure(EntityTypeBuilder<PriceBookCategory> builder)
-        {
-            builder.ToTable("PriceBookCategories");
+        builder.ToTable("PriceBookCategories");
 
-            builder.HasKey(x => x.Id);
+        builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(100);
+        builder.Property(x => x.Name)
+            .IsRequired()
+            .HasMaxLength(100);
 
-            builder.Property(x => x.Description)
-                .HasMaxLength(500);
+        builder.Property(x => x.Description)
+            .HasMaxLength(500);
 
-            builder.HasIndex(x => new { x.OrganizationId, x.Name })
-                .IsUnique();
-        }
+        builder.HasIndex(x => new { x.OrganizationId, x.Name })
+            .IsUnique();
     }
-
 }

@@ -1,7 +1,6 @@
-﻿namespace JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces
+﻿namespace JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
+
+public interface IFrontendSettings
 {
-    public interface IFrontendSettings
-    {
-        string BaseUrl { get; }
-    }
+    string BaseUrl { get; }
 }
