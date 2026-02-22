@@ -5,8 +5,8 @@ name: Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 
 on:
   push:
-    branches:
-      - master
+     tags:
+      - 'release-*'
   workflow_dispatch:
 
 jobs:
@@ -67,3 +67,4 @@ jobs:
           slot-name: 'Production'
           package: .
           
+
