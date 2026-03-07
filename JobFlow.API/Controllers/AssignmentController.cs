@@ -1,6 +1,7 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Models;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Services;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,15 @@ namespace JobFlow.API.Controllers;
 public class AssignmentController : ControllerBase
 {
     private readonly IAssignmentService _assignmentService;
+    private readonly IAssignmentGenerator _assignmentGenerator;
 
-    public AssignmentController(IAssignmentService assignmentService)
+    public AssignmentController(
+        IAssignmentService assignmentService,
+        IAssignmentGenerator assignmentGenerator
+        )
     {
         _assignmentService = assignmentService;
+        _assignmentGenerator = assignmentGenerator;
     }
 
     [HttpGet("{id:guid}")]
@@ -35,13 +41,22 @@ public class AssignmentController : ControllerBase
     {
         var organizationId = HttpContext.GetOrganizationId();
 
-        var result = await _assignmentService.GetAssignmentsAsync(organizationId, start, end);
+        // ensure UTC
+        var startUtc = DateTime.SpecifyKind(start, DateTimeKind.Utc);
+        var endUtc = DateTime.SpecifyKind(end, DateTimeKind.Utc);
+
+        // 1) auto-generate missing assignments
+        var gen = await _assignmentGenerator.EnsureAssignmentsExistAsync(organizationId, startUtc, endUtc);
+        if (gen.IsFailure)
+            return BadRequest(gen.Error);
+
+        // 2) fetch persisted assignments
+        var result = await _assignmentService.GetAssignmentsAsync(organizationId, startUtc, endUtc);
         if (result.IsFailure)
             return BadRequest(result.Error);
 
         return Ok(result.Value);
     }
-
     // Create assignment under a job (schedule a job occurrence)
     [HttpPost("~/api/job/{jobId:guid}/assignments")]
     public async Task<IActionResult> Create(Guid jobId, [FromBody] CreateAssignmentRequestDto dto)
@@ -80,4 +95,6 @@ public class AssignmentController : ControllerBase
 
         return Ok(result.Value);
     }
+
+
 }
