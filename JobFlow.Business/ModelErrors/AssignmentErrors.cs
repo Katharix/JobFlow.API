@@ -87,4 +87,7 @@ public static class AssignmentErrors
             "Assignment.ActualEndBeforeStart",
             "Actual end time cannot be before actual start time."
         );
+
+    public static readonly Error InvalidRecurrence =
+        Error.Validation("Assignment.InvalidRecurrence", "Invalid recurrence configuration.");
 }
