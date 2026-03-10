@@ -1,4 +1,5 @@
 ﻿using FirebaseAdmin.Auth;
+using JobFlow.API.Extensions;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
@@ -73,7 +74,7 @@ public class OrganizationController : ControllerBase
                 {
                     { "role", model.UserRole }
                 });
-            var orgResults = await _organizationService.GetOrganiztionById(model.Id.Value);
+            var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
         }
         catch (Exception ex)
@@ -88,7 +89,7 @@ public class OrganizationController : ControllerBase
     [Route("retrieve")]
     public async Task<IResult> GetOrganizationById([FromBody] OrganizationRequest org)
     {
-        var result = await _organizationService.GetOrganiztionById(org.OrganizationId);
+        var result = await _organizationService.GetOrganizationDtoById(org.OrganizationId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 

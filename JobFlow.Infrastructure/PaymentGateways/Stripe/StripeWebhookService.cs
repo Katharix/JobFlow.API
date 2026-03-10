@@ -208,6 +208,7 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
 
         var paymentProfileResult = await _paymentProfileService.CreateAsync(
             Guid.Parse(ownerId),
@@ -220,7 +221,8 @@ public class StripeWebhookService : IStripeWebhookService
             paymentProfileResult.Value.Id,
             subscription.Id,
             subscription.Items.Data.First().Price.Id,
-            subscription.Status
+            subscription.Status,
+            planName
         );
     }
 
@@ -288,13 +290,14 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleSubscriptionUpdatedAsync(Subscription subscription)
     {
-        // Update subscription status
         var subResult = await _subscriptionRecordService.GetByProviderIdAsync(subscription.Id);
-        if (subResult.IsSuccess)
-        {
-            subResult.Value.Status = subscription.Status;
-            // Persist changes if needed
-        }
+        if (!subResult.IsSuccess)
+            return;
+
+        subResult.Value.Status = subscription.Status;
+        subResult.Value.ProviderPriceId = subscription.Items.Data.First().Price.Id;
+
+        await _subscriptionRecordService.UpdateAsync(subResult.Value);
     }
 
     private async Task HandleSubscriptionCreatedAsync(Subscription subscription)
@@ -302,6 +305,7 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
 
         var paymentProfileResult = await _paymentProfileService.CreateAsync(
             Guid.Parse(ownerId),
@@ -314,7 +318,8 @@ public class StripeWebhookService : IStripeWebhookService
             paymentProfileResult.Value.Id,
             subscription.Id,
             subscription.Items.Data.First().Price.Id,
-            subscription.Status
+            subscription.Status,
+            planName
         );
     }
 

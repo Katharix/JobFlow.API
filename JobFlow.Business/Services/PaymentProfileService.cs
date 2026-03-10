@@ -65,7 +65,7 @@ public class PaymentProfileService : IPaymentProfileService
             OwnerType = ownerType,
             Provider = provider,
             ProviderCustomerId = providerCustomerId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow 
         };
 
         paymentProfiles.Add(profile);

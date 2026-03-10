@@ -113,7 +113,8 @@ public class PaymentController : ControllerBase
             request.PaymentProfileId,
             request.ProviderSubscriptionId,
             request.ProviderPriceId,
-            request.Status ?? "active"
+            request.Status ?? "active",
+            ""
         );
 
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
