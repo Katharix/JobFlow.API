@@ -1,9 +1,11 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +18,7 @@ public class OrganizationService : IOrganizationService
     private readonly IUnitOfWork _unitOfWork;
     private ILogger<OrganizationService> _logger;
     private IOnboardingService _onboardingService;
+    private readonly IRepository<SubscriptionRecord> _subscriptions;
 
     public OrganizationService(
         IUnitOfWork unitOfWork, 
@@ -25,7 +28,11 @@ public class OrganizationService : IOrganizationService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _onboardingService = onboardingService;
-        _organizations = _unitOfWork.RepositoryOf<Organization>().Query().Include(e => e.OrganizationType);
+        _subscriptions = unitOfWork.RepositoryOf<SubscriptionRecord>();
+        _organizations = _unitOfWork.RepositoryOf<Organization>()
+            .Query()
+            .Include(e => e.OrganizationType)
+            .Include(e => e.PaymentProfiles);
     }
 
     public async Task<Result> DeleteOrganization(Guid organizationId)
@@ -53,6 +60,36 @@ public class OrganizationService : IOrganizationService
 
         if (organization == null) return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
         return Result.Success(organization);
+    }
+
+    public async Task<Result<OrganizationDto>> GetOrganizationDtoById(Guid orgId)
+    {
+        var orgResult = await GetOrganiztionById(orgId);
+        if (orgResult.IsFailure)
+            return Result.Failure<OrganizationDto>(orgResult.Error);
+
+        var org = orgResult.Value;
+        var dto = org.Adapt<OrganizationDto>();
+
+        var paymentProfileIds = await _unitOfWork.RepositoryOf<CustomerPaymentProfile>()
+            .Query()
+            .AsNoTracking()
+            .Where(p => p.OwnerId == orgId)
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        if (paymentProfileIds.Count > 0)
+        {
+            var latestSubscription = await _subscriptions.Query()
+                .AsNoTracking()
+                .Where(s => paymentProfileIds.Contains(s.PaymentProfileId))
+                .OrderByDescending(s => s.StartDate)
+                .FirstOrDefaultAsync();
+
+            dto.SubscriptionPlanName = latestSubscription?.PlanName;
+        }
+
+        return Result.Success(dto);
     }
     public async Task MarkStripeConnectedAsync(string stripeAccountId)
     {

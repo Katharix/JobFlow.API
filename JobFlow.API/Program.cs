@@ -331,11 +331,10 @@ if (app.Environment.IsDevelopment()) app.UseHangfireDashboard();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseStatusCodePages();
 app.UseAuthentication();
-app.UseAuthorization();
 
-// Must run after UseAuthentication/UseAuthorization so we can augment the authenticated principal
-// with application-specific context (e.g., organizationId) without it getting overwritten.
 app.UseMiddleware<FirebaseAuthMiddleware>();
+
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
