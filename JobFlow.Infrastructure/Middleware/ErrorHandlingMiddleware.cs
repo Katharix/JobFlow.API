@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Stripe;
 using Twilio.Exceptions;
+using System.Text.Json.Serialization;
 
 namespace JobFlow.Infrastructure.Middleware;
 
@@ -35,45 +36,17 @@ public class ErrorHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var error = new ApiError();
-        int statusCode;
-
-        switch (exception)
+        if (context.Response.HasStarted)
         {
-            case SqlException sqlEx:
-                statusCode = StatusCodes.Status500InternalServerError;
-                error.Message = "A database error occurred.";
-                error.Code = "SQL_ERROR";
-                break;
-
-            case StripeException stripeEx:
-                statusCode = (int)stripeEx.HttpStatusCode;
-                error.Message = stripeEx.Message;
-                error.Code = "STRIPE_ERROR";
-                break;
-
-            case HttpRequestException httpEx:
-                statusCode = StatusCodes.Status503ServiceUnavailable;
-                error.Message = "A service call failed.";
-                error.Code = "HTTP_ERROR";
-                break;
-            case TwilioException twilioEx:
-                statusCode = StatusCodes.Status500InternalServerError;
-                error.Message = twilioEx.Message;
-                error.Code = "TWILIO_ERROR";
-                break;
-            default:
-                statusCode = StatusCodes.Status500InternalServerError;
-                error.Message = "An unexpected error occurred.";
-                error.Code = "GENERAL_ERROR";
-                break;
+            _logger.LogWarning("Response already started; cannot write error body.");
+            context.Abort();
+            return;
         }
 
-        if (_env.IsDevelopment()) error.Details = exception.ToString();
-
+        context.Response.Clear();
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsJsonAsync(error);
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(new ApiError { Message = "An unexpected error occurred.", Code = "GENERAL_ERROR" });
     }
 }
 
