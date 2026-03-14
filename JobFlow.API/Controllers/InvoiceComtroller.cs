@@ -1,4 +1,5 @@
-﻿using JobFlow.API.Mappings;
+﻿using JobFlow.API.Extensions;
+using JobFlow.API.Mappings;
 using JobFlow.API.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
 using MapsterMapper;
@@ -37,7 +38,7 @@ public class InvoiceController : ControllerBase
         this._mapper = mapper;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
     {
         var result = await invoiceService.GetInvoiceByIdAsync(id);
@@ -50,6 +51,17 @@ public class InvoiceController : ControllerBase
     {
         var result = await invoiceService.GetInvoicesByClientAsync(clientId);
         return Ok(result.Value.ToDto());
+    }
+
+    [HttpGet("organization")]
+    public async Task<IActionResult> GetByOrganization()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await invoiceService.GetInvoicesByOrganizationAsync(organizationId);
+        return result.IsSuccess ? Ok(result.Value.ToDto()) : BadRequest(result.Error);
     }
 
     [HttpPost("{organizationId:guid}")]
@@ -70,6 +82,16 @@ public class InvoiceController : ControllerBase
         return result.IsSuccess
             ? Ok(result.Value.ToDto())
             : BadRequest(result.Error);
+    }
+
+    [HttpPost("organization")]
+    public Task<IActionResult> UpsertForOrganization([FromBody] CreateInvoiceRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Task.FromResult<IActionResult>(Unauthorized("Organization context missing."));
+
+        return Upsert(organizationId, request);
     }
 
     [HttpPost("{id:guid}/send")]
@@ -93,7 +115,7 @@ public class InvoiceController : ControllerBase
 
 
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         // Optional: delete line items too
@@ -102,7 +124,7 @@ public class InvoiceController : ControllerBase
         return result.IsSuccess ? Ok() : NotFound(result.Error);
     }
 
-    [HttpGet("{id}/pdf")]
+    [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> GeneratePdf(Guid id)
     {
         var result = await invoiceService.GetInvoiceByIdAsync(id);

@@ -66,7 +66,7 @@ public class OrganizationClientService : IOrganizationClientService
         return Result.Success<OrganizationClient>(client);
     }
 
-    public async Task<Result> UpsertClient(OrganizationClient model)
+    public async Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model)
     {
         var exists = await organizationClient.Query()
             .AnyAsync(c => c.Id == model.Id);
