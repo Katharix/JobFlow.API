@@ -1,6 +1,7 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -17,11 +18,13 @@ public class AssignmentService : IAssignmentService
     private readonly IRepository<Job> _jobs;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IOnboardingService _onboardingService;
     private readonly ILogger<AssignmentService> _logger;
 
     public AssignmentService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
+        IOnboardingService onboardingService,
         ILogger<AssignmentService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -29,6 +32,7 @@ public class AssignmentService : IAssignmentService
         _jobs = unitOfWork.RepositoryOf<Job>();
         
         _mapper = mapper;
+        _onboardingService = onboardingService;
         _logger = logger;
     }
 
@@ -61,6 +65,11 @@ public class AssignmentService : IAssignmentService
 
         _assignments.Add(assignment);
         await _unitOfWork.SaveChangesAsync();
+
+        await _onboardingService.MarkStepCompleteAsync(
+            organizationId,
+            OnboardingStepKeys.ScheduleJob
+        );
 
         // Reload with navigation graph for DTO enrichment
         var created = await _assignments.Query()

@@ -66,7 +66,7 @@ public class OrganizationClientController : ControllerBase
         var result = await organizationClientService.UpsertClient(entity);
 
         return result.IsSuccess
-            ? Results.Ok(new OrganizationClientUpsertResponseDto(result.Value.Id.ToString()))
+            ? Results.Ok(result)
             : result.ToProblemDetails();
     }
 

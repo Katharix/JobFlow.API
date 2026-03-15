@@ -181,4 +181,26 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             TemplateId = EmailTemplate.OrganizationWelcome
         };
     }
+
+    public NotificationMessage BuildClientEstimateSent(OrganizationClient client, Estimate estimate)
+    {
+        var link = $"{baseUrl}/estimate/view/{estimate.PublicToken}";
+
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Estimate Ready: {estimate.EstimateNumber}",
+            Body = $"""
+                        Hello {client.ClientFullName()},
+                        Your estimate is ready. 
+                        
+                        View it here:{link}
+            """,
+            Sms = "Your estimate is ready: ",
+            Link = $"{link}",
+            TemplateId = EmailTemplate.OrganizationWelcome
+        };
+    }
 }

@@ -39,7 +39,6 @@ public class ErrorHandlingMiddleware
         if (context.Response.HasStarted)
         {
             _logger.LogWarning("Response already started; cannot write error body.");
-            context.Abort();
             return;
         }
 
