@@ -19,4 +19,6 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildClientJobTrackingArrival(OrganizationClient client, Job job);
 
     NotificationMessage BuildEmployeeInvite(EmployeeInvite invite);
+
+    NotificationMessage BuildClientEstimateSent(OrganizationClient client, Estimate estimate);
 }

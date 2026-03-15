@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace JobFlow.Business.Notifications;
 
 [ScopedService]
-public class NotificationService : INotificationService
+public partial class NotificationService : INotificationService
 {
     private readonly INotificationMessageBuilder _builder;
     private readonly IBrevoService _emailService;
@@ -41,9 +41,11 @@ public class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
-    public Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization)
+    public async Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization)
     {
-        throw new NotImplementedException();
+        // Keep existing behavior (use builder + shared sender)
+        var message = _builder.BuildOrganizationSubscriptionFailed(organization);
+        await SendNotificationAsync(message);
     }
 
     // Client notifications
@@ -112,11 +114,19 @@ public class NotificationService : INotificationService
             {
                 Email = message.Email,
                 Name = message.Name,
+                Subject = message.Subject,
                 Message = message.Body,
                 TemplateId = (int)message.TemplateId,
                 Link = message.Link
             });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Email failed for {Recipient} <{Email}>", message.Name, message.Email);
+        }
 
+        try
+        {
             await _smsService.SendTextMessage(new TwilioModel
             {
                 RecipientPhoneNumber = message.Phone,
@@ -125,9 +135,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "Error sending notification '{Subject}' to {Recipient} <{Email}>",
-                message.Subject, message.Name, message.Email);
+            _logger.LogError(ex, "SMS failed for {Recipient} <{Phone}>", message.Name, message.Phone);
         }
     }
 }

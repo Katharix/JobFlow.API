@@ -122,4 +122,71 @@ public class QuestPdfGenerator : IPdfGenerator
         var pdf = document.GeneratePdf();
         return Task.FromResult(pdf);
     }
+
+    public Task<byte[]> GenerateEstimatePdfAsync(Estimate estimate)
+    {
+        var bytes = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Margin(30);
+
+                page.Content().Column(col =>
+                {
+                    col.Item().Text($"Estimate {estimate.EstimateNumber}").FontSize(18).Bold();
+                    col.Item().Text($"Created: {estimate.CreatedAt:MMM dd, yyyy}");
+                    col.Item().Text($"Status: {estimate.Status}");
+
+                    if (!string.IsNullOrWhiteSpace(estimate.Title))
+                        col.Item().PaddingTop(10).Text(estimate.Title).Bold();
+
+                    if (!string.IsNullOrWhiteSpace(estimate.Description))
+                        col.Item().Text(estimate.Description);
+
+                    col.Item().PaddingTop(15);
+
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(6);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Text("Item").Bold();
+                            header.Cell().AlignRight().Text("Qty").Bold();
+                            header.Cell().AlignRight().Text("Price").Bold();
+                            header.Cell().AlignRight().Text("Total").Bold();
+                        });
+
+                        foreach (var li in estimate.LineItems)
+                        {
+                            table.Cell().Text(li.Name);
+                            table.Cell().AlignRight().Text(li.Quantity.ToString("0.##"));
+                            table.Cell().AlignRight().Text(li.UnitPrice.ToString("C"));
+                            table.Cell().AlignRight().Text(li.Total.ToString("C"));
+                        }
+                    });
+
+                    col.Item().PaddingTop(15);
+                    col.Item().AlignRight().Text($"Subtotal: {estimate.Subtotal:C}");
+                    col.Item().AlignRight().Text($"Tax: {estimate.TaxTotal:C}");
+                    col.Item().AlignRight().Text($"Total: {estimate.Total:C}").FontSize(14).Bold();
+
+                    if (!string.IsNullOrWhiteSpace(estimate.Notes))
+                    {
+                        col.Item().PaddingTop(20);
+                        col.Item().Text("Notes").Bold();
+                        col.Item().Text(estimate.Notes);
+                    }
+                });
+            });
+        }).GeneratePdf();
+
+        return Task.FromResult(bytes);
+    }
 }
