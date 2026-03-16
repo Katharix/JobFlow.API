@@ -11,5 +11,8 @@ public interface IPaymentProfileService
     Task<Result<CustomerPaymentProfile>> CreateAsync(Guid ownerId, PaymentEntityType ownerType,
         PaymentProvider provider, string providerCustomerId);
 
+    Task<Result<CustomerPaymentProfile>> UpsertAsync(Guid ownerId, PaymentEntityType ownerType,
+        PaymentProvider provider, string providerCustomerId);
+
     Task<Result> SetDefaultPaymentMethodAsync(Guid profileId, string paymentMethodId);
 }

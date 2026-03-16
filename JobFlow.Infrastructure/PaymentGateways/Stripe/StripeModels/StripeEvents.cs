@@ -9,6 +9,7 @@ public static class StripeEvents
     public const string CustomerSubscriptionDeleted = "customer.subscription.deleted";
     public const string PaymentIntentSucceeded = "payment_intent.succeeded";
     public const string PaymentIntentFailed = "payment_intent.payment_failed";
+    public const string ChargeRefunded = "charge.refunded";
 
     public const string InvoiceCreated = "invoice.created";
     public const string InvoiceFinalized = "invoice.finalized";

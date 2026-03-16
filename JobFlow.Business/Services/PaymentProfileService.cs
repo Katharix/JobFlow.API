@@ -74,6 +74,29 @@ public class PaymentProfileService : IPaymentProfileService
         return Result.Success(profile);
     }
 
+    public async Task<Result<CustomerPaymentProfile>> UpsertAsync(Guid ownerId, PaymentEntityType ownerType,
+        PaymentProvider provider, string providerCustomerId)
+    {
+        if (ownerId == Guid.Empty)
+            return Result.Failure<CustomerPaymentProfile>(PaymentProfileErrors.NullOrEmptyOwnerId);
+
+        if (string.IsNullOrWhiteSpace(providerCustomerId))
+            return Result.Failure<CustomerPaymentProfile>(PaymentProfileErrors.ProviderCustomerIdMissing);
+
+        var existing = await paymentProfiles.Query()
+            .FirstOrDefaultAsync(p => p.OwnerId == ownerId && p.OwnerType == ownerType && p.Provider == provider);
+
+        if (existing != null)
+        {
+            existing.ProviderCustomerId = providerCustomerId;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await unitOfWork.SaveChangesAsync();
+            return Result.Success(existing);
+        }
+
+        return await CreateAsync(ownerId, ownerType, provider, providerCustomerId);
+    }
+
     public async Task<Result> SetDefaultPaymentMethodAsync(Guid profileId, string paymentMethodId)
     {
         var profile = await paymentProfiles.Query().FirstOrDefaultAsync(p => p.Id == profileId);

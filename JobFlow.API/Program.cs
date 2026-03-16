@@ -255,9 +255,15 @@ builder.Services.Configure<ReCAPTCHASettings>(options =>
 
 builder.Services.Configure<SquareSettings>(options =>
 {
-    options.ApplicationId = builder.Configuration["SquareSettings-ApplicationId"];
-    options.AccessToken = builder.Configuration["SquareSettings-AccessToken"];
-    options.LocationId = builder.Configuration["SquareSettings-LocationId"];
+    var squareSection = builder.Configuration.GetSection("SquareSettings");
+
+    options.ApplicationId = squareSection["ApplicationId"] ?? builder.Configuration["SquareSettings-ApplicationId"];
+    options.ClientSecret = squareSection["ClientSecret"] ?? builder.Configuration["SquareSettings-ClientSecret"];
+    options.AccessToken = squareSection["AccessToken"] ?? builder.Configuration["SquareSettings-AccessToken"];
+    options.LocationId = squareSection["LocationId"] ?? builder.Configuration["SquareSettings-LocationId"];
+    options.RedirectUrl = squareSection["RedirectUrl"] ?? builder.Configuration["SquareSettings-RedirectUrl"];
+    options.WebhookSignatureKey = squareSection["WebhookSignatureKey"] ?? builder.Configuration["SquareSettings-WebhookSignatureKey"];
+    options.WebhookNotificationUrl = squareSection["WebhookNotificationUrl"] ?? builder.Configuration["SquareSettings-WebhookNotificationUrl"];
 });
 
 builder.Services.AddSingleton<ITwilioSettings>(sp => sp.GetRequiredService<IOptions<TwilioSettings>>().Value);
