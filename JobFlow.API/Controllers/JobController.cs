@@ -63,7 +63,7 @@ public class JobController : ControllerBase
             return Unauthorized("Organization context missing.");
 
         var mappedJob = _mapper.Map<JobDto, Job>(model);
-        
+
         var result = await _jobService.UpsertJobAsync(mappedJob, orgId);
 
         if (result.IsFailure)
@@ -85,7 +85,7 @@ public class JobController : ControllerBase
 
         return NoContent();
     }
-    
+
     [HttpGet("all")]
     public async Task<IActionResult> GetJobs()
     {
@@ -97,6 +97,6 @@ public class JobController : ControllerBase
 
         return Ok(result.Value);
     }
-    
+
 
 }

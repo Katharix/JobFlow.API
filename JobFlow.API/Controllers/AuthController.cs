@@ -210,7 +210,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { Message = "Failed to delete user.", Error = ex.Message });
         }
     }
-    
+
 }
 
 // ============================================================
