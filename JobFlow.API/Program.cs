@@ -7,6 +7,7 @@ using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.SqlServer;
 using JobFlow.API.Constants;
+using JobFlow.API.Filters;
 using JobFlow.API.Hubs;
 using JobFlow.API.Mappings;
 using JobFlow.Business.ConfigurationSettings;
@@ -22,10 +23,10 @@ using JobFlow.Infrastructure.ExternalServices.ConfigurationModels;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Threading.RateLimiting;
 using QuestPDF;
 using QuestPDF.Infrastructure;
 using Stripe;
@@ -119,11 +120,21 @@ builder.Services.AddAuthorization();
 // ============================================================
 
 builder.Services
-    .AddControllers()
+    .AddControllers(options =>
+    {
+        options.Filters.Add<ValidateModelStateFilter>();
+    })
     .AddJsonOptions(o =>
     {
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMemoryCache();
 
 // ============================================================
 // SIGNALR
@@ -206,21 +217,77 @@ builder.Services.AddSwaggerGen(c =>
 // ============================================================
 
 var apiAllowOrigins = "JobFlowAPIAllowOrigins";
+var allowedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+foreach (var origin in configuredOrigins)
+{
+    if (!string.IsNullOrWhiteSpace(origin))
+        allowedOrigins.Add(origin.TrimEnd('/'));
+}
+
+var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"];
+if (!string.IsNullOrWhiteSpace(frontendBaseUrl))
+    allowedOrigins.Add(frontendBaseUrl.TrimEnd('/'));
+
+if (env.IsDevelopment())
+{
+    allowedOrigins.Add("https://localhost:44398");
+    allowedOrigins.Add("http://localhost:5099");
+    allowedOrigins.Add("http://localhost:4200");
+}
+
 builder.Services.AddCors(o =>
 {
     o.AddPolicy(apiAllowOrigins, p => p
-        .SetIsOriginAllowed(origin =>
-        {
-            var host = new Uri(origin).Host;
-            return host == "localhost"
-                   || host == "gojobflow.com"
-                   || host == "www.gojobflow.com"
-                   || host.EndsWith(".gojobflow.app")
-                   || host.EndsWith(".gojobflow.com");
-        })
+        .WithOrigins(allowedOrigins.ToArray())
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 200,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+
+    options.AddPolicy("payment-sensitive", context =>
+    {
+        var userKey = context.User?.Identity?.Name;
+        if (string.IsNullOrWhiteSpace(userKey))
+            userKey = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+
+        return RateLimitPartition.GetFixedWindowLimiter(userKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 40,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+
+    options.AddPolicy("webhook", context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 80,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
 });
 
 // ============================================================
@@ -300,24 +367,20 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 Settings.License = LicenseType.Community;
 
-if (env.IsDevelopment())
-{
-    builder.WebHost.ConfigureKestrel(o =>
-    {
-        o.ListenLocalhost(44398, lo =>
-        {
-            lo.UseHttps();
-            lo.Protocols = HttpProtocols.Http1;
-        });
-        o.ListenLocalhost(5099, lo => { lo.Protocols = HttpProtocols.Http1; });
-    });
-}
-
 // ============================================================
 // BUILD AND PIPELINE
 // ============================================================
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate<ISecurityAlertService>(
+        "security-alert-detector",
+        service => service.EvaluateRecentEventsAsync(),
+        Cron.MinuteInterval(5));
+}
 
 StripeConfiguration.ApiKey = builder.Configuration["StripeSettings-ApiKey"];
 
@@ -326,12 +389,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseExceptionHandler(app.Environment.IsProduction() ? "/error" : "/error-development");
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 app.UseRouting();
 app.UseCors(apiAllowOrigins);
+app.UseRateLimiter();
 if (app.Environment.IsDevelopment()) app.UseHangfireDashboard();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -339,6 +408,7 @@ app.UseStatusCodePages();
 app.UseAuthentication();
 
 app.UseMiddleware<FirebaseAuthMiddleware>();
+app.UseMiddleware<AuditLoggingMiddleware>();
 
 app.UseAuthorization();
 

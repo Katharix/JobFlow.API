@@ -1,0 +1,30 @@
+name: Security Scan
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feature/**
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  dotnet-vulnerability-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore API project
+        run: dotnet restore JobFlow.API/JobFlow.API.csproj
+      - name: Fail on vulnerable packages
+        run: dotnet list JobFlow.API/JobFlow.API.csproj package --vulnerable --include-transitive

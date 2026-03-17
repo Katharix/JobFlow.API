@@ -11,6 +11,8 @@ public class JobFlowDbContext : DbContext
 
     public DbSet<Estimate> Estimates { get; set; }
     public DbSet<EstimateLineItem> EstimateLineItems { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<SecurityAlert> SecurityAlerts { get; set; }
     public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<OrganizationType> OrganizationTypes { get; set; }

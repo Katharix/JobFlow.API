@@ -1,10 +1,12 @@
 using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
 
 [ApiController]
 [Route("api/weather")]
+[Authorize]
 public class WeatherController : ControllerBase
 {
     private readonly IWeatherService _weatherService;
