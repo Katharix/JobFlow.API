@@ -311,7 +311,7 @@ public class PaymentController : ControllerBase
 
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
     }
-    
+
 
     [HttpPost("webhook")]
     public async Task<IActionResult> HandleStripeWebhook()

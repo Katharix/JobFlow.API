@@ -72,7 +72,7 @@ public class InvoiceController : ControllerBase
         var invoiceNumber = await numberGenerator.GenerateAsync(organizationId);
 
         var jobInfo = await this._jobService.GetJobByIdAsync(request.JobId, organizationId);
-        
+
         request.OrganizationClientId = jobInfo.Value.OrganizationClientId;
         var invoice = request.ToInvoice(invoiceNumber);
         invoice.OrganizationId = organizationId;
