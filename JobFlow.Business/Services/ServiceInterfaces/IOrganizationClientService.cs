@@ -8,6 +8,6 @@ public interface IOrganizationClientService
     Task<Result<OrganizationClient>> GetClientById(Guid clientId);
     Task<Result<IEnumerable<OrganizationClient>>> GetAllClients();
     Task<Result<IEnumerable<OrganizationClient>>> GetAllClientsByOrganizationId(Guid organizationId);
-    Task<Result> UpsertClient(OrganizationClient model);
+    Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model);
     Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList);
 }

@@ -36,4 +36,5 @@ public class OrganizationDto
     public string? PhoneNumber { get; set; }
     public bool? OnBoardingComplete { get; set; }
     public bool CanAcceptPayments { get; set; }
+    public string? SubscriptionPlanName { get; set; }
 }

@@ -55,6 +55,19 @@ public class InvoiceService : IInvoiceService
         return Result<IEnumerable<Invoice>>.Success(list.AsEnumerable());
     }
 
+    public async Task<Result<IEnumerable<Invoice>>> GetInvoicesByOrganizationAsync(Guid organizationId)
+    {
+        var list = await invoices.Query()
+            .Include(i => i.LineItems)
+            .Include(i => i.OrganizationClient)
+            .ThenInclude(c => c.Organization)
+            .Where(i => i.OrganizationId == organizationId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        return Result<IEnumerable<Invoice>>.Success(list.AsEnumerable());
+    }
+
     public async Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model)
     {
         var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);

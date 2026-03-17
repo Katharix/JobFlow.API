@@ -29,6 +29,9 @@ public class Organization : Entity
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? SubscriptionPlanName { get; set; }
+
     public ICollection<OrganizationOnboardingStep> OnboardingSteps { get; set; } =
         new List<OrganizationOnboardingStep>();
 

@@ -98,6 +98,27 @@ public class UserService : IUserService
         if (user == null)
             return Result.Failure<User>(UserErrors.UserNotFound);
 
+        var organizationId = user.Organization?.Id;
+        var paymentProfileIds = organizationId == null
+            ? []
+            : await unitOfWork.RepositoryOf<CustomerPaymentProfile>()
+                .Query()
+                .AsNoTracking()
+                .Where(p => p.OwnerId == organizationId)
+                .Select(p => p.Id)
+                .ToListAsync();
+        if (paymentProfileIds.Count > 0)
+        {
+            var latestSubscription = await unitOfWork.RepositoryOf<SubscriptionRecord>()
+                .Query()
+                .AsNoTracking()
+                .Where(s => paymentProfileIds.Contains(s.PaymentProfileId))
+                .OrderByDescending(s => s.StartDate)
+                .FirstOrDefaultAsync();
+
+            user.Organization.SubscriptionPlanName = latestSubscription?.PlanName;
+        }
+
         return Result.Success(user);
     }
 

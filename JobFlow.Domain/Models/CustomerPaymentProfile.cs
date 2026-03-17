@@ -10,4 +10,7 @@ public class CustomerPaymentProfile : Entity
     public string ProviderCustomerId { get; set; } = string.Empty;
     public string? DefaultPaymentMethodId { get; set; }
     public bool IsDelinquent { get; set; } = false;
+
+    public Guid? OrganizationClientId { get; set; }
+    public Guid? OrganizationId { get; set; }
 }

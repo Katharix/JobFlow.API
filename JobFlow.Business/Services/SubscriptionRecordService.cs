@@ -25,7 +25,7 @@ public class SubscriptionRecordService : ISubscriptionRecordService
     }
 
     public async Task<Result<SubscriptionRecord>> CreateAsync(Guid paymentProfileId, string providerSubscriptionId,
-        string providerPriceId, string status)
+        string providerPriceId, string status, string planName)
     {
         if (paymentProfileId == Guid.Empty)
             return Result.Failure<SubscriptionRecord>(SubscriptionErrors.InvalidPaymentProfile);
@@ -44,7 +44,8 @@ public class SubscriptionRecordService : ISubscriptionRecordService
             ProviderSubscriptionId = providerSubscriptionId,
             ProviderPriceId = providerPriceId,
             Status = status,
-            StartDate = DateTime.UtcNow
+            StartDate = DateTime.UtcNow,
+            PlanName = planName
         };
 
         unitOfWork.RepositoryOf<SubscriptionRecord>().Add(subscription);
@@ -72,6 +73,27 @@ public class SubscriptionRecordService : ISubscriptionRecordService
         var subscription = result.Value;
         subscription.Status = "canceled";
         subscription.CanceledAt = canceledAt;
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateAsync(SubscriptionRecord subscriptionRecord)
+    {
+        if (subscriptionRecord is null)
+            throw new ArgumentNullException(nameof(subscriptionRecord));
+
+        var existing = await subscriptions.Query()
+            .FirstOrDefaultAsync(s => s.Id == subscriptionRecord.Id);
+
+        if (existing is null)
+            return Result.Failure(SubscriptionErrors.NotFound);
+
+        existing.ProviderPriceId = subscriptionRecord.ProviderPriceId;
+        existing.PlanName = subscriptionRecord.PlanName;
+        existing.Status = subscriptionRecord.Status;
+        existing.CanceledAt = subscriptionRecord.CanceledAt;
+        existing.StartDate = subscriptionRecord.StartDate;
 
         await unitOfWork.SaveChangesAsync();
         return Result.Success();

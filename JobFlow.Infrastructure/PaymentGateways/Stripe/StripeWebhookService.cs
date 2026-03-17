@@ -16,6 +16,7 @@ public class StripeWebhookService : IStripeWebhookService
     private readonly ISubscriptionRecordService _subscriptionRecordService;
     private readonly IOrganizationService _organizationService;
     private readonly IInvoiceService _invoiceService;
+    private readonly IPaymentHistoryService _paymentHistoryService;
     private readonly IOnboardingService _onboardingService;
     private readonly INotificationService _notificationService;
     private readonly ILogger<StripeWebhookService> _logger;
@@ -25,6 +26,7 @@ public class StripeWebhookService : IStripeWebhookService
         ISubscriptionRecordService subscriptionRecordService,
         IOrganizationService organizationService,
         IInvoiceService invoiceService,
+        IPaymentHistoryService paymentHistoryService,
         IOnboardingService onboardingService,
         INotificationService notificationService,
         ILogger<StripeWebhookService> logger)
@@ -33,6 +35,7 @@ public class StripeWebhookService : IStripeWebhookService
         _subscriptionRecordService = subscriptionRecordService;
         _organizationService = organizationService;
         _invoiceService = invoiceService;
+        _paymentHistoryService = paymentHistoryService;
         _onboardingService = onboardingService;
         _notificationService = notificationService;
         _logger = logger;
@@ -96,6 +99,14 @@ public class StripeWebhookService : IStripeWebhookService
             var intent = Deserialize<PaymentIntent>(stripeEvent);
             if (intent != null)
                 await HandlePaymentIntentFailedAsync(intent);
+            break;
+        }
+
+        case StripeEvents.ChargeRefunded:
+        {
+            var charge = Deserialize<Charge>(stripeEvent);
+            if (charge != null)
+                await HandleChargeRefundedAsync(charge, stripeEvent.Type);
             break;
         }
 
@@ -208,8 +219,9 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
 
-        var paymentProfileResult = await _paymentProfileService.CreateAsync(
+        var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
             Enum.Parse<PaymentEntityType>(ownerType),
             PaymentProvider.Stripe,
@@ -220,7 +232,8 @@ public class StripeWebhookService : IStripeWebhookService
             paymentProfileResult.Value.Id,
             subscription.Id,
             subscription.Items.Data.First().Price.Id,
-            subscription.Status
+            subscription.Status,
+            planName
         );
     }
 
@@ -250,6 +263,22 @@ public class StripeWebhookService : IStripeWebhookService
 
         var invoice = result.Value;
 
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = invoice.OrganizationId,
+            InvoiceId = invoice.Id,
+            StripePaymentIntentId = intent.Id,
+            AmountPaid = intent.AmountReceived,
+            Currency = intent.Currency,
+            Status = intent.Status,
+            EventType = StripeEvents.PaymentIntentSucceeded,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
+
         await _onboardingService.MarkStepCompleteAsync(
             invoice.OrganizationClient.OrganizationId,
             OnboardingStepKeys.ReceivePayment
@@ -259,17 +288,41 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandlePaymentIntentFailedAsync(PaymentIntent intent)
     {
-        // Flag payment profile as delinquent
-        if (!string.IsNullOrEmpty(intent.CustomerId))
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
         {
-            var profileResult = await _paymentProfileService.GetForOrganizationAsync(Guid.Parse(intent.CustomerId));
-            if (profileResult.IsSuccess)
-            {
-                profileResult.Value.IsDelinquent = true;
-                // Persist changes if needed
-            }
-        }
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = Guid.Empty,
+            InvoiceId = null,
+            StripePaymentIntentId = intent.Id,
+            AmountPaid = intent.Amount,
+            Currency = intent.Currency ?? "usd",
+            Status = intent.Status ?? "failed",
+            EventType = StripeEvents.PaymentIntentFailed,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
     } 
+
+    private async Task HandleChargeRefundedAsync(Charge charge, string eventType)
+    {
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = Guid.Empty,
+            InvoiceId = null,
+            StripePaymentIntentId = charge.PaymentIntentId,
+            AmountPaid = -charge.AmountRefunded,
+            Currency = charge.Currency ?? "usd",
+            Status = charge.Status ?? "refunded",
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
+    }
 
     private async Task HandleInvoiceCreatedAsync(Invoice invoice)
     {
@@ -288,13 +341,14 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleSubscriptionUpdatedAsync(Subscription subscription)
     {
-        // Update subscription status
         var subResult = await _subscriptionRecordService.GetByProviderIdAsync(subscription.Id);
-        if (subResult.IsSuccess)
-        {
-            subResult.Value.Status = subscription.Status;
-            // Persist changes if needed
-        }
+        if (!subResult.IsSuccess)
+            return;
+
+        subResult.Value.Status = subscription.Status;
+        subResult.Value.ProviderPriceId = subscription.Items.Data.First().Price.Id;
+
+        await _subscriptionRecordService.UpdateAsync(subResult.Value);
     }
 
     private async Task HandleSubscriptionCreatedAsync(Subscription subscription)
@@ -302,8 +356,9 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
 
-        var paymentProfileResult = await _paymentProfileService.CreateAsync(
+        var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
             Enum.Parse<PaymentEntityType>(ownerType),
             PaymentProvider.Stripe,
@@ -314,7 +369,8 @@ public class StripeWebhookService : IStripeWebhookService
             paymentProfileResult.Value.Id,
             subscription.Id,
             subscription.Items.Data.First().Price.Id,
-            subscription.Status
+            subscription.Status,
+            planName
         );
     }
 

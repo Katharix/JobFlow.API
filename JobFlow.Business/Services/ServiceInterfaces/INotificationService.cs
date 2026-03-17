@@ -17,6 +17,7 @@ public interface INotificationService
     Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
     Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes);
     Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job);
+    Task SendClientEstimateSentNotificationAsync(OrganizationClient client, Estimate estimate);
 
     // Employee notifications
     Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite);

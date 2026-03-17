@@ -10,7 +10,7 @@ using Stripe.Checkout;
 namespace JobFlow.Infrastructure.PaymentGateways.Stripe;
 
 [ScopedService]
-public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProcessor
+public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, IConnectedAccountProcessor
 {
     private readonly IPaymentSettings _paymentSettings;
     public StripePaymentProcessor(IPaymentSettings paymentSettings)
@@ -104,10 +104,65 @@ public class StripePaymentProcessor : IPaymentProcessor, IConnectedAccountProces
 
         return new PaymentSessionResult
         {
-            ClientSecret = paymentIntent.ClientSecret
+            ClientSecret = paymentIntent.ClientSecret,
+            ProviderPaymentId = paymentIntent.Id
         };
     }
 
+    public async Task<PaymentSessionResult> CreateDepositPaymentAsync(PaymentSessionRequest request)
+    {
+        request.Amount = request.DepositAmount ?? request.Amount;
+        return await CreatePaymentIntentAsync(request);
+    }
+
+    public async Task<PaymentOperationResult> RefundPaymentAsync(PaymentRefundRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProviderPaymentId))
+            throw new InvalidOperationException("Provider payment id is required.");
+
+        var refundService = new RefundService();
+        var refund = await refundService.CreateAsync(new RefundCreateOptions
+        {
+            PaymentIntent = request.ProviderPaymentId,
+            Amount = request.Amount.ToCents(),
+            Reason = request.Reason?.ToLowerInvariant() switch
+            {
+                "duplicate" => "duplicate",
+                "fraudulent" => "fraudulent",
+                _ => "requested_by_customer"
+            }
+        });
+
+        return new PaymentOperationResult
+        {
+            Success = refund.Status == "succeeded",
+            ProviderPaymentId = refund.Id,
+            Amount = request.Amount,
+            Currency = request.Currency,
+            Message = refund.Status
+        };
+    }
+
+    public async Task<PaymentOperationResult> AdjustPaymentAsync(PaymentAdjustmentRequest request)
+    {
+        if (request.AdjustmentAmount < 0)
+        {
+            return await RefundPaymentAsync(new PaymentRefundRequest
+            {
+                ProviderPaymentId = request.ProviderPaymentId,
+                Amount = decimal.Abs(request.AdjustmentAmount),
+                Currency = request.Currency,
+                Reason = request.Reason,
+                ConnectedAccountId = request.ConnectedAccountId
+            });
+        }
+
+        return new PaymentOperationResult
+        {
+            Success = false,
+            Message = "Positive adjustments require creating a new charge or deposit."
+        };
+    }
 
     public async Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
     {
