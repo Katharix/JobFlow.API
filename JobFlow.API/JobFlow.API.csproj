@@ -47,4 +47,8 @@
         <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include=".github\workflows\" />
+    </ItemGroup>
+
 </Project>

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+      - feature/**
+
+jobs:
+  dotnet-format:
+    name: dotnet format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ./JobFlow.API/JobFlow.API.csproj
+
+      - name: Verify formatting
+        run: dotnet format ./JobFlow.API/JobFlow.API.csproj --verify-no-changes --verbosity minimal
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        continue-on-error: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ./JobFlow.API/JobFlow.API.csproj
+
+      - name: Build
+        run: dotnet build ./JobFlow.API/JobFlow.API.csproj -c Release --no-restore
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ./JobFlow.API/JobFlow.API.csproj
+
+      - name: Test
+        run: dotnet test ./JobFlow.API/JobFlow.API.csproj -c Release --no-build
