@@ -21,4 +21,6 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildEmployeeInvite(EmployeeInvite invite);
 
     NotificationMessage BuildClientEstimateSent(OrganizationClient client, Estimate estimate);
+
+    NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink);
 }

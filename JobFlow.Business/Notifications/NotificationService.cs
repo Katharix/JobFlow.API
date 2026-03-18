@@ -97,6 +97,12 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendOrganizationClientPortalMagicLinkAsync(OrganizationClient client, string magicLink)
+    {
+        var message = _builder.BuildOrganizationClientPortalMagicLink(client, magicLink);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendOrganizationSubscriptionPaymentFailedNotificationAsync(Organization org)
     {
         var message = _builder.BuildOrganizationSubscriptionFailed(org);

@@ -203,4 +203,26 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             TemplateId = EmailTemplate.OrganizationWelcome
         };
     }
+
+    public NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink)
+    {
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Your {client.Organization?.OrganizationName ?? "JobFlow"} Client Portal Link",
+            Body = $"""
+                        Hello {client.ClientFullName()},
+
+                        Use this link to access your client portal:
+                        {magicLink}
+
+                        This link will expire soon.
+                    """,
+            Sms = "Client portal link: ",
+            Link = magicLink,
+            TemplateId = EmailTemplate.OrganizationWelcome
+        };
+    }
 }

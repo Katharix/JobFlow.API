@@ -15,13 +15,16 @@ namespace JobFlow.API.Controllers;
 public class OrganizationClientController : ControllerBase
 {
     private readonly IOrganizationClientService organizationClientService;
+    private readonly IOrganizationClientPortalService _clientPortal;
     private readonly IMapper _mapper;
 
     public OrganizationClientController(
         IOrganizationClientService organizationClientService,
+        IOrganizationClientPortalService clientPortal,
         IMapper mapper)
     {
         this.organizationClientService = organizationClientService;
+        _clientPortal = clientPortal;
         _mapper = mapper;
     }
 
@@ -77,5 +80,23 @@ public class OrganizationClientController : ControllerBase
     {
         var result = await organizationClientService.UpsertMultipleClients(modelList);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpPost("{organizationClientId:guid}/send-client-hub-link")]
+    public async Task<IResult> SendClientHubLink(Guid organizationClientId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var clientResult = await organizationClientService.GetClientById(organizationClientId);
+        if (!clientResult.IsSuccess)
+            return clientResult.ToProblemDetails();
+
+        if (clientResult.Value.OrganizationId != organizationId)
+            return Results.Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(clientResult.Value.EmailAddress))
+            return Results.BadRequest("Client email address is required.");
+
+        var result = await _clientPortal.SendMagicLinkAsync(organizationId, organizationClientId, clientResult.Value.EmailAddress);
+        return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
     }
 }

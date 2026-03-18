@@ -30,6 +30,10 @@ using QuestPDF;
 using QuestPDF.Infrastructure;
 using Stripe;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -109,6 +113,24 @@ builder.Services
             ValidateAudience = true,
             ValidAudience = firebaseProjectId,
             ValidateLifetime = true
+        };
+    })
+    .AddJwtBearer("ClientPortalJwt", options =>
+    {
+        var signingKey = builder.Configuration["Auth:ClientPortal:SigningKey"];
+        if (string.IsNullOrWhiteSpace(signingKey))
+            throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "JobFlow.ClientPortal",
+            ValidateAudience = true,
+            ValidAudience = "JobFlow.ClientPortal",
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
 
