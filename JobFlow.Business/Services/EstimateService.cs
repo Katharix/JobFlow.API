@@ -16,15 +16,21 @@ public class EstimateService : IEstimateService
     private readonly IUnitOfWork unitOfWork;
     private readonly INotificationService notificationService;
     private readonly IPdfGenerator pdfGenerator;
+    private readonly IOrganizationClientPortalService clientPortalService;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
 
-    public EstimateService(IUnitOfWork unitOfWork, INotificationService notificationService, IPdfGenerator pdfGenerator)
+    public EstimateService(
+        IUnitOfWork unitOfWork,
+        INotificationService notificationService,
+        IPdfGenerator pdfGenerator,
+        IOrganizationClientPortalService clientPortalService)
     {
         this.unitOfWork = unitOfWork;
         this.notificationService = notificationService;
         this.pdfGenerator = pdfGenerator;
+        this.clientPortalService = clientPortalService;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
         clients = unitOfWork.RepositoryOf<OrganizationClient>();
@@ -173,7 +179,7 @@ public class EstimateService : IEstimateService
         estimates.Update(estimate);
         await unitOfWork.SaveChangesAsync();
 
-        await notificationService.SendClientEstimateSentNotificationAsync(client, estimate);
+        await clientPortalService.SendMagicLinkAsync(estimate.OrganizationId, client.Id, client.EmailAddress ?? string.Empty);
 
         var full = await estimates.Query()
             .Include(x => x.LineItems)

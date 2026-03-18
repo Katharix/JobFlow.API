@@ -49,6 +49,9 @@
 
     <ItemGroup>
       <Folder Include=".github\workflows\" />
+      <Folder Include="JobFlow.Infrastructure\ConfigurationInterfaces\" />
+      <Folder Include="JobFlow.Infrastructure\ConfigurationModels\" />
+      <Folder Include="JobFlow.Infrastructure\ExternalServices\ReCAPTCHA\" />
     </ItemGroup>
 
 </Project>

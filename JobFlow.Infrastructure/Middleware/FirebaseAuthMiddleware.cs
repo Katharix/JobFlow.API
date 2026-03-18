@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using FirebaseAdmin.Auth;
 using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
 namespace JobFlow.Infrastructure.Middleware;
@@ -16,13 +17,22 @@ public class FirebaseAuthMiddleware
 
     public async Task Invoke(HttpContext context, IUserService userService)
     {
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+        {
+            await _next(context);
+            return;
+        }
+
         var path = context.Request.Path.Value?.ToLower();
 
-        // Skip onboarding endpoints
+        // Skip endpoints that must be reachable without a Firebase bearer token.
         if (path != null &&
            (path.StartsWith("/api/organizations/register") ||
             path.StartsWith("/api/organizations/retrieve") ||
-            path.StartsWith("/api/organization/types")))
+            path.StartsWith("/api/organization/types") ||
+            path.StartsWith("/api/auth/") ||
+            path.StartsWith("/api/client-hub-auth")))
         {
             await _next(context);
             return;
