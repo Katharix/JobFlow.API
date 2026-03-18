@@ -37,6 +37,26 @@ public class FirebaseAuthMiddleware
 
         var token = authHeader.Substring("Bearer ".Length);
 
+        // If this is a locally-issued Client Portal JWT, do not attempt Firebase verification.
+        // The JwtBearer handler for the ClientPortalJwt scheme will validate and populate claims.
+        try
+        {
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (string.Equals(jwt.Issuer, "JobFlow.ClientPortal", StringComparison.Ordinal))
+                {
+                    await _next(context);
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            // ignore and fall back to Firebase verification
+        }
+
         try
         {
             var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);

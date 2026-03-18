@@ -16,14 +16,21 @@ public class OrganizationClientService : IOrganizationClientService
     private readonly ILogger<OrganizationClientService> logger;
     private readonly IRepository<OrganizationClient> organizationClient;
     private readonly IOnboardingService onboardingService;
+    private readonly IOrganizationClientPortalService _clientPortal;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
 
-    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService, IMapper mapper)
+    public OrganizationClientService(
+        ILogger<OrganizationClientService> logger,
+        IUnitOfWork unitOfWork,
+        IOnboardingService onboardingService,
+        IOrganizationClientPortalService clientPortal,
+        IMapper mapper)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         this.onboardingService = onboardingService;
+        _clientPortal = clientPortal;
         organizationClient = this.unitOfWork.RepositoryOf<OrganizationClient>();
         _mapper = mapper;
     }
@@ -66,6 +73,40 @@ public class OrganizationClientService : IOrganizationClientService
         return Result.Success<OrganizationClient>(client);
     }
 
+    public async Task<Result<OrganizationClient>> GetOrganizationClientByEmailAsync(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return Result.Failure<OrganizationClient>(OrganizationClientErrors.NoClientFound);
+
+        var normalized = emailAddress.Trim().ToLowerInvariant();
+
+        var match = await organizationClient.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.EmailAddress != null && c.EmailAddress.ToLower() == normalized);
+
+        return match is null
+            ? Result.Failure<OrganizationClient>(OrganizationClientErrors.NoClientFound)
+            : Result.Success(match);
+    }
+
+    public async Task<Result<IReadOnlyList<OrganizationClient>>> GetOrganizationClientsByEmailAsync(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return Result.Failure<IReadOnlyList<OrganizationClient>>(OrganizationClientErrors.NoClientFound);
+
+        var normalized = emailAddress.Trim().ToLowerInvariant();
+
+        var matches = await organizationClient.Query()
+            .AsNoTracking()
+            .Include(c => c.Organization)
+            .Where(c => c.EmailAddress != null && c.EmailAddress.ToLower() == normalized)
+            .ToListAsync();
+
+        return matches.Count == 0
+            ? Result.Failure<IReadOnlyList<OrganizationClient>>(OrganizationClientErrors.NoClientFound)
+            : Result.Success<IReadOnlyList<OrganizationClient>>(matches);
+    }
+
     public async Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model)
     {
         var exists = await organizationClient.Query()
@@ -88,6 +129,18 @@ public class OrganizationClientService : IOrganizationClientService
                 model.OrganizationId,
                 OnboardingStepKeys.CreateCustomer
             );
+
+            if (!string.IsNullOrWhiteSpace(model.EmailAddress))
+            {
+                try
+                {
+                    await _clientPortal.SendMagicLinkAsync(model.OrganizationId, model.Id, model.EmailAddress);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to send client portal magic link for OrganizationClient {ClientId}", model.Id);
+                }
+            }
         }
         return Result.Success(model);
     }
