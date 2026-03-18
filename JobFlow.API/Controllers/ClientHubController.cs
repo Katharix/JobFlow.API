@@ -101,6 +101,26 @@ public class ClientHubController : ControllerBase
         return Results.Ok(estimate);
     }
 
+    [HttpPost("estimates/{id:guid}/accept")]
+    public async Task<IResult> AcceptEstimate(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var result = await _estimates.AcceptAsync(id, organizationId, orgClientId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpPost("estimates/{id:guid}/decline")]
+    public async Task<IResult> DeclineEstimate(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var result = await _estimates.DeclineAsync(id, organizationId, orgClientId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
     [HttpGet("invoices")]
     public async Task<IResult> GetMyInvoices()
     {

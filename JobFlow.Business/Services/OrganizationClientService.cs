@@ -37,8 +37,27 @@ public class OrganizationClientService : IOrganizationClientService
 
     public async Task<Result> DeleteClient(Guid clientId)
     {
-        var clientToDelete = await organizationClient.Query().FirstOrDefaultAsync(client => client.Id == clientId);
-        if (clientToDelete == null) return Result.Failure(OrganizationClientErrors.NoClientFound);
+        var clientToDelete = await organizationClient.Query()
+            .FirstOrDefaultAsync(client => client.Id == clientId);
+
+        if (clientToDelete == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
+        var clientName = clientToDelete.ClientFullName();
+        organizationClient.Remove(clientToDelete);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success($"{clientName} was successfully removed.");
+    }
+
+    public async Task<Result> DeleteClient(Guid clientId, Guid organizationId)
+    {
+        var clientToDelete = await organizationClient.Query()
+            .FirstOrDefaultAsync(client => client.Id == clientId && client.OrganizationId == organizationId);
+
+        if (clientToDelete == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
         var clientName = clientToDelete.ClientFullName();
         organizationClient.Remove(clientToDelete);
         await unitOfWork.SaveChangesAsync();
@@ -159,5 +178,23 @@ public class OrganizationClientService : IOrganizationClientService
 
         await unitOfWork.SaveChangesAsync();
         return Result.Success<IEnumerable<OrganizationClient>>(modelList);
+    }
+
+    public async Task<Result> RestoreClient(Guid clientId, Guid organizationId)
+    {
+        var clientToRestore = await organizationClient.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(client => client.Id == clientId && client.OrganizationId == organizationId);
+
+        if (clientToRestore == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
+        clientToRestore.IsActive = true;
+        clientToRestore.DeactivatedAtUtc = null;
+
+        organizationClient.Update(clientToRestore);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success($"{clientToRestore.ClientFullName()} was successfully restored.");
     }
 }

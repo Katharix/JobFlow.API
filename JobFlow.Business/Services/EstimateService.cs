@@ -221,6 +221,45 @@ public class EstimateService : IEstimateService
         return Result<byte[]>.Success(pdf);
     }
 
+    public Task<Result<EstimateDto>> AcceptAsync(Guid id, Guid organizationId, Guid organizationClientId)
+    {
+        return RespondAsync(id, organizationId, organizationClientId, EstimateStatus.Accepted);
+    }
+
+    public Task<Result<EstimateDto>> DeclineAsync(Guid id, Guid organizationId, Guid organizationClientId)
+    {
+        return RespondAsync(id, organizationId, organizationClientId, EstimateStatus.Declined);
+    }
+
+    private async Task<Result<EstimateDto>> RespondAsync(
+        Guid id,
+        Guid organizationId,
+        Guid organizationClientId,
+        EstimateStatus newStatus)
+    {
+        var estimate = await estimates.Query()
+            .Include(x => x.OrganizationClient)
+            .Include(x => x.LineItems)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (estimate == null)
+            return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        if (estimate.OrganizationId != organizationId || estimate.OrganizationClientId != organizationClientId)
+            return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        if (estimate.Status != EstimateStatus.Sent)
+            return Result.Failure<EstimateDto>(EstimateErrors.CannotRespondInCurrentStatus);
+
+        estimate.Status = newStatus;
+        estimate.UpdatedAt = DateTimeOffset.UtcNow;
+
+        estimates.Update(estimate);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<EstimateDto>.Success(ToDto(estimate));
+    }
+
     private static void RecalculateTotals(Estimate estimate)
     {
         estimate.Subtotal = Math.Round(estimate.LineItems.Sum(x => x.Total), 2);
