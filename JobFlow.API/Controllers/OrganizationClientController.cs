@@ -51,7 +51,8 @@ public class OrganizationClientController : ControllerBase
     [Route("delete")]
     public async Task<IResult> DeleteClient(Guid clientId)
     {
-        var result = await organizationClientService.DeleteClient(clientId);
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await organizationClientService.DeleteClient(clientId, organizationId);
         return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 
@@ -98,5 +99,14 @@ public class OrganizationClientController : ControllerBase
 
         var result = await _clientPortal.SendMagicLinkAsync(organizationId, organizationClientId, clientResult.Value.EmailAddress);
         return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
+    }
+
+    [HttpPost]
+    [Route("restore")]
+    public async Task<IResult> RestoreClient(Guid clientId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await organizationClientService.RestoreClient(clientId, organizationId);
+        return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 }

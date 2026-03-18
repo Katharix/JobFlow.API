@@ -16,4 +16,7 @@ public static class EstimateErrors
 
     public static readonly Error PublicLinkExpired =
         Error.NotFound("Estimate.PublicLinkExpired", "The estimate link has expired.");
+
+    public static readonly Error CannotRespondInCurrentStatus =
+        Error.Conflict("Estimate.CannotRespondInCurrentStatus", "Only sent estimates can be accepted or declined.");
 }

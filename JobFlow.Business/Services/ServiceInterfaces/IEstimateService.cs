@@ -16,4 +16,7 @@ public interface IEstimateService
     Task<Result<EstimateDto>> GetByPublicTokenAsync(string token);
 
     Task<Result<byte[]>> GetPublicPdfAsync(string token);
+
+    Task<Result<EstimateDto>> AcceptAsync(Guid id, Guid organizationId, Guid organizationClientId);
+    Task<Result<EstimateDto>> DeclineAsync(Guid id, Guid organizationId, Guid organizationClientId);
 }
