@@ -14,11 +14,13 @@ namespace JobFlow.API.Controllers;
 public class JobController : ControllerBase
 {
     private readonly IJobService _jobService;
+    private readonly IJobRecurrenceService _recurrenceService;
     private readonly IMapper _mapper;
 
-    public JobController(IJobService jobService, IMapper mapper)
+    public JobController(IJobService jobService, IJobRecurrenceService recurrenceService, IMapper mapper)
     {
         _jobService = jobService;
+        _recurrenceService = recurrenceService;
         _mapper = mapper;
     }
 
@@ -92,6 +94,20 @@ public class JobController : ControllerBase
         var organizationId = HttpContext.GetOrganizationId();
         var result = await _jobService.GetJobsAsync(organizationId);
 
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpPut("{jobId:guid}/recurrence")]
+    public async Task<IActionResult> UpsertRecurrence(Guid jobId, [FromBody] JobRecurrenceUpsertRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await _recurrenceService.UpsertAsync(jobId, organizationId, request);
         if (result.IsFailure)
             return BadRequest(result.Error);
 

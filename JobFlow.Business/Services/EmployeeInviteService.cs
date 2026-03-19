@@ -82,6 +82,43 @@ public class EmployeeInviteService : IEmployeeInviteService
         }
     }
 
+    public async Task<Result<List<EmployeeInviteDto>>> GetByOrganizationAsync(Guid organizationId)
+    {
+        if (organizationId == Guid.Empty)
+            return Result.Failure<List<EmployeeInviteDto>>(EmployeeInviteErrors.OrganizationRequired);
+
+        var invites = await _invites.Query()
+            .Include(i => i.Organization)
+            .Include(i => i.Role)
+            .Where(i => i.OrganizationId == organizationId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
+        var results = invites.Select(MapInviteDto).ToList();
+        return Result.Success(results);
+    }
+
+    public async Task<Result> RevokeAsync(Guid inviteId, Guid organizationId)
+    {
+        if (inviteId == Guid.Empty || organizationId == Guid.Empty)
+            return Result.Failure(EmployeeInviteErrors.OrganizationRequired);
+
+        var invite = await _invites.Query()
+            .FirstOrDefaultAsync(i => i.Id == inviteId && i.OrganizationId == organizationId);
+
+        if (invite is null)
+            return Result.Failure(EmployeeInviteErrors.InviteNotFound);
+
+        if (invite.Status == EmployeeInviteStatus.Revoked)
+            return Result.Success();
+
+        invite.Status = EmployeeInviteStatus.Revoked;
+        _invites.Update(invite);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
+    }
+
     public async Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken)
     {
         if (inviteToken == Guid.Empty)
@@ -163,7 +200,17 @@ public class EmployeeInviteService : IEmployeeInviteService
         if (invite is null)
             return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InviteNotFound);
 
-        var dto = _mapper.Map<EmployeeInviteDto>(invite);
+        var dto = MapInviteDto(invite);
         return Result.Success(dto);
+    }
+
+    private EmployeeInviteDto MapInviteDto(EmployeeInvite invite)
+    {
+        var dto = _mapper.Map<EmployeeInviteDto>(invite);
+        dto.OrganizationName = invite.Organization?.OrganizationName;
+        dto.RoleName = invite.Role?.Name;
+        dto.IsAccepted = invite.Status == EmployeeInviteStatus.Accepted;
+        dto.IsRevoked = invite.Status == EmployeeInviteStatus.Revoked;
+        return dto;
     }
 }

@@ -24,6 +24,7 @@ using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuestPDF;
@@ -308,6 +309,9 @@ builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembl
 
 builder.Services.AddAuthorization(options =>
 {
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
     options.AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole(UserRoles.OrganizationAdmin));
     options.AddPolicy("OrganizationEmployeeOnly", policy => policy.RequireRole(UserRoles.OrganizationEmployee));
     options.AddPolicy("OrganizationClientOnly", policy => policy.RequireRole(UserRoles.OrganizationClient));

@@ -43,6 +43,22 @@ public class EmployeeInviteController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [HttpGet("organization")]
+    public async Task<IResult> GetByOrganization()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _inviteService.GetByOrganizationAsync(organizationId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpPost("revoke/{inviteId:guid}")]
+    public async Task<IResult> RevokeInvite(Guid inviteId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _inviteService.RevokeAsync(inviteId, organizationId);
+        return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
+    }
+
     [HttpGet("{code}")]
     public async Task<IResult> GetInviteByCode(string code)
     {
