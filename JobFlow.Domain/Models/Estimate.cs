@@ -29,4 +29,5 @@ public class Estimate : Entity
 
     public OrganizationClient? OrganizationClient { get; set; }
     public ICollection<EstimateLineItem> LineItems { get; set; } = new List<EstimateLineItem>();
+    public ICollection<EstimateRevisionRequest> RevisionRequests { get; set; } = new List<EstimateRevisionRequest>();
 }

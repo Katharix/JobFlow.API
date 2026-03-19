@@ -147,6 +147,8 @@ builder.Services
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
+
 // ============================================================
 // SIGNALR
 // ============================================================
@@ -342,6 +344,13 @@ if (env.IsDevelopment())
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<JobFlowDbContext>>();
+    await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+    await dbContext.Database.MigrateAsync();
+}
+
 StripeConfiguration.ApiKey = builder.Configuration["StripeSettings-ApiKey"];
 
 if (app.Environment.IsDevelopment())
@@ -367,5 +376,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<NotifierHub>("/hubs/notifier");
 
 app.Run();

@@ -38,14 +38,27 @@ public class FirebaseAuthMiddleware
             return;
         }
 
+        string? token = null;
+
         var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+        {
+            token = authHeader.Substring("Bearer ".Length);
+        }
+
+        if (string.IsNullOrWhiteSpace(token)
+            && path is not null
+            && path.StartsWith("/hubs/")
+            && context.Request.Query.TryGetValue("access_token", out var accessToken))
+        {
+            token = accessToken.FirstOrDefault();
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
         {
             await _next(context);
             return;
         }
-
-        var token = authHeader.Substring("Bearer ".Length);
 
         // If this is a locally-issued Client Portal JWT, do not attempt Firebase verification.
         // The JwtBearer handler for the ClientPortalJwt scheme will validate and populate claims.
