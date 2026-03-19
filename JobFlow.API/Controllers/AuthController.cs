@@ -29,6 +29,7 @@ public class AuthController : ControllerBase
     // ============================================================
     [HttpPost]
     [Route("login-with-firebase")]
+    [AllowAnonymous]
     public async Task<IActionResult> LoginWithFirebase([FromBody] TokenDto model)
     {
         try

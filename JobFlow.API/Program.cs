@@ -270,10 +270,12 @@ builder.Services.Configure<BrevoSettings>(options =>
     options.ApiKey = builder.Configuration["BrevoSettings-ApiKey"] ?? "";
 });
 
-builder.Services.Configure<ReCAPTCHASettings>(options =>
-{
-    options.SecretKey = builder.Configuration["reCAPTCHA-Api"] ?? "";
-});
+builder.Services.Configure<JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileOptions>(
+    builder.Configuration.GetSection("Turnstile"));
+
+builder.Services.AddHttpClient<
+    JobFlow.Infrastructure.ExternalServices.Turnstile.ICaptchaVerificationService,
+    JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileVerificationService>();
 
 builder.Services.Configure<SquareSettings>(options =>
 {
@@ -291,7 +293,6 @@ builder.Services.Configure<SquareSettings>(options =>
 builder.Services.AddSingleton<ITwilioSettings>(sp => sp.GetRequiredService<IOptions<TwilioSettings>>().Value);
 builder.Services.AddSingleton<IStripeSettings>(sp => sp.GetRequiredService<IOptions<StripeSettings>>().Value);
 builder.Services.AddSingleton<IBrevoSettings>(sp => sp.GetRequiredService<IOptions<BrevoSettings>>().Value);
-builder.Services.AddSingleton<IReCAPTCHASettings>(sp => sp.GetRequiredService<IOptions<ReCAPTCHASettings>>().Value);
 builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOptions<SquareSettings>>().Value);
 
 // ============================================================
