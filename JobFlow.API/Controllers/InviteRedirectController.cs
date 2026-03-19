@@ -1,11 +1,13 @@
 ﻿using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JobFlow.API.Controllers;
 
 [ApiController]
 [Route("i")]
+[AllowAnonymous]
 public class InviteRedirectController : ControllerBase
 {
     private readonly IFrontendSettings _frontendSettings;

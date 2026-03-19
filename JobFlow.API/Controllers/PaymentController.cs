@@ -12,6 +12,7 @@ using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Stripe;
@@ -22,6 +23,7 @@ namespace JobFlow.API.Controllers;
 
 [ApiController]
 [Route("api/payments/")]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + ",ClientPortalJwt")]
 public class PaymentController : ControllerBase
 {
     private readonly IOrganizationService _organizationService;
@@ -314,6 +316,7 @@ public class PaymentController : ControllerBase
 
 
     [HttpPost("webhook")]
+    [AllowAnonymous]
     public async Task<IActionResult> HandleStripeWebhook()
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
@@ -338,6 +341,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("square/webhook")]
+    [AllowAnonymous]
     public async Task<IActionResult> HandleSquareWebhook()
     {
         var rawBody = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
