@@ -204,6 +204,29 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildOrganizationEstimateRevisionRequested(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate,
+        string revisionMessage)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Estimate Revision Requested: {estimate.EstimateNumber}",
+            Body = $"""
+                    Client {client.ClientFullName()} requested estimate revisions.
+
+                    Estimate: {estimate.EstimateNumber}
+                    Message: {revisionMessage}
+                    """,
+            Sms = $"Estimate revision requested for {estimate.EstimateNumber}.",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
     public NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink)
     {
         return new NotificationMessage

@@ -109,6 +109,16 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendOrganizationEstimateRevisionRequestedNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate,
+        string revisionMessage)
+    {
+        var message = _builder.BuildOrganizationEstimateRevisionRequested(organization, client, estimate, revisionMessage);
+        await SendNotificationAsync(message);
+    }
+
     /// <summary>
     ///     Shared helper for sending email and SMS.
     /// </summary>

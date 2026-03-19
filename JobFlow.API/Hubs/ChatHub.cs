@@ -25,4 +25,5 @@ public class ChatHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, conversationId.ToString());
     }
+
 }

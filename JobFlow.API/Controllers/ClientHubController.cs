@@ -1,9 +1,12 @@
 using JobFlow.API.Extensions;
+using JobFlow.API.Hubs;
 using JobFlow.Business.Extensions;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace JobFlow.API.Controllers;
 
@@ -13,17 +16,23 @@ namespace JobFlow.API.Controllers;
 public class ClientHubController : ControllerBase
 {
     private readonly IEstimateService _estimates;
+    private readonly IEstimateRevisionService _estimateRevisions;
     private readonly IInvoiceService _invoices;
     private readonly IOrganizationClientService _clients;
+    private readonly IHubContext<NotifierHub> _hubContext;
 
     public ClientHubController(
         IEstimateService estimates,
+        IEstimateRevisionService estimateRevisions,
         IInvoiceService invoices,
-        IOrganizationClientService clients)
+        IOrganizationClientService clients,
+        IHubContext<NotifierHub> hubContext)
     {
         _estimates = estimates;
+        _estimateRevisions = estimateRevisions;
         _invoices = invoices;
         _clients = clients;
+        _hubContext = hubContext;
     }
 
     [HttpGet("me")]
@@ -121,6 +130,84 @@ public class ClientHubController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [HttpPost("estimates/{id:guid}/revision-requests")]
+    [RequestSizeLimit(55_000_000)]
+    public async Task<IResult> RequestEstimateRevision(Guid id, [FromForm] CreateEstimateRevisionFormRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var attachments = new List<EstimateRevisionAttachmentUpload>();
+
+        if (request.Attachments is not null)
+        {
+            foreach (var file in request.Attachments)
+            {
+                if (file.Length <= 0)
+                    continue;
+
+                await using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+
+                attachments.Add(new EstimateRevisionAttachmentUpload(
+                    file.FileName,
+                    file.ContentType,
+                    stream.ToArray(),
+                    file.Length));
+            }
+        }
+
+        var result = await _estimateRevisions.CreateAsync(
+            id,
+            organizationId,
+            orgClientId,
+            new CreateEstimateRevisionRequest(request.Message ?? string.Empty, attachments));
+
+        if (!result.IsSuccess)
+            return result.ToProblemDetails();
+
+        await _hubContext.Clients.Group($"org:{organizationId}:dashboard")
+            .SendAsync("EstimateRevisionRequested", new
+            {
+                estimateId = id,
+                revisionRequestId = result.Value.Id,
+                revisionNumber = result.Value.RevisionNumber,
+                requestedAt = result.Value.RequestedAt,
+                message = result.Value.RequestMessage
+            });
+
+        return Results.Ok(result.Value);
+    }
+
+    [HttpGet("estimates/{id:guid}/revision-requests")]
+    public async Task<IResult> GetEstimateRevisionRequests(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var result = await _estimateRevisions.GetByEstimateAsync(id, organizationId, orgClientId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpGet("estimates/{estimateId:guid}/revision-requests/{revisionRequestId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IResult> DownloadEstimateRevisionAttachment(Guid estimateId, Guid revisionRequestId, Guid attachmentId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var result = await _estimateRevisions.GetAttachmentAsync(
+            estimateId,
+            revisionRequestId,
+            attachmentId,
+            organizationId,
+            orgClientId);
+
+        if (!result.IsSuccess)
+            return result.ToProblemDetails();
+
+        return Results.File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+    }
+
     [HttpGet("invoices")]
     public async Task<IResult> GetMyInvoices()
     {
@@ -140,3 +227,7 @@ public record UpdateOrganizationClientRequest(
     string? City,
     string? State,
     string? ZipCode);
+
+public record CreateEstimateRevisionFormRequest(
+    string? Message,
+    List<IFormFile>? Attachments);
