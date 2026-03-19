@@ -3,13 +3,14 @@ namespace JobFlow.API.Models;
 public record ChatMessageDto(
     Guid Id,
     Guid ConversationId,
-    Guid SenderId,
+    Guid? SenderId,
     string Content,
     string? AttachmentUrl,
     DateTime SentAt,
     string? SenderName,
     string? SenderAvatarUrl,
-    bool IsMine);
+    bool IsMine,
+    bool IsRead);
 
 public record ChatConversationDto(
     Guid Id,
@@ -21,5 +22,7 @@ public record ChatConversationDto(
     ChatMessageDto? LastMessage);
 
 public record CreateConversationRequest(List<string> ParticipantIds);
+
+public record CreateClientConversationRequest(Guid OrganizationClientId);
 
 public record CreateMessageRequest(Guid ConversationId, string Content, string? AttachmentUrl);

@@ -122,6 +122,23 @@ builder.Services
         if (string.IsNullOrWhiteSpace(signingKey))
             throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
 
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken)
+                    && path.StartsWithSegments("/hubs/client-chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -380,6 +397,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ClientChatHub>("/hubs/client-chat");
 app.MapHub<NotifierHub>("/hubs/notifier");
 
 app.Run();

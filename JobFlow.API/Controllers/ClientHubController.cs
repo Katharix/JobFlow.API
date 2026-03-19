@@ -1,12 +1,16 @@
 using JobFlow.API.Extensions;
 using JobFlow.API.Hubs;
+using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain;
 using JobFlow.Domain.Enums;
+using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobFlow.API.Controllers;
 
@@ -20,19 +24,28 @@ public class ClientHubController : ControllerBase
     private readonly IInvoiceService _invoices;
     private readonly IOrganizationClientService _clients;
     private readonly IHubContext<NotifierHub> _hubContext;
+    private readonly IHubContext<ChatHub> _chatHubContext;
+    private readonly IHubContext<ClientChatHub> _clientChatHubContext;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ClientHubController(
         IEstimateService estimates,
         IEstimateRevisionService estimateRevisions,
         IInvoiceService invoices,
         IOrganizationClientService clients,
-        IHubContext<NotifierHub> hubContext)
+        IHubContext<NotifierHub> hubContext,
+        IHubContext<ChatHub> chatHubContext,
+        IHubContext<ClientChatHub> clientChatHubContext,
+        IUnitOfWork unitOfWork)
     {
         _estimates = estimates;
         _estimateRevisions = estimateRevisions;
         _invoices = invoices;
         _clients = clients;
         _hubContext = hubContext;
+        _chatHubContext = chatHubContext;
+        _clientChatHubContext = clientChatHubContext;
+        _unitOfWork = unitOfWork;
     }
 
     [HttpGet("me")]
@@ -77,6 +90,193 @@ public class ClientHubController : ControllerBase
 
         var upsert = await _clients.UpsertClient(client);
         return upsert.IsSuccess ? Results.Ok(upsert.Value) : upsert.ToProblemDetails();
+    }
+
+    [HttpGet("chat/conversation")]
+    public async Task<IResult> GetChatConversation()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var clientResult = await _clients.GetClientById(orgClientId);
+        if (!clientResult.IsSuccess)
+            return clientResult.ToProblemDetails();
+
+        if (clientResult.Value.OrganizationId != organizationId)
+            return Results.Unauthorized();
+
+        var conversation = await FindOrCreateClientConversationAsync(orgClientId, organizationId);
+
+        var lastMessage = await _unitOfWork.RepositoryOf<Message>()
+            .Query()
+            .Where(m => m.ConversationId == conversation.Id)
+            .OrderByDescending(m => m.SentAt)
+            .FirstOrDefaultAsync();
+
+        var org = await _unitOfWork.RepositoryOf<Organization>()
+            .Query()
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+
+        var name = org?.OrganizationName ?? "Your Team";
+        var lastMessageDto = lastMessage is null
+            ? null
+            : MapClientHubMessage(lastMessage, clientResult.Value);
+
+        var dto = new ChatConversationDto(
+            conversation.Id,
+            name,
+            null,
+            "Organization",
+            "online",
+            0,
+            lastMessageDto);
+
+        return Results.Ok(dto);
+    }
+
+    [HttpGet("chat/messages")]
+    public async Task<IResult> GetChatMessages([FromQuery] Guid conversationId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var clientResult = await _clients.GetClientById(orgClientId);
+        if (!clientResult.IsSuccess)
+            return clientResult.ToProblemDetails();
+
+        if (clientResult.Value.OrganizationId != organizationId)
+            return Results.Unauthorized();
+
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 50;
+        if (pageSize > 200) pageSize = 200;
+
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.OrganizationClientId == orgClientId);
+
+        if (conversation is null)
+            return Results.NotFound();
+
+        var messages = await _unitOfWork.RepositoryOf<Message>()
+            .Query()
+            .Where(m => m.ConversationId == conversationId)
+            .OrderByDescending(m => m.SentAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var result = messages
+            .OrderBy(m => m.SentAt)
+            .Select(m => MapClientHubMessage(m, clientResult.Value))
+            .ToList();
+
+        return Results.Ok(result);
+    }
+
+    [HttpPost("chat/messages")]
+    public async Task<IResult> CreateChatMessage([FromBody] CreateMessageRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var clientResult = await _clients.GetClientById(orgClientId);
+        if (!clientResult.IsSuccess)
+            return clientResult.ToProblemDetails();
+
+        if (clientResult.Value.OrganizationId != organizationId)
+            return Results.Unauthorized();
+
+        if (request.ConversationId == Guid.Empty)
+            return Results.BadRequest("ConversationId is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Content) && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+            return Results.BadRequest("Message content or attachment is required.");
+
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == request.ConversationId && c.OrganizationClientId == orgClientId);
+
+        if (conversation is null)
+            return Results.NotFound();
+
+        var senderName = clientResult.Value.ClientFullName().Trim();
+        var message = new Message
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = request.ConversationId,
+            SenderId = null,
+            Content = request.Content?.Trim() ?? string.Empty,
+            AttachmentUrl = string.IsNullOrWhiteSpace(request.AttachmentUrl) ? null : request.AttachmentUrl,
+            SentAt = DateTime.UtcNow,
+            IsRead = false,
+            ExternalSenderName = senderName,
+            ExternalSenderType = "client",
+            ExternalSenderPhone = clientResult.Value.PhoneNumber
+        };
+
+        await _unitOfWork.RepositoryOf<Message>().AddAsync(message);
+        await _unitOfWork.SaveChangesAsync();
+
+        var dto = MapClientHubMessage(message, clientResult.Value);
+        await _chatHubContext.Clients.Group(conversation.Id.ToString()).SendAsync("ReceiveMessage", dto);
+        await _clientChatHubContext.Clients.Group(conversation.Id.ToString()).SendAsync("ReceiveMessage", dto);
+
+        return Results.Ok(dto);
+    }
+
+    [HttpPost("chat/read")]
+    public async Task<IResult> MarkChatRead([FromBody] ClientHubReadRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        if (request.ConversationId == Guid.Empty)
+            return Results.BadRequest("ConversationId is required.");
+
+        var clientResult = await _clients.GetClientById(orgClientId);
+        if (!clientResult.IsSuccess)
+            return clientResult.ToProblemDetails();
+
+        if (clientResult.Value.OrganizationId != organizationId)
+            return Results.Unauthorized();
+
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == request.ConversationId && c.OrganizationClientId == orgClientId);
+
+        if (conversation is null)
+            return Results.NotFound();
+
+        var messages = await _unitOfWork.RepositoryOf<Message>()
+            .Query()
+            .Where(m => m.ConversationId == request.ConversationId && m.SenderId.HasValue && !m.IsRead)
+            .ToListAsync();
+
+        if (messages.Count == 0)
+            return Results.Ok(new { updated = 0 });
+
+        foreach (var message in messages)
+        {
+            message.IsRead = true;
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        var readIds = messages.Select(m => m.Id).ToList();
+        await _chatHubContext.Clients.Group(request.ConversationId.ToString()).SendAsync("ReadReceipt", new
+        {
+            conversationId = request.ConversationId,
+            messageIds = readIds
+        });
+
+        await _clientChatHubContext.Clients.Group(request.ConversationId.ToString()).SendAsync("ReadReceipt", new
+        {
+            conversationId = request.ConversationId,
+            messageIds = readIds
+        });
+
+        return Results.Ok(new { updated = readIds.Count });
     }
 
     [HttpGet("estimates")]
@@ -215,6 +415,67 @@ public class ClientHubController : ControllerBase
         var result = await _invoices.GetInvoicesByClientAsync(orgClientId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
+
+    private async Task<Conversation> FindOrCreateClientConversationAsync(Guid orgClientId, Guid organizationId)
+    {
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .Include(c => c.Participants)
+            .FirstOrDefaultAsync(c => c.OrganizationClientId == orgClientId);
+
+        if (conversation is not null)
+            return conversation;
+
+        conversation = new Conversation
+        {
+            Id = Guid.NewGuid(),
+            OrganizationClientId = orgClientId
+        };
+
+        var participantIds = await GetOrganizationUserIdsAsync(organizationId);
+        foreach (var userId in participantIds)
+        {
+            conversation.Participants.Add(new ConversationParticipant
+            {
+                ConversationId = conversation.Id,
+                UserId = userId
+            });
+        }
+
+        await _unitOfWork.RepositoryOf<Conversation>().AddAsync(conversation);
+        await _unitOfWork.SaveChangesAsync();
+        return conversation;
+    }
+
+    private async Task<List<Guid>> GetOrganizationUserIdsAsync(Guid organizationId)
+    {
+        var userIds = await _unitOfWork.RepositoryOf<Employee>()
+            .Query()
+            .Where(e => e.OrganizationId == organizationId && e.UserId.HasValue)
+            .Select(e => e.UserId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+        return userIds;
+    }
+
+    private static ChatMessageDto MapClientHubMessage(Message message, OrganizationClient client)
+    {
+        var isMine = !message.SenderId.HasValue;
+        var senderName = isMine ? client.ClientFullName().Trim() : "JobFlow Team";
+
+        return new ChatMessageDto(
+            message.Id,
+            message.ConversationId,
+            message.SenderId,
+            message.Content,
+            message.AttachmentUrl,
+            message.SentAt,
+            senderName,
+            null,
+            isMine,
+            message.IsRead);
+    }
 }
 
 public record UpdateOrganizationClientRequest(
@@ -231,3 +492,5 @@ public record UpdateOrganizationClientRequest(
 public record CreateEstimateRevisionFormRequest(
     string? Message,
     List<IFormFile>? Attachments);
+
+public record ClientHubReadRequest(Guid ConversationId);
