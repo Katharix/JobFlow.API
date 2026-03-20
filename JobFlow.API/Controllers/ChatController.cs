@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using JobFlow.API.Extensions;
+using JobFlow.API.Hubs;
 using JobFlow.API.Models;
+using JobFlow.Business.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,11 +18,22 @@ public class ChatController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ITwilioService _twilioService;
+    private readonly IHubContext<ChatHub> _chatHubContext;
+    private readonly IHubContext<ClientChatHub> _clientChatHubContext;
 
-    public ChatController(IUserService userService, IUnitOfWork unitOfWork)
+    public ChatController(
+        IUserService userService,
+        IUnitOfWork unitOfWork,
+        ITwilioService twilioService,
+        IHubContext<ChatHub> chatHubContext,
+        IHubContext<ClientChatHub> clientChatHubContext)
     {
         _userService = userService;
         _unitOfWork = unitOfWork;
+        _twilioService = twilioService;
+        _chatHubContext = chatHubContext;
+        _clientChatHubContext = clientChatHubContext;
     }
 
     [HttpGet("conversations")]
@@ -53,8 +67,21 @@ public class ChatController : ControllerBase
             .Where(u => participantIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id);
 
+        var clientIds = conversations
+            .Where(c => c.OrganizationClientId.HasValue)
+            .Select(c => c.OrganizationClientId!.Value)
+            .Distinct()
+            .ToList();
+
+        var clientLookup = clientIds.Count == 0
+            ? new Dictionary<Guid, OrganizationClient>()
+            : await _unitOfWork.RepositoryOf<OrganizationClient>()
+                .Query()
+                .Where(c => clientIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id);
+
         var results = conversations
-            .Select(conversation => MapConversation(conversation, currentUser.Id, employeeLookup, userLookup))
+            .Select(conversation => MapConversation(conversation, currentUser.Id, employeeLookup, userLookup, clientLookup))
             .OrderByDescending(c => c.LastMessage?.SentAt ?? DateTime.MinValue)
             .ToList();
 
@@ -92,7 +119,11 @@ public class ChatController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
 
-        var senderIds = paged.Select(m => m.SenderId).Distinct().ToList();
+        var senderIds = paged
+            .Where(m => m.SenderId.HasValue)
+            .Select(m => m.SenderId!.Value)
+            .Distinct()
+            .ToList();
 
         var employeeLookup = await _unitOfWork.RepositoryOf<Employee>()
             .Query()
@@ -123,8 +154,8 @@ public class ChatController : ControllerBase
         if (request.ConversationId == Guid.Empty)
             return BadRequest("ConversationId is required.");
 
-        if (string.IsNullOrWhiteSpace(request.Content))
-            return BadRequest("Message content is required.");
+        if (string.IsNullOrWhiteSpace(request.Content) && string.IsNullOrWhiteSpace(request.AttachmentUrl))
+            return BadRequest("Message content or attachment is required.");
 
         var isParticipant = await _unitOfWork.RepositoryOf<ConversationParticipant>()
             .Query()
@@ -146,6 +177,9 @@ public class ChatController : ControllerBase
 
         await _unitOfWork.RepositoryOf<Message>().AddAsync(message);
         await _unitOfWork.SaveChangesAsync();
+
+        await TrySendClientSmsAsync(request.ConversationId, request.Content, request.AttachmentUrl);
+        await SendToClientHubAsync(request.ConversationId, message);
 
         var employeeLookup = await _unitOfWork.RepositoryOf<Employee>()
             .Query()
@@ -190,8 +224,22 @@ public class ChatController : ControllerBase
         }
 
         await _unitOfWork.SaveChangesAsync();
+
+        var readIds = messages.Select(m => m.Id).ToList();
+        await _chatHubContext.Clients.Group(conversationId.ToString()).SendAsync("ReadReceipt", new
+        {
+            conversationId,
+            messageIds = readIds
+        });
+
+        await _clientChatHubContext.Clients.Group(conversationId.ToString()).SendAsync("ReadReceipt", new
+        {
+            conversationId,
+            messageIds = readIds
+        });
         return Ok();
     }
+
 
     [HttpPost("conversations")]
     public async Task<IActionResult> CreateConversation([FromBody] CreateConversationRequest request)
@@ -241,7 +289,7 @@ public class ChatController : ControllerBase
                     .ToDictionaryAsync(e => e.UserId!.Value);
 
                 var userLookupExisting = users.ToDictionary(u => u.Id);
-                return Ok(MapConversation(existing, currentUser.Id, employeeLookupExisting, userLookupExisting));
+                return Ok(MapConversation(existing, currentUser.Id, employeeLookupExisting, userLookupExisting, new Dictionary<Guid, OrganizationClient>()));
             }
         }
 
@@ -271,20 +319,113 @@ public class ChatController : ControllerBase
 
         var userLookup = users.ToDictionary(u => u.Id);
 
-        return Ok(MapConversation(conversation, currentUser.Id, employeeLookup, userLookup));
+        return Ok(MapConversation(conversation, currentUser.Id, employeeLookup, userLookup, new Dictionary<Guid, OrganizationClient>()));
+    }
+
+    [HttpPost("conversations/client")]
+    public async Task<IActionResult> CreateClientConversation([FromBody] CreateClientConversationRequest request)
+    {
+        var (currentUser, organizationId, firebaseUidResult) = await ResolveCurrentUserAsync();
+        if (currentUser is null)
+            return firebaseUidResult ?? Unauthorized();
+
+        if (request.OrganizationClientId == Guid.Empty)
+            return BadRequest("OrganizationClientId is required.");
+
+        var client = await _unitOfWork.RepositoryOf<OrganizationClient>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == request.OrganizationClientId && c.OrganizationId == organizationId);
+
+        if (client is null)
+            return NotFound("Client not found for this organization.");
+
+        var existing = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .Include(c => c.Participants)
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c => c.OrganizationClientId == request.OrganizationClientId);
+
+        if (existing is not null)
+        {
+            var employeeLookupExisting = await _unitOfWork.RepositoryOf<Employee>()
+                .Query()
+                .Include(e => e.Role)
+                .Where(e => e.OrganizationId == organizationId && e.UserId.HasValue)
+                .ToDictionaryAsync(e => e.UserId!.Value);
+
+            var userLookupExisting = await _unitOfWork.RepositoryOf<User>()
+                .Query()
+                .Where(u => employeeLookupExisting.Keys.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id);
+
+            return Ok(MapConversation(existing, currentUser.Id, employeeLookupExisting, userLookupExisting,
+                new Dictionary<Guid, OrganizationClient> { { client.Id, client } }));
+        }
+
+        var conversation = new Conversation
+        {
+            Id = Guid.NewGuid(),
+            Title = null,
+            OrganizationClientId = client.Id
+        };
+
+        var participantIds = await GetOrganizationUserIdsAsync(organizationId, currentUser.Id);
+        foreach (var userId in participantIds)
+        {
+            conversation.Participants.Add(new ConversationParticipant
+            {
+                ConversationId = conversation.Id,
+                UserId = userId
+            });
+        }
+
+        await _unitOfWork.RepositoryOf<Conversation>().AddAsync(conversation);
+        await _unitOfWork.SaveChangesAsync();
+
+        var employeeLookup = await _unitOfWork.RepositoryOf<Employee>()
+            .Query()
+            .Include(e => e.Role)
+            .Where(e => e.OrganizationId == organizationId && e.UserId.HasValue)
+            .ToDictionaryAsync(e => e.UserId!.Value);
+
+        var userLookup = await _unitOfWork.RepositoryOf<User>()
+            .Query()
+            .Where(u => employeeLookup.Keys.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
+        var clientLookup = new Dictionary<Guid, OrganizationClient> { { client.Id, client } };
+        return Ok(MapConversation(conversation, currentUser.Id, employeeLookup, userLookup, clientLookup));
     }
 
     private static ChatConversationDto MapConversation(
         Conversation conversation,
         Guid currentUserId,
         IDictionary<Guid, Employee> employeeLookup,
-        IDictionary<Guid, User> userLookup)
+        IDictionary<Guid, User> userLookup,
+        IDictionary<Guid, OrganizationClient> clientLookup)
     {
-        var otherParticipant = conversation.Participants
-            .Select(p => p.UserId)
-            .FirstOrDefault(id => id != currentUserId);
+        string? name = null;
+        string? role = null;
+        string? avatar = null;
 
-        var (name, role, avatar) = ResolveParticipantDisplay(otherParticipant, employeeLookup, userLookup);
+        if (conversation.OrganizationClientId.HasValue
+            && clientLookup.TryGetValue(conversation.OrganizationClientId.Value, out var client))
+        {
+            name = client.ClientFullName().Trim();
+            role = "Client";
+            avatar = null;
+        }
+        else
+        {
+            var otherParticipant = conversation.Participants
+                .Select(p => p.UserId)
+                .FirstOrDefault(id => id != currentUserId);
+
+            var resolved = ResolveParticipantDisplay(otherParticipant, employeeLookup, userLookup);
+            name = resolved.name;
+            role = resolved.role;
+            avatar = resolved.avatarUrl;
+        }
 
         var lastMessage = conversation.Messages
             .OrderByDescending(m => m.SentAt)
@@ -312,7 +453,20 @@ public class ChatController : ControllerBase
         IDictionary<Guid, Employee> employeeLookup,
         IDictionary<Guid, User> userLookup)
     {
-        var (name, _, avatar) = ResolveParticipantDisplay(message.SenderId, employeeLookup, userLookup);
+        string? name = null;
+        string? avatar = null;
+
+        if (message.SenderId.HasValue)
+        {
+            var resolved = ResolveParticipantDisplay(message.SenderId.Value, employeeLookup, userLookup);
+            name = resolved.name;
+            avatar = resolved.avatarUrl;
+        }
+        else
+        {
+            name = message.ExternalSenderName;
+            avatar = null;
+        }
 
         return new ChatMessageDto(
             message.Id,
@@ -323,7 +477,8 @@ public class ChatController : ControllerBase
             message.SentAt,
             name,
             avatar,
-            message.SenderId == currentUserId);
+            message.SenderId.HasValue && message.SenderId.Value == currentUserId,
+            message.IsRead);
     }
 
     private static (string? name, string? role, string? avatarUrl) ResolveParticipantDisplay(
@@ -360,5 +515,88 @@ public class ChatController : ControllerBase
 
         var organizationId = HttpContext.GetOrganizationId();
         return (userResult.Value, organizationId, null);
+    }
+
+    private async Task SendToClientHubAsync(Guid conversationId, Message message)
+    {
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.OrganizationClientId.HasValue);
+
+        if (conversation is null)
+            return;
+
+        var clientDto = new ChatMessageDto(
+            message.Id,
+            message.ConversationId,
+            message.SenderId,
+            message.Content,
+            message.AttachmentUrl,
+            message.SentAt,
+            "JobFlow Team",
+            null,
+            false,
+            message.IsRead);
+
+        await _clientChatHubContext.Clients.Group(conversationId.ToString())
+            .SendAsync("ReceiveMessage", clientDto);
+    }
+
+    private async Task<List<Guid>> GetOrganizationUserIdsAsync(Guid organizationId, Guid fallbackUserId)
+    {
+        var userIds = await _unitOfWork.RepositoryOf<Employee>()
+            .Query()
+            .Where(e => e.OrganizationId == organizationId && e.UserId.HasValue)
+            .Select(e => e.UserId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+        if (!userIds.Contains(fallbackUserId))
+            userIds.Add(fallbackUserId);
+
+        return userIds;
+    }
+
+    private async Task TrySendClientSmsAsync(Guid conversationId, string? content, string? attachmentUrl)
+    {
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+        if (conversation?.OrganizationClientId is null)
+            return;
+
+        var client = await _unitOfWork.RepositoryOf<OrganizationClient>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == conversation.OrganizationClientId.Value);
+
+        if (client is null || string.IsNullOrWhiteSpace(client.PhoneNumber))
+            return;
+
+        var smsBody = BuildSmsBody(content, attachmentUrl);
+        if (string.IsNullOrWhiteSpace(smsBody))
+            return;
+
+        await _twilioService.SendTextMessage(new TwilioModel
+        {
+            RecipientPhoneNumber = client.PhoneNumber,
+            Message = smsBody
+        });
+    }
+
+    private static string BuildSmsBody(string? content, string? attachmentUrl)
+    {
+        var message = content?.Trim() ?? string.Empty;
+        var attachment = attachmentUrl?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(attachment))
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                message = attachment;
+            else
+                message = $"{message}\n{attachment}";
+        }
+
+        return message;
     }
 }

@@ -15,32 +15,46 @@ public class OpenMeteoWeatherService : IWeatherService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<WeatherForecastDto> GetForecastAsync(double latitude, double longitude, int days = 5, CancellationToken cancellationToken = default)
+    public async Task<WeatherForecastDto> GetForecastAsync(
+        double latitude, double longitude, int days = 5, CancellationToken cancellationToken = default)
     {
         days = Math.Clamp(days, 1, 7);
 
         var url = $"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days={days}";
+        var client = _httpClientFactory.CreateClient("OpenMeteo");
 
-        using var client = _httpClientFactory.CreateClient();
-        using var response = await client.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-
-        var root = doc.RootElement;
-        var timezone = root.TryGetProperty("timezone", out var tzElement) ? tzElement.GetString() ?? "UTC" : "UTC";
-
-        var current = ParseCurrent(root.GetProperty("current"));
-        var daily = ParseDaily(root.GetProperty("daily"));
-
-        return new WeatherForecastDto
+        try
         {
-            Timezone = timezone,
-            Current = current,
-            Daily = daily,
-            RiskAlerts = BuildRiskAlerts(daily)
-        };
+            using var response = await client.GetAsync(url, linkedCts.Token);
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync(linkedCts.Token);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: linkedCts.Token);
+
+            var root = doc.RootElement;
+            var timezone = root.TryGetProperty("timezone", out var tzElement) ? tzElement.GetString() ?? "UTC" : "UTC";
+
+            var current = ParseCurrent(root.GetProperty("current"));
+            var daily = ParseDaily(root.GetProperty("daily"));
+
+            return new WeatherForecastDto
+            {
+                Timezone = timezone,
+                Current = current,
+                Daily = daily,
+                RiskAlerts = BuildRiskAlerts(daily)
+            };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // caller aborted request
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            throw new TimeoutException("OpenMeteo request timed out.");
+        }
     }
 
     private static WeatherCurrentDto ParseCurrent(JsonElement current)
