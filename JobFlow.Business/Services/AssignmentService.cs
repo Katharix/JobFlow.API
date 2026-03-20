@@ -4,6 +4,7 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,8 @@ namespace JobFlow.Business.Services;
 public class AssignmentService : IAssignmentService
 {
     private readonly IRepository<Assignment> _assignments;
+    private readonly IRepository<AssignmentAssignee> _assignmentAssignees;
+    private readonly IRepository<Employee> _employees;
     private readonly IRepository<Job> _jobs;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
@@ -29,6 +32,8 @@ public class AssignmentService : IAssignmentService
     {
         _unitOfWork = unitOfWork;
         _assignments = unitOfWork.RepositoryOf<Assignment>();
+        _assignmentAssignees = unitOfWork.RepositoryOf<AssignmentAssignee>();
+        _employees = unitOfWork.RepositoryOf<Employee>();
         _jobs = unitOfWork.RepositoryOf<Job>();
         
         _mapper = mapper;
@@ -75,6 +80,8 @@ public class AssignmentService : IAssignmentService
         var created = await _assignments.Query()
             .Include(a => a.Job)
             .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .FirstAsync(a => a.Id == assignment.Id);
 
         return Result.Success(MapToDto(created));
@@ -88,6 +95,8 @@ public class AssignmentService : IAssignmentService
         var assignment = await _assignments.Query()
             .Include(a => a.Job)
             .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .FirstOrDefaultAsync(a =>
                 a.Id == assignmentId &&
                 a.Job.OrganizationClient.OrganizationId == organizationId);
@@ -113,6 +122,8 @@ public class AssignmentService : IAssignmentService
         var assignment = await _assignments.Query()
             .Include(a => a.Job)
             .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .FirstOrDefaultAsync(a =>
                 a.Id == assignmentId &&
                 a.Job.OrganizationClient.OrganizationId == organizationId);
@@ -130,6 +141,90 @@ public class AssignmentService : IAssignmentService
         return Result.Success(MapToDto(assignment));
     }
 
+    public async Task<Result<AssignmentDto>> UpdateAssignmentAssigneesAsync(
+        Guid organizationId,
+        Guid assignmentId,
+        UpdateAssignmentAssigneesRequestDto dto)
+    {
+        var assignment = await _assignments.Query()
+            .Include(a => a.Job)
+            .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
+            .FirstOrDefaultAsync(a =>
+                a.Id == assignmentId &&
+                a.Job.OrganizationClient.OrganizationId == organizationId);
+
+        if (assignment == null)
+            return Result.Failure<AssignmentDto>(AssignmentErrors.NotFound);
+
+        var requestedIds = (dto.EmployeeIds ?? new List<Guid>()).Distinct().ToList();
+        if (requestedIds.Any())
+        {
+            var validEmployeeIds = await _employees.Query()
+                .Where(e => e.OrganizationId == organizationId && requestedIds.Contains(e.Id))
+                .Select(e => e.Id)
+                .ToListAsync();
+
+            if (validEmployeeIds.Count != requestedIds.Count)
+                return Result.Failure<AssignmentDto>(AssignmentErrors.InvalidAssignee);
+
+            requestedIds = validEmployeeIds;
+        }
+
+        if (assignment.AssignmentAssignees.Any())
+        {
+            _assignmentAssignees.RemoveRange(assignment.AssignmentAssignees);
+        }
+
+        var newAssignees = requestedIds.Select(id => new AssignmentAssignee
+        {
+            AssignmentId = assignmentId,
+            EmployeeId = id,
+            IsLead = dto.LeadEmployeeId.HasValue && dto.LeadEmployeeId.Value == id
+        }).ToList();
+
+        if (newAssignees.Any())
+        {
+            _assignmentAssignees.AddRange(newAssignees);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        var updated = await _assignments.Query()
+            .Include(a => a.Job)
+            .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
+            .FirstAsync(a => a.Id == assignmentId);
+
+        return Result.Success(MapToDto(updated));
+    }
+
+    public async Task<Result<AssignmentDto>> UpdateAssignmentNotesAsync(
+        Guid organizationId,
+        Guid assignmentId,
+        UpdateAssignmentNotesRequestDto dto)
+    {
+        var assignment = await _assignments.Query()
+            .Include(a => a.Job)
+            .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
+            .FirstOrDefaultAsync(a =>
+                a.Id == assignmentId &&
+                a.Job.OrganizationClient.OrganizationId == organizationId);
+
+        if (assignment == null)
+            return Result.Failure<AssignmentDto>(AssignmentErrors.NotFound);
+
+        assignment.Notes = dto.Notes?.Trim();
+        _assignments.Update(assignment);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success(MapToDto(assignment));
+    }
+
     public async Task<Result<List<AssignmentDto>>> GetAssignmentsAsync(
         Guid organizationId,
         DateTime start,
@@ -138,6 +233,8 @@ public class AssignmentService : IAssignmentService
         var assignments = await _assignments.Query()
             .Include(a => a.Job)
             .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .Where(a =>
                 a.Job.OrganizationClient.OrganizationId == organizationId &&
                 a.ScheduledStart < end &&
@@ -155,6 +252,8 @@ public class AssignmentService : IAssignmentService
         var assignment = await _assignments.Query()
             .Include(a => a.Job)
             .ThenInclude(j => j.OrganizationClient)
+            .Include(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .FirstOrDefaultAsync(a =>
                 a.Id == assignmentId &&
                 a.Job.OrganizationClient.OrganizationId == organizationId);
@@ -175,6 +274,17 @@ public class AssignmentService : IAssignmentService
         dto.ClientName = assignment.Job?.OrganizationClient != null
             ? $"{assignment.Job.OrganizationClient.FirstName} {assignment.Job.OrganizationClient.LastName}"
             : null;
+        dto.JobLifecycleStatus = assignment.Job?.LifecycleStatus ?? JobLifecycleStatus.Draft;
+        dto.Assignees = assignment.AssignmentAssignees
+            .Select(assignee => new AssignmentAssigneeDto
+            {
+                EmployeeId = assignee.EmployeeId,
+                EmployeeName = assignee.Employee != null
+                    ? $"{assignee.Employee.FirstName} {assignee.Employee.LastName}".Trim()
+                    : null,
+                IsLead = assignee.IsLead
+            })
+            .ToList();
 
         return dto;
     }

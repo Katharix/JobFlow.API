@@ -22,6 +22,8 @@ public class AssignmentOrderConfiguration : IEntityTypeConfiguration<AssignmentO
             .HasForeignKey(x => x.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasQueryFilter(x => x.Assignment.IsActive && x.Order.IsActive);
+
         builder.HasIndex(x => x.AssignmentId);
         builder.HasIndex(x => x.OrderId);
     }

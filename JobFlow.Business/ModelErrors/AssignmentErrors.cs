@@ -22,6 +22,12 @@ public static class AssignmentErrors
             "The assignment does not belong to the current organization."
         );
 
+    public static readonly Error InvalidAssignee =
+        Error.Validation(
+            "Assignment.InvalidAssignee",
+            "One or more assignees are invalid for this organization."
+        );
+
     // ─────────────────────────────────────────────
     // Scheduling
     // ─────────────────────────────────────────────

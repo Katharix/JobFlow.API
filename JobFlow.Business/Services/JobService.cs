@@ -67,6 +67,8 @@ public class JobService : IJobService
         var returnedJobs = await jobs.Query()
             .Include(j => j.OrganizationClient)
             .Include(e => e.Assignments)
+            .ThenInclude(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .Where(j => j.OrganizationClient.OrganizationId == organizationId)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
@@ -89,6 +91,17 @@ public class JobService : IJobService
                 JobTitle =   e.Title,
                 Status = a.Status,
                 OrganizationClientId =  e.OrganizationClientId,
+                JobLifecycleStatus = e.LifecycleStatus,
+                Assignees = a.AssignmentAssignees
+                    .Select(assignee => new AssignmentAssigneeDto
+                    {
+                        EmployeeId = assignee.EmployeeId,
+                        EmployeeName = assignee.Employee != null
+                            ? $"{assignee.Employee.FirstName} {assignee.Employee.LastName}".Trim()
+                            : null,
+                        IsLead = assignee.IsLead
+                    })
+                    .ToList()
             }),
             OrganizationClient = new OrganizationClientDto
             {
@@ -156,5 +169,23 @@ public class JobService : IJobService
         await unitOfWork.SaveChangesAsync();
 
         return Result.Success();
+    }
+
+    public async Task<Result<Job>> UpdateJobStatusAsync(Guid organizationId, Guid jobId, JobLifecycleStatus status)
+    {
+        var job = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j =>
+                j.Id == jobId &&
+                j.OrganizationClient.OrganizationId == organizationId);
+
+        if (job == null)
+            return Result.Failure<Job>(JobErrors.NotFound);
+
+        job.LifecycleStatus = status;
+        jobs.Update(job);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success(job);
     }
 }

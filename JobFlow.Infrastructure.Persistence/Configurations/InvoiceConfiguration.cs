@@ -18,6 +18,10 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(i => i.AmountPaid)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(i => i.Status)
             .IsRequired();
     }
