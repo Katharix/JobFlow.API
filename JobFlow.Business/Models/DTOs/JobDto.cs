@@ -14,3 +14,8 @@ public class JobDto
     public IEnumerable<AssignmentDto>? Assignments { get; set; }
     public bool HasAssignments => Assignments?.Any() == true;
 }
+
+public class UpdateJobStatusRequestDto
+{
+    public JobLifecycleStatus Status { get; set; }
+}

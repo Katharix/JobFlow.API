@@ -114,5 +114,19 @@ public class JobController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpPut("{jobId:guid}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid jobId, [FromBody] UpdateJobStatusRequestDto request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await _jobService.UpdateJobStatusAsync(organizationId, jobId, request.Status);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
 
 }

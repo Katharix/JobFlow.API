@@ -26,5 +26,7 @@ public class Assignment : Entity
 
     public string? Notes { get; set; }
 
+    public virtual ICollection<AssignmentAssignee> AssignmentAssignees { get; set; } = new List<AssignmentAssignee>();
+
     public virtual ICollection<AssignmentOrder> AssignmentOrders { get; set; } = new List<AssignmentOrder>();
 }
