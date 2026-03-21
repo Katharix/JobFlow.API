@@ -4,8 +4,8 @@ using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using System.Net.Http.Json;
 using Square;
-
 using Square.Checkout.PaymentLinks;
+using Microsoft.Extensions.Hosting;
 
 
 namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
@@ -16,8 +16,9 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
     private readonly SquareClient _client;
     private readonly string _accessToken;
     private readonly string _locationId;
+    private readonly string _baseUrl;
 
-    public SquarePaymentProcessor(ISquareSettings settings)
+    public SquarePaymentProcessor(ISquareSettings settings, IHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(settings);
         if (string.IsNullOrWhiteSpace(settings.AccessToken))
@@ -25,9 +26,13 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
 
         _accessToken = settings.AccessToken;
 
+        _baseUrl = hostEnvironment.IsDevelopment()
+            ? "https://connect.squareupsandbox.com"
+            : "https://connect.squareup.com";
+
         _client = new SquareClient(settings.AccessToken, new ClientOptions
         {
-            BaseUrl = "https://connect.squareupsandbox.com"
+            BaseUrl = _baseUrl
         });
 
         _locationId = settings.LocationId ?? string.Empty;
@@ -61,8 +66,14 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var paymentLinkRequest = new CreatePaymentLinkRequest
         {
             QuickPay = quickPay,
-            IdempotencyKey = idempotencyKey
+            IdempotencyKey = idempotencyKey,
+            Description = request.ProductName
         };
+
+        if (request.InvoiceId.HasValue)
+        {
+            paymentLinkRequest.PaymentNote = $"invoiceId={request.InvoiceId.Value}";
+        }
 
         try
         {
@@ -158,7 +169,7 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
     {
         var httpClient = new HttpClient
         {
-            BaseAddress = new Uri("https://connect.squareupsandbox.com/")
+            BaseAddress = new Uri($"{_baseUrl}/")
         };
         httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);

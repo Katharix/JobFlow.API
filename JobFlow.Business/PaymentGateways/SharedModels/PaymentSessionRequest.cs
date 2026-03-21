@@ -9,7 +9,7 @@ public class PaymentSessionRequest
     public string? CancelUrl { get; set; }
     public string? Email { get; set; }
     public Guid? OrgId { get; set; }
-    
+
     public Guid? InvoiceId { get; set; }
 
     // Subscription-specific

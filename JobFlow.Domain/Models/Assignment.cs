@@ -15,7 +15,7 @@ public class Assignment : Entity
 
     public DateTimeOffset? ActualStart { get; set; }
     public DateTimeOffset? ActualEnd { get; set; }
-    
+
     public AssignmentStatus Status { get; set; } = AssignmentStatus.Scheduled;
 
     // Optional: assignment-level override location (job location can differ from client address)

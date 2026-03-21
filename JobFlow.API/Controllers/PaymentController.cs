@@ -73,6 +73,11 @@ public class PaymentController : ControllerBase
         var org = await _organizationService.GetOrganiztionById(orgId);
         if (org.IsFailure) return NotFound("Organization not found.");
 
+        var organization = org.Value;
+        var provider = Enum.IsDefined(typeof(PaymentProvider), organization.PaymentProvider)
+            ? organization.PaymentProvider
+            : PaymentProvider.Stripe;
+
         if (request.InvoiceId.HasValue)
         {
             var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(request.InvoiceId.Value);
@@ -101,16 +106,25 @@ public class PaymentController : ControllerBase
             request.OrganizationId = invoice.OrganizationId;
             request.OrganizationClientId = invoice.OrganizationClientId;
             request.ProductName ??= $"Invoice {invoice.InvoiceNumber}";
+
+            if (Enum.IsDefined(typeof(PaymentProvider), invoice.PaymentProvider)
+                && invoice.PaymentProvider != 0)
+            {
+                provider = invoice.PaymentProvider;
+            }
         }
 
-        var processor = _processorFactory.GetProcessor(org.Value.PaymentProvider.ToString());
+        var processor = _processorFactory.GetProcessor(provider);
 
         string checkoutUrl;
         if (request.Mode == "subscription")
             checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
         else
         {
-            request.ConnectedAccountId = org.Value.StripeConnectAccountId;
+            if (provider == PaymentProvider.Stripe)
+            {
+                request.ConnectedAccountId = organization.StripeConnectAccountId;
+            }
             var paymentIntent = await processor.CreatePaymentIntentAsync(request);
 
             return Ok(new
@@ -227,7 +241,9 @@ public class PaymentController : ControllerBase
             Amount = request.Amount,
             Currency = request.Currency,
             Reason = request.Reason,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
 
         return result.Success ? Ok(result) : BadRequest(result);
@@ -253,7 +269,9 @@ public class PaymentController : ControllerBase
             Reason = request.Reason,
             ProductName = request.ProductName,
             InvoiceId = request.InvoiceId,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
 
         return result.Success ? Ok(result) : BadRequest(result);
@@ -279,7 +297,9 @@ public class PaymentController : ControllerBase
             ProductName = request.ProductName,
             Amount = request.Amount,
             DepositAmount = request.Amount,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
 
         return Ok(new

@@ -11,7 +11,7 @@ public class JobDto
     public InvoicingWorkflow? InvoicingWorkflow { get; set; }
     public Guid OrganizationClientId { get; set; }
     public OrganizationClientDto? OrganizationClient { get; set; }
-    
+
     public IEnumerable<AssignmentDto>? Assignments { get; set; }
     public bool HasAssignments => Assignments?.Any() == true;
 }

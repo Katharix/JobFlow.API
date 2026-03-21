@@ -85,7 +85,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             },
 
             ApplicationFeeAmount = applicationFee,
-            
+
             TransferData = new PaymentIntentTransferDataOptions
             {
                 Destination = request.ConnectedAccountId

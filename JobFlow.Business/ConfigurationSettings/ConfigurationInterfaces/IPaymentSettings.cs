@@ -2,5 +2,5 @@
 
 public interface IPaymentSettings
 {
-   decimal ApplicationFee { get; } 
+    decimal ApplicationFee { get; }
 }

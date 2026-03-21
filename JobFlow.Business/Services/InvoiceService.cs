@@ -22,11 +22,13 @@ public class InvoiceService : IInvoiceService
     private readonly INotificationService _notifications;
     private readonly IOrganizationClientPortalService _clientPortal;
     private readonly IInvoiceRealtimeNotifier? _realtimeNotifier;
+    private readonly IOrganizationService _organizationService;
     private readonly IUnitOfWork unitOfWork;
 
     public InvoiceService(
         ILogger<InvoiceService> logger,
         IUnitOfWork unitOfWork,
+        IOrganizationService organizationService,
         IOnboardingService onboardingService,
         IInvoiceNumberGenerator numberGenerator,
         INotificationService notifications,
@@ -35,6 +37,7 @@ public class InvoiceService : IInvoiceService
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
+        _organizationService = organizationService;
         invoices = unitOfWork.RepositoryOf<Invoice>();
         estimates = unitOfWork.RepositoryOf<Estimate>();
         clients = unitOfWork.RepositoryOf<OrganizationClient>();
@@ -94,6 +97,15 @@ public class InvoiceService : IInvoiceService
         // Calculate TotalAmount manually since it's not mapped
         model.TotalAmount = model.LineItems?.Sum(li => li.Quantity * li.UnitPrice) ?? 0;
 
+        if (!Enum.IsDefined(typeof(PaymentProvider), model.PaymentProvider)
+            || model.PaymentProvider == 0)
+        {
+            var orgResult = await _organizationService.GetOrganiztionById(model.OrganizationId);
+            model.PaymentProvider = orgResult.IsSuccess
+                ? (orgResult.Value.PaymentProvider == 0 ? PaymentProvider.Stripe : orgResult.Value.PaymentProvider)
+                : PaymentProvider.Stripe;
+        }
+
         if (exists)
             invoices.Update(model);
         else
@@ -109,7 +121,7 @@ public class InvoiceService : IInvoiceService
         }
 
         await unitOfWork.SaveChangesAsync();
-        
+
         await _onboardingService.MarkStepCompleteAsync(
             model.OrganizationId,
             OnboardingStepKeys.CreateInvoice
@@ -129,7 +141,7 @@ public class InvoiceService : IInvoiceService
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
-    
+
     public async Task MarkInvoiceSentAsync(Guid invoiceId)
     {
         var invoice = await invoices

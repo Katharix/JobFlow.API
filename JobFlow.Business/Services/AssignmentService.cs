@@ -41,7 +41,7 @@ public class AssignmentService : IAssignmentService
         _assignmentAssignees = unitOfWork.RepositoryOf<AssignmentAssignee>();
         _employees = unitOfWork.RepositoryOf<Employee>();
         _jobs = unitOfWork.RepositoryOf<Job>();
-        
+
         _mapper = mapper;
         _onboardingService = onboardingService;
         _workflowSettings = workflowSettings;

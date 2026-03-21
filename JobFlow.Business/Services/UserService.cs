@@ -122,7 +122,7 @@ public class UserService : IUserService
         return Result.Success(user);
     }
 
-    
+
     private static string ResolvePrimaryRole(User user)
     {
         return user.UserRoles

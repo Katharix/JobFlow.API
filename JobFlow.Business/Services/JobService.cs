@@ -111,12 +111,12 @@ public class JobService : IJobService
             .Where(j => j.OrganizationClient.OrganizationId == organizationId)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
-        
+
         var dto = returnedJobs.Select(e => new JobDto
         {
             Id = e.Id,
             OrganizationClientId = e.OrganizationClient.Id,
-            Title =  e.Title,
+            Title = e.Title,
             Comments = e.Comments,
             LifecycleStatus = e.LifecycleStatus,
             InvoicingWorkflow = e.InvoicingWorkflow,
@@ -126,11 +126,11 @@ public class JobService : IJobService
                 ScheduledEnd = a.ScheduledEnd,
                 ActualEnd = a.ActualEnd,
                 ActualStart = a.ActualStart,
-                Id =  a.Id,
-                JobId =  e.Id,
-                JobTitle =   e.Title,
+                Id = a.Id,
+                JobId = e.Id,
+                JobTitle = e.Title,
                 Status = a.Status,
-                OrganizationClientId =  e.OrganizationClientId,
+                OrganizationClientId = e.OrganizationClientId,
                 JobLifecycleStatus = e.LifecycleStatus,
                 Assignees = a.AssignmentAssignees
                     .Select(assignee => new AssignmentAssigneeDto
@@ -145,16 +145,16 @@ public class JobService : IJobService
             }),
             OrganizationClient = new OrganizationClientDto
             {
-                OrganizationId =  e.OrganizationClient.OrganizationId,
-                FirstName =  e.OrganizationClient.FirstName,
-                LastName =  e.OrganizationClient.LastName,
-                EmailAddress =  e.OrganizationClient.EmailAddress,
+                OrganizationId = e.OrganizationClient.OrganizationId,
+                FirstName = e.OrganizationClient.FirstName,
+                LastName = e.OrganizationClient.LastName,
+                EmailAddress = e.OrganizationClient.EmailAddress,
                 PhoneNumber = e.OrganizationClient.PhoneNumber,
-                Address1 =  e.OrganizationClient.Address1,
+                Address1 = e.OrganizationClient.Address1,
                 Address2 = e.OrganizationClient.Address2,
-                City =  e.OrganizationClient.City,
-                State =  e.OrganizationClient.State,    
-                ZipCode =  e.OrganizationClient.ZipCode
+                City = e.OrganizationClient.City,
+                State = e.OrganizationClient.State,
+                ZipCode = e.OrganizationClient.ZipCode
             }
         }).ToList();
         return Result.Success<IEnumerable<JobDto>>(dto);
