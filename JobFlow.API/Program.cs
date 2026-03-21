@@ -9,6 +9,7 @@ using Hangfire.SqlServer;
 using JobFlow.API.Constants;
 using JobFlow.API.Hubs;
 using JobFlow.API.Mappings;
+using JobFlow.API.Services;
 using JobFlow.Business.ConfigurationSettings;
 using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 using JobFlow.Business.DI;
@@ -130,7 +131,8 @@ builder.Services
                 var path = context.HttpContext.Request.Path;
 
                 if (!string.IsNullOrWhiteSpace(accessToken)
-                    && path.StartsWithSegments("/hubs/client-chat"))
+                    && (path.StartsWithSegments("/hubs/client-chat")
+                        || path.StartsWithSegments("/hubs/client-portal")))
                 {
                     context.Token = accessToken;
                 }
@@ -321,6 +323,7 @@ builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOpti
 
 builder.Services.AddMapsterConfiguration();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
+builder.Services.AddScoped<IInvoiceRealtimeNotifier, InvoiceRealtimeNotifier>();
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembly, typeof(IUserService).Assembly);
 
@@ -399,5 +402,6 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<ClientChatHub>("/hubs/client-chat");
 app.MapHub<NotifierHub>("/hubs/notifier");
+app.MapHub<ClientPortalHub>("/hubs/client-portal");
 
 app.Run();

@@ -37,45 +37,61 @@ public class OrganizationClientPortalService : IOrganizationClientPortalService
         _sessions = unitOfWork.RepositoryOf<OrganizationClientPortalSession>();
     }
 
-    public async Task<Result> SendMagicLinkAsync(Guid organizationId, Guid organizationClientId, string emailAddress)
+    public async Task<Result> SendMagicLinkAsync(
+        Guid organizationId,
+        Guid organizationClientId,
+        string emailAddress,
+        string? returnUrl = null)
     {
-        if (organizationId == Guid.Empty || organizationClientId == Guid.Empty)
-            return Result.Failure(Error.Failure("OrganizationClientPortal", "Organization and client are required."));
+        var result = await CreateMagicLinkInternalAsync(
+            organizationId,
+            organizationClientId,
+            emailAddress,
+            returnUrl);
 
-        if (string.IsNullOrWhiteSpace(emailAddress))
-            return Result.Failure(Error.Failure("OrganizationClientPortal", "Email is required."));
+        if (!result.IsSuccess)
+            return Result.Failure(result.Error);
 
-        var client = await _clients.Query()
-            .Include(x => x.Organization)
-            .FirstOrDefaultAsync(x => x.Id == organizationClientId && x.OrganizationId == organizationId);
-
-        if (client is null)
-            return Result.Failure(Error.NotFound("OrganizationClientPortal", "Client not found."));
-
-        if (!string.Equals(client.EmailAddress, emailAddress, StringComparison.OrdinalIgnoreCase))
-            return Result.Failure(Error.Failure("OrganizationClientPortal", "Email does not match client record."));
-
-        var token = OrganizationClientPortalSession.GenerateToken();
-        var tokenHash = HashToken(token);
-
-        var session = new OrganizationClientPortalSession
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = organizationId,
-            OrganizationClientId = organizationClientId,
-            EmailAddress = emailAddress,
-            TokenHash = tokenHash,
-            CreatedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(30)
-        };
-
-        await _sessions.AddAsync(session);
-        await _unitOfWork.SaveChangesAsync();
-        var url = $"{_frontend.BaseUrl}/client-hub/auth?token={token}";
-
-        await _notifications.SendOrganizationClientPortalMagicLinkAsync(client, url);
+        await _notifications.SendOrganizationClientPortalMagicLinkAsync(result.Value.Client, result.Value.Url);
 
         return Result.Success();
+    }
+
+    public async Task<Result<string>> CreateMagicLinkAsync(
+        Guid organizationId,
+        Guid organizationClientId,
+        string emailAddress,
+        string? returnUrl = null)
+    {
+        var result = await CreateMagicLinkInternalAsync(
+            organizationId,
+            organizationClientId,
+            emailAddress,
+            returnUrl);
+
+        return result.IsSuccess
+            ? Result.Success(result.Value.Url)
+            : Result.Failure<string>(result.Error);
+    }
+
+    public async Task<Result<string>> SendMagicLinkWithUrlAsync(
+        Guid organizationId,
+        Guid organizationClientId,
+        string emailAddress,
+        string? returnUrl = null)
+    {
+        var result = await CreateMagicLinkInternalAsync(
+            organizationId,
+            organizationClientId,
+            emailAddress,
+            returnUrl);
+
+        if (!result.IsSuccess)
+            return Result.Failure<string>(result.Error);
+
+        await _notifications.SendOrganizationClientPortalMagicLinkAsync(result.Value.Client, result.Value.Url);
+
+        return Result.Success(result.Value.Url);
     }
 
     public async Task<Result<OrganizationClient>> RedeemMagicLinkAsync(string token)
@@ -106,6 +122,66 @@ public class OrganizationClientPortalService : IOrganizationClientPortalService
             return Result.Failure<OrganizationClient>(Error.NotFound("OrganizationClientPortal", "Client not found."));
 
         return Result.Success(client);
+    }
+
+    private async Task<Result<(OrganizationClient Client, string Url)>> CreateMagicLinkInternalAsync(
+        Guid organizationId,
+        Guid organizationClientId,
+        string emailAddress,
+        string? returnUrl)
+    {
+        if (organizationId == Guid.Empty || organizationClientId == Guid.Empty)
+            return Result.Failure<(OrganizationClient, string)>(
+                Error.Failure("OrganizationClientPortal", "Organization and client are required."));
+
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return Result.Failure<(OrganizationClient, string)>(
+                Error.Failure("OrganizationClientPortal", "Email is required."));
+
+        var client = await _clients.Query()
+            .Include(x => x.Organization)
+            .FirstOrDefaultAsync(x => x.Id == organizationClientId && x.OrganizationId == organizationId);
+
+        if (client is null)
+            return Result.Failure<(OrganizationClient, string)>(
+                Error.NotFound("OrganizationClientPortal", "Client not found."));
+
+        if (!string.Equals(client.EmailAddress, emailAddress, StringComparison.OrdinalIgnoreCase))
+            return Result.Failure<(OrganizationClient, string)>(
+                Error.Failure("OrganizationClientPortal", "Email does not match client record."));
+
+        var token = OrganizationClientPortalSession.GenerateToken();
+        var tokenHash = HashToken(token);
+
+        var session = new OrganizationClientPortalSession
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            OrganizationClientId = organizationClientId,
+            EmailAddress = emailAddress,
+            TokenHash = tokenHash,
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(30)
+        };
+
+        await _sessions.AddAsync(session);
+        await _unitOfWork.SaveChangesAsync();
+
+        var url = BuildMagicLinkUrl(token, returnUrl);
+
+        return Result.Success((client, url));
+    }
+
+    private string BuildMagicLinkUrl(string token, string? returnUrl)
+    {
+        var url = $"{_frontend.BaseUrl}/client-hub/auth?token={token}";
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+            url = $"{url}&returnUrl={encodedReturnUrl}";
+        }
+
+        return url;
     }
 
     private static string HashToken(string token)

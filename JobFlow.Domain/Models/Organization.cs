@@ -19,6 +19,10 @@ public class Organization : Entity
     public bool OnBoardingComplete { get; set; }
     public string? StripeConnectAccountId { get; set; }
     public bool IsStripeConnected { get; set; } = false;
+    public string? OnboardingTrack { get; set; }
+    public string? OnboardingPresetKey { get; set; }
+    public DateTimeOffset? OnboardingTrackSelectedAt { get; set; }
+    public DateTimeOffset? OnboardingPresetAppliedAt { get; set; }
 
     public bool CanAcceptPayments =>
         PaymentProvider == PaymentProvider.Stripe &&

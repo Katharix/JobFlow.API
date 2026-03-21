@@ -21,6 +21,9 @@ internal class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.LifecycleStatus)
             .HasConversion<int>()
             .IsRequired();
+
+        builder.Property(j => j.InvoicingWorkflow)
+            .HasConversion<int>();
         
         // ✅ Relationship with OrganizationClient
         builder.HasOne(j => j.OrganizationClient)

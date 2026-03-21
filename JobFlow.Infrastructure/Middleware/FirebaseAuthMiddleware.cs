@@ -32,7 +32,8 @@ public class FirebaseAuthMiddleware
             path.StartsWith("/api/organizations/retrieve") ||
             path.StartsWith("/api/organization/types") ||
             path.StartsWith("/api/auth/") ||
-            path.StartsWith("/api/client-hub-auth")))
+            path.StartsWith("/api/client-hub-auth") ||
+            path.StartsWith("/api/client-hub")))
         {
             await _next(context);
             return;
@@ -99,6 +100,9 @@ public class FirebaseAuthMiddleware
 
             if (!userResult.IsSuccess)
             {
+                if (context.Response.HasStarted)
+                    return;
+
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("User is not linked to an organization.");
                 return;
@@ -111,6 +115,9 @@ public class FirebaseAuthMiddleware
         }
         catch
         {
+            if (context.Response.HasStarted)
+                return;
+
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }

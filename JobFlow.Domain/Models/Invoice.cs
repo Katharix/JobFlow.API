@@ -7,6 +7,7 @@ public class Invoice : Entity
     public string InvoiceNumber { get; set; }
     public Guid OrganizationId { get; set; }
     public Guid OrganizationClientId { get; set; }
+    public Guid? JobId { get; set; }
     public Guid? OrderId { get; set; }
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }
@@ -19,6 +20,7 @@ public class Invoice : Entity
     public string? ExternalPaymentId { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
     public virtual OrganizationClient OrganizationClient { get; set; }
+    public virtual Job? Job { get; set; }
     public virtual Order Order { get; set; }
     public virtual ICollection<PaymentHistory> Payments { get; set; }
 

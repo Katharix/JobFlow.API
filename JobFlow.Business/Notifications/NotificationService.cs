@@ -79,9 +79,29 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
-    public async Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice)
+    public async Task SendClientInvoiceCreatedNotificationAsync(
+        OrganizationClient client,
+        Invoice invoice,
+        string? linkOverride = null)
     {
         var message = _builder.BuildClientInvoiceCreated(client, invoice);
+        if (!string.IsNullOrWhiteSpace(linkOverride))
+        {
+            message.Link = linkOverride;
+        }
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendClientInvoiceReminderNotificationAsync(
+        OrganizationClient client,
+        Invoice invoice,
+        string? linkOverride = null)
+    {
+        var message = _builder.BuildClientInvoiceReminder(client, invoice);
+        if (!string.IsNullOrWhiteSpace(linkOverride))
+        {
+            message.Link = linkOverride;
+        }
         await SendNotificationAsync(message);
     }
 

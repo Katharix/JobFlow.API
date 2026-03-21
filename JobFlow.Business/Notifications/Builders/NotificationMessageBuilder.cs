@@ -136,6 +136,21 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildClientInvoiceReminder(OrganizationClient client, Invoice invoice)
+    {
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Payment Reminder: Invoice #{invoice.InvoiceNumber}",
+            Body = $"Just a reminder that invoice #{invoice.InvoiceNumber} for {invoice.TotalAmount:C} is still open.",
+            Sms = $"Reminder: invoice #{invoice.InvoiceNumber} is still open.",
+            TemplateId = EmailTemplate.InvoiceReminder,
+            Link = $"{baseUrl}/invoice/view/{invoice.Id}"
+        };
+    }
+
     public NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice)
     {
         return new NotificationMessage

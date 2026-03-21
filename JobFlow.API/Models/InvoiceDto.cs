@@ -9,6 +9,7 @@ public class InvoiceDto
     public string InvoiceNumber { get; set; }
     public Guid OrganizationId { get; set; }
     public Guid OrganizationClientId { get; set; }
+    public Guid? JobId { get; set; }
     public Guid? OrderId { get; set; }
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }

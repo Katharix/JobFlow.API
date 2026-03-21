@@ -14,16 +14,35 @@ namespace JobFlow.Business.Services;
 public class InvoiceService : IInvoiceService
 {
     private readonly IRepository<Invoice> invoices;
+    private readonly IRepository<Estimate> estimates;
+    private readonly IRepository<OrganizationClient> clients;
     private readonly ILogger<InvoiceService> logger;
     private readonly IOnboardingService _onboardingService;
+    private readonly IInvoiceNumberGenerator _numberGenerator;
+    private readonly INotificationService _notifications;
+    private readonly IOrganizationClientPortalService _clientPortal;
+    private readonly IInvoiceRealtimeNotifier? _realtimeNotifier;
     private readonly IUnitOfWork unitOfWork;
 
-    public InvoiceService(ILogger<InvoiceService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService)
+    public InvoiceService(
+        ILogger<InvoiceService> logger,
+        IUnitOfWork unitOfWork,
+        IOnboardingService onboardingService,
+        IInvoiceNumberGenerator numberGenerator,
+        INotificationService notifications,
+        IOrganizationClientPortalService clientPortal,
+        IInvoiceRealtimeNotifier? realtimeNotifier = null)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         invoices = unitOfWork.RepositoryOf<Invoice>();
+        estimates = unitOfWork.RepositoryOf<Estimate>();
+        clients = unitOfWork.RepositoryOf<OrganizationClient>();
         _onboardingService = onboardingService;
+        _numberGenerator = numberGenerator;
+        _notifications = notifications;
+        _clientPortal = clientPortal;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Invoice>> GetInvoiceByIdAsync(Guid id)
@@ -120,10 +139,51 @@ public class InvoiceService : IInvoiceService
         if (invoice == null)
             return;
 
+        if (invoice.Status != InvoiceStatus.Paid)
+        {
+            invoice.Status = InvoiceStatus.Sent;
+            invoices.Update(invoice);
+            await unitOfWork.SaveChangesAsync();
+        }
+
         await _onboardingService.MarkStepCompleteAsync(
             invoice.OrganizationId,
             OnboardingStepKeys.SendInvoice
         );
+    }
+
+    public async Task<Result> SendInvoiceToClientAsync(Guid invoiceId)
+    {
+        var invoiceResult = await GetInvoiceByIdAsync(invoiceId);
+        if (!invoiceResult.IsSuccess)
+            return Result.Failure(invoiceResult.Error);
+
+        await SendInvoiceToClientAsync(invoiceResult.Value);
+        return Result.Success();
+    }
+
+    public async Task<Result> SendInvoiceForJobAsync(Guid organizationId, Job job)
+    {
+        var invoice = await invoices.Query()
+            .Include(i => i.OrganizationClient)
+            .ThenInclude(c => c.Organization)
+            .Include(i => i.LineItems)
+            .FirstOrDefaultAsync(i => i.OrganizationId == organizationId && i.JobId == job.Id);
+
+        if (invoice == null)
+        {
+            var createResult = await CreateInvoiceFromEstimateAsync(organizationId, job);
+            if (createResult.IsFailure)
+                return Result.Failure(createResult.Error);
+
+            invoice = createResult.Value;
+        }
+
+        if (invoice.Status == InvoiceStatus.Paid)
+            return Result.Success();
+
+        await SendInvoiceToClientAsync(invoice);
+        return Result.Success();
     }
     public async Task<Result<Invoice>> MarkPaidAsync(
         Guid invoiceId,
@@ -149,7 +209,90 @@ public class InvoiceService : IInvoiceService
         invoice.ExternalPaymentId = externalPaymentId;
 
         await unitOfWork.SaveChangesAsync();
+
+        if (_realtimeNotifier != null)
+        {
+            await _realtimeNotifier.NotifyInvoicePaidAsync(invoice);
+        }
+
         return Result.Success(invoice);
+    }
+
+    private async Task SendInvoiceToClientAsync(Invoice invoice)
+    {
+        var client = invoice.OrganizationClient;
+        if (client == null)
+            return;
+
+        string? linkOverride = null;
+        var email = client.EmailAddress;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var returnUrl = $"/client-hub/invoices/{invoice.Id}";
+            var linkResult = await _clientPortal.CreateMagicLinkAsync(
+                invoice.OrganizationId,
+                invoice.OrganizationClientId,
+                email,
+                returnUrl);
+
+            if (linkResult.IsSuccess)
+            {
+                linkOverride = linkResult.Value;
+            }
+        }
+
+        await _notifications.SendClientInvoiceCreatedNotificationAsync(client, invoice, linkOverride);
+        await MarkInvoiceSentAsync(invoice.Id);
+    }
+
+    private async Task<Result<Invoice>> CreateInvoiceFromEstimateAsync(Guid organizationId, Job job)
+    {
+        var estimate = await estimates.Query()
+            .Include(e => e.LineItems)
+            .OrderByDescending(e => e.UpdatedAt ?? e.CreatedAt)
+            .FirstOrDefaultAsync(e =>
+                e.OrganizationId == organizationId &&
+                e.OrganizationClientId == job.OrganizationClientId &&
+                e.Status == EstimateStatus.Accepted);
+
+        if (estimate == null)
+            return Result.Failure<Invoice>(EstimateErrors.NotFound);
+
+        var client = await clients.Query()
+            .Include(c => c.Organization)
+            .FirstOrDefaultAsync(c => c.Id == job.OrganizationClientId);
+
+        if (client == null)
+            return Result.Failure<Invoice>(EstimateErrors.ClientNotFound);
+
+        var invoice = new Invoice
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            OrganizationClientId = job.OrganizationClientId,
+            JobId = job.Id,
+            InvoiceNumber = await _numberGenerator.GenerateAsync(organizationId),
+            InvoiceDate = DateTime.UtcNow,
+            DueDate = DateTime.UtcNow.AddDays(14),
+            Status = InvoiceStatus.Draft,
+            OrganizationClient = client,
+            LineItems = estimate.LineItems.Select(li => new InvoiceLineItem
+            {
+                Id = Guid.NewGuid(),
+                Description = string.IsNullOrWhiteSpace(li.Description) ? li.Name : li.Description,
+                Quantity = (int)Math.Round(li.Quantity, MidpointRounding.AwayFromZero),
+                UnitPrice = li.UnitPrice
+            }).ToList()
+        };
+
+        var result = await UpsertInvoiceAsync(invoice);
+        if (!result.IsSuccess)
+            return Result.Failure<Invoice>(result.Error);
+
+        var hydrated = await GetInvoiceByIdAsync(result.Value.Id);
+        return hydrated.IsSuccess
+            ? hydrated
+            : Result.Failure<Invoice>(hydrated.Error);
     }
 
 }

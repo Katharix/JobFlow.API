@@ -5,6 +5,7 @@ namespace JobFlow.Domain.Models;
 public class Job : Entity
 {
     public JobLifecycleStatus LifecycleStatus { get; set; }
+    public InvoicingWorkflow? InvoicingWorkflow { get; set; }
     public string? Title { get; set; }
     public string? Comments { get; set; }
     

@@ -1,4 +1,5 @@
 using JobFlow.API.Extensions;
+using JobFlow.API.Mappings;
 using JobFlow.API.Hubs;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
@@ -19,6 +20,7 @@ namespace JobFlow.API.Controllers;
 [Authorize(AuthenticationSchemes = "ClientPortalJwt", Policy = "OrganizationClientOnly")]
 public class ClientHubController : ControllerBase
 {
+    private readonly ILogger<ClientHubController> _logger;
     private readonly IEstimateService _estimates;
     private readonly IEstimateRevisionService _estimateRevisions;
     private readonly IInvoiceService _invoices;
@@ -29,6 +31,7 @@ public class ClientHubController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
 
     public ClientHubController(
+        ILogger<ClientHubController> logger,
         IEstimateService estimates,
         IEstimateRevisionService estimateRevisions,
         IInvoiceService invoices,
@@ -38,6 +41,7 @@ public class ClientHubController : ControllerBase
         IHubContext<ClientChatHub> clientChatHubContext,
         IUnitOfWork unitOfWork)
     {
+        _logger = logger;
         _estimates = estimates;
         _estimateRevisions = estimateRevisions;
         _invoices = invoices;
@@ -413,7 +417,46 @@ public class ClientHubController : ControllerBase
     {
         var orgClientId = HttpContext.GetUserId();
         var result = await _invoices.GetInvoicesByClientAsync(orgClientId);
-        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        return result.IsSuccess ? Results.Ok(result.Value.ToDto()) : result.ToProblemDetails();
+    }
+
+    [HttpGet("invoices/{id:guid}")]
+    public async Task<IResult> GetMyInvoiceById(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        _logger.LogInformation(
+            "ClientHub invoice detail requested. InvoiceId={InvoiceId} OrgId={OrgId} ClientId={ClientId}",
+            id,
+            organizationId,
+            orgClientId);
+
+        var result = await _invoices.GetInvoiceByIdAsync(id);
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning(
+                "ClientHub invoice not found. InvoiceId={InvoiceId} OrgId={OrgId} ClientId={ClientId}",
+                id,
+                organizationId,
+                orgClientId);
+            return result.ToProblemDetails();
+        }
+
+        var invoice = result.Value;
+        if (invoice.OrganizationId != organizationId || invoice.OrganizationClientId != orgClientId)
+        {
+            _logger.LogWarning(
+                "ClientHub invoice mismatch. InvoiceId={InvoiceId} InvoiceOrgId={InvoiceOrgId} InvoiceClientId={InvoiceClientId} OrgId={OrgId} ClientId={ClientId}",
+                id,
+                invoice.OrganizationId,
+                invoice.OrganizationClientId,
+                organizationId,
+                orgClientId);
+            return Results.NotFound();
+        }
+
+        return Results.Ok(invoice.ToDto());
     }
 
     private async Task<Conversation> FindOrCreateClientConversationAsync(Guid orgClientId, Guid organizationId)
