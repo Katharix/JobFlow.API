@@ -21,7 +21,7 @@ public class OrganizationService : IOrganizationService
     private readonly IRepository<SubscriptionRecord> _subscriptions;
 
     public OrganizationService(
-        IUnitOfWork unitOfWork, 
+        IUnitOfWork unitOfWork,
         ILogger<OrganizationService> logger,
         IOnboardingService onboardingService)
     {

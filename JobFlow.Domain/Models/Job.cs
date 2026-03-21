@@ -8,7 +8,7 @@ public class Job : Entity
     public InvoicingWorkflow? InvoicingWorkflow { get; set; }
     public string? Title { get; set; }
     public string? Comments { get; set; }
-    
+
     public Guid OrganizationClientId { get; set; }
     public virtual OrganizationClient OrganizationClient { get; set; }
 

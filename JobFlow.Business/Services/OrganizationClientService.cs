@@ -141,7 +141,7 @@ public class OrganizationClientService : IOrganizationClientService
         }
 
         await unitOfWork.SaveChangesAsync();
-        
+
         if (!exists)
         {
             await onboardingService.MarkStepCompleteAsync(

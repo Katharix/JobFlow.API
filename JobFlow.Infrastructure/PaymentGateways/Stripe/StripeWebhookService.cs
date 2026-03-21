@@ -42,175 +42,175 @@ public class StripeWebhookService : IStripeWebhookService
     }
 
     public async Task HandleEventAsync(Event stripeEvent)
-{
-    _logger.LogInformation(
-        "Stripe webhook received: EventId={EventId}, Type={Type}, ObjectType={ObjectType}",
-        stripeEvent.Id,
-        stripeEvent.Type,
-        stripeEvent.Data.Object?.GetType().Name
-    );
-
-    switch (stripeEvent.Type)
     {
-        case StripeEvents.CheckoutSessionCompleted:
+        _logger.LogInformation(
+            "Stripe webhook received: EventId={EventId}, Type={Type}, ObjectType={ObjectType}",
+            stripeEvent.Id,
+            stripeEvent.Type,
+            stripeEvent.Data.Object?.GetType().Name
+        );
+
+        switch (stripeEvent.Type)
         {
-            var session = Deserialize<Session>(stripeEvent);
-            if (session != null)
-                await HandleCheckoutSessionAsync(session);
-            break;
-        }
+            case StripeEvents.CheckoutSessionCompleted:
+                {
+                    var session = Deserialize<Session>(stripeEvent);
+                    if (session != null)
+                        await HandleCheckoutSessionAsync(session);
+                    break;
+                }
 
-        case StripeEvents.AccountUpdated:
-        {
-            var account = Deserialize<Account>(stripeEvent);
-            if (account == null) return;
+            case StripeEvents.AccountUpdated:
+                {
+                    var account = Deserialize<Account>(stripeEvent);
+                    if (account == null) return;
 
-            if (account.ChargesEnabled &&
-                account.PayoutsEnabled &&
-                account.DetailsSubmitted)
-            {
-                await _organizationService.MarkStripeConnectedAsync(account.Id);
-            }
-            else
-            {
-                //await _organizationService.MarkStripeDisconnectedAsync(account.Id);
-            }
+                    if (account.ChargesEnabled &&
+                        account.PayoutsEnabled &&
+                        account.DetailsSubmitted)
+                    {
+                        await _organizationService.MarkStripeConnectedAsync(account.Id);
+                    }
+                    else
+                    {
+                        //await _organizationService.MarkStripeDisconnectedAsync(account.Id);
+                    }
 
-            break;
-        }
-
-
-        case StripeEvents.PaymentIntentSucceeded:
-        {
-            var intent = Deserialize<PaymentIntent>(stripeEvent);
-
-            if (intent == null)
-                throw new InvalidOperationException(
-                    $"Stripe webhook deserialization failed. EventId={stripeEvent.Id}, Type={stripeEvent.Type}"
-                );
-
-            await HandlePaymentIntentAsync(intent);
-            break;
-        }
+                    break;
+                }
 
 
-        case StripeEvents.PaymentIntentFailed:
-        {
-            var intent = Deserialize<PaymentIntent>(stripeEvent);
-            if (intent != null)
-                await HandlePaymentIntentFailedAsync(intent);
-            break;
-        }
+            case StripeEvents.PaymentIntentSucceeded:
+                {
+                    var intent = Deserialize<PaymentIntent>(stripeEvent);
 
-        case StripeEvents.ChargeRefunded:
-        {
-            var charge = Deserialize<Charge>(stripeEvent);
-            if (charge != null)
-                await HandleChargeRefundedAsync(charge, stripeEvent.Type);
-            break;
-        }
+                    if (intent == null)
+                        throw new InvalidOperationException(
+                            $"Stripe webhook deserialization failed. EventId={stripeEvent.Id}, Type={stripeEvent.Type}"
+                        );
 
-        case StripeEvents.InvoiceCreated:
-        {
-            var invoice = Deserialize<Invoice>(stripeEvent);
-            if (invoice != null)
-                await HandleInvoiceCreatedAsync(invoice);
-            break;
-        }
+                    await HandlePaymentIntentAsync(intent);
+                    break;
+                }
 
-        case StripeEvents.InvoiceFinalized:
-        {
-            var invoice = Deserialize<Invoice>(stripeEvent);
-            if (invoice != null)
-                await HandleInvoiceFinalizedAsync(invoice);
-            break;
-        }
 
-        case StripeEvents.InvoiceMarkedUncollectible:
-        {
-            var invoice = Deserialize<Invoice>(stripeEvent);
-            if (invoice != null)
-                await HandleInvoiceMarkedUncollectibleAsync(invoice);
-            break;
-        }
+            case StripeEvents.PaymentIntentFailed:
+                {
+                    var intent = Deserialize<PaymentIntent>(stripeEvent);
+                    if (intent != null)
+                        await HandlePaymentIntentFailedAsync(intent);
+                    break;
+                }
 
-        case StripeEvents.CustomerSubscriptionUpdated:
-        {
-            var subscription = Deserialize<Subscription>(stripeEvent);
-            if (subscription != null)
-                await HandleSubscriptionUpdatedAsync(subscription);
-            break;
-        }
+            case StripeEvents.ChargeRefunded:
+                {
+                    var charge = Deserialize<Charge>(stripeEvent);
+                    if (charge != null)
+                        await HandleChargeRefundedAsync(charge, stripeEvent.Type);
+                    break;
+                }
 
-        case StripeEvents.CustomerSubscriptionDeleted:
-        {
-            var subscription = Deserialize<Subscription>(stripeEvent);
-            if (subscription != null)
-                await _subscriptionRecordService.CancelAsync(
-                    subscription.Id,
-                    DateTime.UtcNow
-                );
-            break;
-        }
+            case StripeEvents.InvoiceCreated:
+                {
+                    var invoice = Deserialize<Invoice>(stripeEvent);
+                    if (invoice != null)
+                        await HandleInvoiceCreatedAsync(invoice);
+                    break;
+                }
 
-        case StripeEvents.SubscriptionCreated:
-        {
-            var subscription = Deserialize<Subscription>(stripeEvent);
-            if (subscription != null)
-                await HandleSubscriptionCreatedAsync(subscription);
-            break;
-        }
+            case StripeEvents.InvoiceFinalized:
+                {
+                    var invoice = Deserialize<Invoice>(stripeEvent);
+                    if (invoice != null)
+                        await HandleInvoiceFinalizedAsync(invoice);
+                    break;
+                }
 
-        case StripeEvents.SubscriptionTrialWillEnd:
-        {
-            var subscription = Deserialize<Subscription>(stripeEvent);
-            if (subscription != null)
-                await HandleSubscriptionTrialWillEndAsync(subscription);
-            break;
-        }
+            case StripeEvents.InvoiceMarkedUncollectible:
+                {
+                    var invoice = Deserialize<Invoice>(stripeEvent);
+                    if (invoice != null)
+                        await HandleInvoiceMarkedUncollectibleAsync(invoice);
+                    break;
+                }
 
-        case StripeEvents.CustomerCreated:
-        {
-            var customer = Deserialize<Customer>(stripeEvent);
-            if (customer != null)
-                await HandleCustomerCreatedAsync(customer);
-            break;
-        }
+            case StripeEvents.CustomerSubscriptionUpdated:
+                {
+                    var subscription = Deserialize<Subscription>(stripeEvent);
+                    if (subscription != null)
+                        await HandleSubscriptionUpdatedAsync(subscription);
+                    break;
+                }
 
-        case StripeEvents.CustomerUpdated:
-        {
-            var customer = Deserialize<Customer>(stripeEvent);
-            if (customer != null)
-                await HandleCustomerUpdatedAsync(customer);
-            break;
-        }
+            case StripeEvents.CustomerSubscriptionDeleted:
+                {
+                    var subscription = Deserialize<Subscription>(stripeEvent);
+                    if (subscription != null)
+                        await _subscriptionRecordService.CancelAsync(
+                            subscription.Id,
+                            DateTime.UtcNow
+                        );
+                    break;
+                }
 
-        case StripeEvents.CustomerDeleted:
-        {
-            var customer = Deserialize<Customer>(stripeEvent);
-            if (customer != null)
-                await HandleCustomerDeletedAsync(customer);
-            break;
-        }
+            case StripeEvents.SubscriptionCreated:
+                {
+                    var subscription = Deserialize<Subscription>(stripeEvent);
+                    if (subscription != null)
+                        await HandleSubscriptionCreatedAsync(subscription);
+                    break;
+                }
 
-        case StripeEvents.PaymentMethodAttached:
-        {
-            var method = Deserialize<PaymentMethod>(stripeEvent);
-            if (method != null)
-                await HandlePaymentMethodAttachedAsync(method);
-            break;
-        }
+            case StripeEvents.SubscriptionTrialWillEnd:
+                {
+                    var subscription = Deserialize<Subscription>(stripeEvent);
+                    if (subscription != null)
+                        await HandleSubscriptionTrialWillEndAsync(subscription);
+                    break;
+                }
 
-        case StripeEvents.PaymentMethodDetached:
-        {
-            var method = Deserialize<PaymentMethod>(stripeEvent);
-            if (method != null)
-                await HandlePaymentMethodDetachedAsync(method);
-            break;
+            case StripeEvents.CustomerCreated:
+                {
+                    var customer = Deserialize<Customer>(stripeEvent);
+                    if (customer != null)
+                        await HandleCustomerCreatedAsync(customer);
+                    break;
+                }
+
+            case StripeEvents.CustomerUpdated:
+                {
+                    var customer = Deserialize<Customer>(stripeEvent);
+                    if (customer != null)
+                        await HandleCustomerUpdatedAsync(customer);
+                    break;
+                }
+
+            case StripeEvents.CustomerDeleted:
+                {
+                    var customer = Deserialize<Customer>(stripeEvent);
+                    if (customer != null)
+                        await HandleCustomerDeletedAsync(customer);
+                    break;
+                }
+
+            case StripeEvents.PaymentMethodAttached:
+                {
+                    var method = Deserialize<PaymentMethod>(stripeEvent);
+                    if (method != null)
+                        await HandlePaymentMethodAttachedAsync(method);
+                    break;
+                }
+
+            case StripeEvents.PaymentMethodDetached:
+                {
+                    var method = Deserialize<PaymentMethod>(stripeEvent);
+                    if (method != null)
+                        await HandlePaymentMethodDetachedAsync(method);
+                    break;
+                }
         }
     }
-}
-    
+
     private async Task HandleCheckoutSessionAsync(Session session)
     {
         var subscriptionService = new SubscriptionService();
@@ -247,7 +247,7 @@ public class StripeWebhookService : IStripeWebhookService
 
         if (!Guid.TryParse(invoiceIdRaw, out var invoiceId))
             return;
-        
+
         if (await _invoiceService.IsPaidAsync(invoiceId))
             return;
 
@@ -303,7 +303,7 @@ public class StripeWebhookService : IStripeWebhookService
             PaidAt = DateTime.UtcNow,
             RawEventJson = "{}"
         });
-    } 
+    }
 
     private async Task HandleChargeRefundedAsync(Charge charge, string eventType)
     {
@@ -403,7 +403,7 @@ public class StripeWebhookService : IStripeWebhookService
     {
         // Remove payment method from profile if needed
     }
-    
+
     private static T? Deserialize<T>(Event stripeEvent) where T : StripeEntity
     {
         return stripeEvent.Data.Object as T;
