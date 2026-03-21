@@ -24,6 +24,8 @@ public class ClientHubController : ControllerBase
     private readonly IEstimateService _estimates;
     private readonly IEstimateRevisionService _estimateRevisions;
     private readonly IInvoiceService _invoices;
+    private readonly IJobService _jobs;
+    private readonly IJobUpdateService _jobUpdates;
     private readonly IOrganizationClientService _clients;
     private readonly IHubContext<NotifierHub> _hubContext;
     private readonly IHubContext<ChatHub> _chatHubContext;
@@ -35,6 +37,8 @@ public class ClientHubController : ControllerBase
         IEstimateService estimates,
         IEstimateRevisionService estimateRevisions,
         IInvoiceService invoices,
+        IJobService jobs,
+        IJobUpdateService jobUpdates,
         IOrganizationClientService clients,
         IHubContext<NotifierHub> hubContext,
         IHubContext<ChatHub> chatHubContext,
@@ -45,6 +49,8 @@ public class ClientHubController : ControllerBase
         _estimates = estimates;
         _estimateRevisions = estimateRevisions;
         _invoices = invoices;
+        _jobs = jobs;
+        _jobUpdates = jobUpdates;
         _clients = clients;
         _hubContext = hubContext;
         _chatHubContext = chatHubContext;
@@ -410,6 +416,221 @@ public class ClientHubController : ControllerBase
             return result.ToProblemDetails();
 
         return Results.File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+    }
+
+    [HttpGet("jobs")]
+    public async Task<IResult> GetMyJobs()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var jobsResult = await _jobs.GetJobsForClientAsync(organizationId, orgClientId);
+        if (!jobsResult.IsSuccess)
+            return jobsResult.ToProblemDetails();
+
+        var response = jobsResult.Value
+            .Select(job => new ClientJobSummaryDto(
+                job.Id,
+                job.Title,
+                job.LifecycleStatus,
+                job.CreatedAt,
+                job.UpdatedAt))
+            .ToList();
+
+        return Results.Ok(response);
+    }
+
+    [HttpGet("jobs/{id:guid}")]
+    public async Task<IResult> GetMyJob(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var jobResult = await _jobs.GetJobForClientAsync(id, organizationId, orgClientId);
+        if (!jobResult.IsSuccess)
+            return jobResult.ToProblemDetails();
+
+        var job = jobResult.Value;
+        var response = new ClientJobSummaryDto(
+            job.Id,
+            job.Title,
+            job.LifecycleStatus,
+            job.CreatedAt,
+            job.UpdatedAt);
+
+        return Results.Ok(response);
+    }
+
+    [HttpGet("jobs/{id:guid}/timeline")]
+    public async Task<IResult> GetMyJobTimeline(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var jobResult = await _jobs.GetJobForClientAsync(id, organizationId, orgClientId);
+        if (!jobResult.IsSuccess)
+            return jobResult.ToProblemDetails();
+
+        var job = jobResult.Value;
+        var timeline = new List<JobTimelineItemDto>
+        {
+            new(
+                $"job-created-{job.Id}",
+                "job-created",
+                "Job created",
+                job.Title,
+                ToDateTimeOffset(job.CreatedAt),
+                job.LifecycleStatus.ToString(),
+                null,
+                null,
+                null,
+                null)
+        };
+
+        if (job.UpdatedAt.HasValue && job.UpdatedAt.Value > job.CreatedAt)
+        {
+            timeline.Add(new JobTimelineItemDto(
+                $"job-status-{job.Id}",
+                "status",
+                "Status updated",
+                job.LifecycleStatus.ToString(),
+                ToDateTimeOffset(job.UpdatedAt.Value),
+                job.LifecycleStatus.ToString(),
+                null,
+                null,
+                null,
+                null));
+        }
+
+        if (!string.IsNullOrWhiteSpace(job.Comments))
+        {
+            var noteTimestamp = job.UpdatedAt ?? job.CreatedAt;
+            timeline.Add(new JobTimelineItemDto(
+                $"job-note-{job.Id}",
+                "note",
+                "Job note",
+                job.Comments,
+                ToDateTimeOffset(noteTimestamp),
+                null,
+                null,
+                null,
+                null,
+                null));
+        }
+
+        var updateResult = await _jobUpdates.GetByJobForClientAsync(id, organizationId, orgClientId);
+        if (!updateResult.IsSuccess)
+            return updateResult.ToProblemDetails();
+
+        foreach (var update in updateResult.Value)
+        {
+            var type = update.Type switch
+            {
+                JobUpdateType.StatusChange => "status",
+                JobUpdateType.Photo => "photo",
+                JobUpdateType.System => "system",
+                _ => "note"
+            };
+
+            var title = update.Type switch
+            {
+                JobUpdateType.StatusChange => "Status changed",
+                JobUpdateType.Photo => "Photo update",
+                JobUpdateType.System => "System update",
+                _ => "Job note"
+            };
+
+            var detail = update.Type switch
+            {
+                JobUpdateType.StatusChange => update.Status?.ToString(),
+                JobUpdateType.Photo => update.Attachments.Count > 1
+                    ? $"{update.Attachments.Count} photos shared"
+                    : "Photo shared",
+                _ => update.Message
+            };
+
+            timeline.Add(new JobTimelineItemDto(
+                $"job-update-{update.Id}",
+                type,
+                title,
+                detail,
+                update.OccurredAt,
+                update.Status?.ToString(),
+                null,
+                null,
+                update.Id,
+                update.Attachments.Select(a => new JobTimelineAttachmentDto(
+                    a.Id,
+                    a.FileName,
+                    a.ContentType)).ToList()));
+        }
+
+        var invoicesResult = await _invoices.GetInvoicesByClientAsync(orgClientId);
+        if (!invoicesResult.IsSuccess)
+            return invoicesResult.ToProblemDetails();
+
+        foreach (var invoice in invoicesResult.Value.Where(i => i.JobId == job.Id))
+        {
+            timeline.Add(new JobTimelineItemDto(
+                $"invoice-sent-{invoice.Id}",
+                "invoice-sent",
+                $"Invoice {invoice.InvoiceNumber} sent",
+                "Review and pay when ready.",
+                ToDateTimeOffset(invoice.InvoiceDate),
+                invoice.Status.ToString(),
+                invoice.TotalAmount,
+                invoice.Id,
+                null,
+                null));
+
+            if (invoice.PaidAt.HasValue)
+            {
+                timeline.Add(new JobTimelineItemDto(
+                    $"invoice-paid-{invoice.Id}",
+                    "invoice-paid",
+                    $"Invoice {invoice.InvoiceNumber} paid",
+                    "Payment received. Thank you!",
+                    invoice.PaidAt.Value,
+                    invoice.Status.ToString(),
+                    invoice.AmountPaid,
+                    invoice.Id,
+                    null,
+                    null));
+            }
+        }
+
+        var ordered = timeline
+            .OrderByDescending(item => item.OccurredAt)
+            .ToList();
+
+        return Results.Ok(ordered);
+    }
+
+    [HttpGet("jobs/{jobId:guid}/updates/{updateId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IResult> DownloadJobUpdateAttachment(
+        Guid jobId,
+        Guid updateId,
+        Guid attachmentId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var result = await _jobUpdates.GetAttachmentAsync(
+            jobId,
+            updateId,
+            attachmentId,
+            organizationId,
+            orgClientId);
+
+        return result.IsSuccess
+            ? Results.File(result.Value.Content, result.Value.ContentType, result.Value.FileName)
+            : result.ToProblemDetails();
+    }
+
+    private static DateTimeOffset ToDateTimeOffset(DateTime value)
+    {
+        var utc = DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        return new DateTimeOffset(utc);
     }
 
     [HttpGet("invoices")]

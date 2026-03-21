@@ -17,4 +17,5 @@ public class Job : Entity
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
     public virtual ICollection<JobTracking> JobTrackings { get; set; } = new List<JobTracking>();
+    public virtual ICollection<JobUpdate> JobUpdates { get; set; } = new List<JobUpdate>();
 }
