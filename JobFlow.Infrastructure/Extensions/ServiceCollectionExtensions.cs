@@ -15,6 +15,12 @@ public static class ServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("api-key", brevoSettings.ApiKey);
         });
 
+        services.AddHttpClient(JobFlowNamedClient.OpenMeteo, client =>
+        {
+            client.BaseAddress = new Uri("https://api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+
         return services;
     }
 }

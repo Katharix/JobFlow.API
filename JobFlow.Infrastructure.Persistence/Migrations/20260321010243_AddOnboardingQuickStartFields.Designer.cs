@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321010243_AddOnboardingQuickStartFields")]
+    partial class AddOnboardingQuickStartFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -852,9 +855,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("JobId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
@@ -884,8 +884,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("JobId");
 
                     b.HasIndex("OrderId");
 
@@ -995,9 +993,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("DeactivatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("InvoicingWorkflow")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -1460,46 +1455,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("OrganizationClientPortalSession");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.OrganizationInvoicingSettings", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeactivatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DefaultWorkflow")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("OrganizationInvoicingSettings");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationOnboardingStep", b =>
@@ -2284,10 +2239,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("JobFlow.Domain.Models.Invoice", b =>
                 {
-                    b.HasOne("JobFlow.Domain.Models.Job", "Job")
-                        .WithMany()
-                        .HasForeignKey("JobId");
-
                     b.HasOne("JobFlow.Domain.Models.Order", "Order")
                         .WithMany("Invoices")
                         .HasForeignKey("OrderId");
@@ -2297,8 +2248,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasForeignKey("OrganizationClientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Job");
 
                     b.Navigation("Order");
 

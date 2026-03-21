@@ -18,6 +18,8 @@ public class JobService : IJobService
     private readonly IRepository<Job> jobs;
     private readonly ILogger<JobService> logger;
     private readonly IOnboardingService onboardingService;
+    private readonly IInvoicingSettingsService _invoicingSettings;
+    private readonly IInvoiceService _invoiceService;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
 
@@ -25,12 +27,16 @@ public class JobService : IJobService
         ILogger<JobService> logger,
         IUnitOfWork unitOfWork,
         IOnboardingService onboardingService,
+        IInvoicingSettingsService invoicingSettings,
+        IInvoiceService invoiceService,
         IMapper mapper)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         this.onboardingService = onboardingService;
         jobs = unitOfWork.RepositoryOf<Job>();
+        _invoicingSettings = invoicingSettings;
+        _invoiceService = invoiceService;
         _mapper = mapper;
     }
 
@@ -80,6 +86,7 @@ public class JobService : IJobService
             Title =  e.Title,
             Comments = e.Comments,
             LifecycleStatus = e.LifecycleStatus,
+            InvoicingWorkflow = e.InvoicingWorkflow,
             Assignments = e.Assignments.Select(a => new AssignmentDto
             {
                 ScheduledStart = a.ScheduledStart,
@@ -138,6 +145,7 @@ public class JobService : IJobService
             existingModel.Comments = model.Comments;
             existingModel.Latitude = model.Latitude;
             existingModel.Longitude = model.Longitude;
+            existingModel.InvoicingWorkflow = model.InvoicingWorkflow;
 
             jobs.Update(existingModel);
         }
@@ -186,6 +194,41 @@ public class JobService : IJobService
         jobs.Update(job);
         await unitOfWork.SaveChangesAsync();
 
+        if (status == JobLifecycleStatus.Completed)
+        {
+            await HandleJobCompletedAsync(organizationId, job);
+        }
+
         return Result.Success(job);
+    }
+
+    private async Task HandleJobCompletedAsync(Guid organizationId, Job job)
+    {
+        var workflow = job.InvoicingWorkflow;
+        if (workflow == null)
+        {
+            var settingsResult = await _invoicingSettings.GetInvoicingSettingsAsync(organizationId);
+            if (settingsResult.IsSuccess)
+            {
+                workflow = settingsResult.Value.DefaultWorkflow;
+            }
+        }
+
+        if (workflow == null)
+        {
+            workflow = InvoicingWorkflow.SendInvoice;
+        }
+
+        if (workflow == InvoicingWorkflow.InPerson)
+            return;
+
+        var sendResult = await _invoiceService.SendInvoiceForJobAsync(organizationId, job);
+        if (sendResult.IsFailure)
+        {
+            logger.LogWarning(
+                "Invoice auto-send failed for completed job {JobId}: {Error}",
+                job.Id,
+                sendResult.Error.Description);
+        }
     }
 }

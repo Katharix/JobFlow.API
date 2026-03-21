@@ -24,5 +24,7 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 
         builder.Property(i => i.Status)
             .IsRequired();
+
+        builder.HasIndex(i => i.JobId);
     }
 }

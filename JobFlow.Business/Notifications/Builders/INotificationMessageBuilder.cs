@@ -20,6 +20,7 @@ public interface INotificationMessageBuilder
         DateTimeOffset newStart,
         DateTimeOffset? newEnd);
     NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice);
+    NotificationMessage BuildClientInvoiceReminder(OrganizationClient client, Invoice invoice);
     NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice);
 
     NotificationMessage BuildClientJobTrackingEta(OrganizationClient client, Job job, int etaMinutes);

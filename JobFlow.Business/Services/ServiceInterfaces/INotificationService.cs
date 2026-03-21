@@ -20,7 +20,8 @@ public interface INotificationService
         DateTimeOffset? previousEnd,
         DateTimeOffset newStart,
         DateTimeOffset? newEnd);
-    Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice);
+    Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice, string? linkOverride = null);
+    Task SendClientInvoiceReminderNotificationAsync(OrganizationClient client, Invoice invoice, string? linkOverride = null);
     Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
     Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes);
     Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job);

@@ -1,4 +1,5 @@
 ﻿using JobFlow.API.Models;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Domain.Models;
 
 namespace JobFlow.API.Mappings;
@@ -12,6 +13,7 @@ public static class InvoiceMappingExtensions
             Id = Guid.NewGuid(),
             OrganizationId = request.OrganizationId,
             OrganizationClientId = request.OrganizationClientId.Value,
+            JobId = request.JobId,
             InvoiceNumber = invoiceNumber,
             InvoiceDate = DateTime.UtcNow,
             DueDate = request.DueDate,
@@ -38,6 +40,7 @@ public static class InvoiceMappingExtensions
             InvoiceNumber = invoice.InvoiceNumber,
             OrganizationId = invoice.OrganizationId,
             OrganizationClientId = invoice.OrganizationClientId,
+            JobId = invoice.JobId,
             OrderId = invoice.OrderId,
             InvoiceDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate,
@@ -45,8 +48,32 @@ public static class InvoiceMappingExtensions
             AmountPaid = invoice.AmountPaid,
             BalanceDue = invoice.BalanceDue,
             Status = invoice.Status,
+            PaymentProvider = invoice.PaymentProvider,
             ExternalPaymentId = invoice.ExternalPaymentId,
-
+            PaidAt = invoice.PaidAt,
+            OrganizationClient = invoice.OrganizationClient == null
+                ? new OrganizationClientDto { Id = invoice.OrganizationClientId }
+                : new OrganizationClientDto
+                {
+                    Id = invoice.OrganizationClient.Id,
+                    OrganizationId = invoice.OrganizationClient.OrganizationId,
+                    FirstName = invoice.OrganizationClient.FirstName,
+                    LastName = invoice.OrganizationClient.LastName,
+                    EmailAddress = invoice.OrganizationClient.EmailAddress,
+                    PhoneNumber = invoice.OrganizationClient.PhoneNumber,
+                    Address1 = invoice.OrganizationClient.Address1,
+                    Address2 = invoice.OrganizationClient.Address2,
+                    City = invoice.OrganizationClient.City,
+                    State = invoice.OrganizationClient.State,
+                    ZipCode = invoice.OrganizationClient.ZipCode,
+                    Organization = invoice.OrganizationClient.Organization == null
+                        ? null
+                        : new OrganizationDto
+                        {
+                            Id = invoice.OrganizationClient.Organization.Id,
+                            OrganizationName = invoice.OrganizationClient.Organization.OrganizationName
+                        }
+                },
             LineItems = invoice.LineItems.Select(li => li.ToDto()).ToList()
         };
     }

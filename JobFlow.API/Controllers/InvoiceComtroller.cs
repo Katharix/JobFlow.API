@@ -15,6 +15,7 @@ public class InvoiceController : ControllerBase
     private readonly IInvoiceLineItemService lineItemService;
     private readonly IJobService _jobService;
     private readonly INotificationService notificationService;
+    private readonly IOrganizationClientPortalService _clientPortal;
     private readonly IInvoiceNumberGenerator numberGenerator;
     private readonly IPdfGenerator pdfGenerator;
     private readonly IMapper _mapper;
@@ -25,6 +26,7 @@ public class InvoiceController : ControllerBase
         IInvoiceNumberGenerator numberGenerator,
         IPdfGenerator pdfGenerator,
         INotificationService notificationService,
+        IOrganizationClientPortalService clientPortal,
         IJobService jobService,
         IMapper mapper
         )
@@ -34,6 +36,7 @@ public class InvoiceController : ControllerBase
         this.numberGenerator = numberGenerator;
         this.pdfGenerator = pdfGenerator;
         this.notificationService = notificationService;
+        _clientPortal = clientPortal;
         this._jobService = jobService;
         this._mapper = mapper;
     }
@@ -79,9 +82,16 @@ public class InvoiceController : ControllerBase
 
         var result = await invoiceService.UpsertInvoiceAsync(invoice);
 
-        return result.IsSuccess
-            ? Ok(result.Value.ToDto())
-            : BadRequest(result.Error);
+        if (!result.IsSuccess)
+            return BadRequest(result.Error);
+
+        var hydratedInvoice = await invoiceService.GetInvoiceByIdAsync(result.Value.Id);
+        if (hydratedInvoice.IsSuccess)
+        {
+            await invoiceService.SendInvoiceToClientAsync(hydratedInvoice.Value.Id);
+        }
+
+        return Ok(result.Value.ToDto());
     }
 
     [HttpPost("organization")]
@@ -101,14 +111,42 @@ public class InvoiceController : ControllerBase
         if (!result.IsSuccess)
             return NotFound(result.Error);
 
+        await invoiceService.SendInvoiceToClientAsync(result.Value.Id);
+
+        return Ok();
+    }
+
+    [HttpPost("{id:guid}/remind")]
+    public async Task<IActionResult> SendInvoiceReminder(Guid id)
+    {
+        var result = await invoiceService.GetInvoiceByIdAsync(id);
+        if (!result.IsSuccess)
+            return NotFound(result.Error);
+
         var invoice = result.Value;
 
-        await notificationService.SendClientInvoiceCreatedNotificationAsync(
-            invoice.OrganizationClient,
-            invoice
-        );
+        string? linkOverride = null;
+        var email = invoice.OrganizationClient?.EmailAddress;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var returnUrl = $"/client-hub/invoices/{invoice.Id}";
+            var linkResult = await _clientPortal.CreateMagicLinkAsync(
+                invoice.OrganizationId,
+                invoice.OrganizationClientId,
+                email,
+                returnUrl);
 
-        await invoiceService.MarkInvoiceSentAsync(invoice.Id);
+            if (linkResult.IsSuccess)
+            {
+                linkOverride = linkResult.Value;
+            }
+        }
+
+        await notificationService.SendClientInvoiceReminderNotificationAsync(
+            invoice.OrganizationClient,
+            invoice,
+            linkOverride
+        );
 
         return Ok();
     }
@@ -133,7 +171,7 @@ public class InvoiceController : ControllerBase
         //46455c4d-58c0-49ef-b18a-84704dbd50aa
         var pdf = await pdfGenerator.GenerateInvoicePdfAsync(result.Value);
         var invoice = result.Value;
-        await notificationService.SendClientInvoiceCreatedNotificationAsync(invoice.OrganizationClient, invoice);
+        await invoiceService.SendInvoiceToClientAsync(invoice.Id);
         var pdfName = $"{invoice.OrganizationClient.Organization.OrganizationName}-Invoice-{invoice.InvoiceNumber}.pdf";
         return File(pdf, "application/pdf", $"{pdfName}");
     }

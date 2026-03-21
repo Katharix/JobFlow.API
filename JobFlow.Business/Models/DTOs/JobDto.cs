@@ -8,6 +8,7 @@ public class JobDto
     public string? Title { get; set; }
     public string? Comments { get; set; }
     public JobLifecycleStatus LifecycleStatus { get; set; }
+    public InvoicingWorkflow? InvoicingWorkflow { get; set; }
     public Guid OrganizationClientId { get; set; }
     public OrganizationClientDto? OrganizationClient { get; set; }
     

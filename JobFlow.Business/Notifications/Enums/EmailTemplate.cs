@@ -5,6 +5,7 @@ public enum EmailTemplate
     Default = 0,
     OrganizationWelcome = 2,
     InvoiceCreated = 3,
+    InvoiceReminder = 6,
     OnTheWayNotification = 4,
     ArrivalNotification = 5
 }

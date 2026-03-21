@@ -7,5 +7,6 @@ public class InvoiceLineItem : Entity
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal LineTotal => UnitPrice * Quantity;
+    [System.Text.Json.Serialization.JsonIgnore]
     public virtual Invoice Invoice { get; set; } = null!;
 }

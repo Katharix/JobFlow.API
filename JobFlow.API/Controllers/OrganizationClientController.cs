@@ -97,8 +97,14 @@ public class OrganizationClientController : ControllerBase
         if (string.IsNullOrWhiteSpace(clientResult.Value.EmailAddress))
             return Results.BadRequest("Client email address is required.");
 
-        var result = await _clientPortal.SendMagicLinkAsync(organizationId, organizationClientId, clientResult.Value.EmailAddress);
-        return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
+        var result = await _clientPortal.SendMagicLinkWithUrlAsync(
+            organizationId,
+            organizationClientId,
+            clientResult.Value.EmailAddress);
+
+        return result.IsSuccess
+            ? Results.Ok(new { magicLink = result.Value })
+            : result.ToProblemDetails();
     }
 
     [HttpPost]

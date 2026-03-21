@@ -73,6 +73,36 @@ public class PaymentController : ControllerBase
         var org = await _organizationService.GetOrganiztionById(orgId);
         if (org.IsFailure) return NotFound("Organization not found.");
 
+        if (request.InvoiceId.HasValue)
+        {
+            var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(request.InvoiceId.Value);
+            if (!invoiceResult.IsSuccess)
+                return NotFound("Invoice not found.");
+
+            var invoice = invoiceResult.Value;
+            if (invoice.OrganizationId != orgId)
+                return Unauthorized();
+
+            if (User.IsInRole(UserRoles.OrganizationClient))
+            {
+                var clientId = HttpContext.GetUserId();
+                if (invoice.OrganizationClientId != clientId)
+                    return Unauthorized();
+            }
+
+            if (!request.Amount.HasValue)
+            {
+                request.Amount = invoice.BalanceDue;
+            }
+
+            if (request.Amount <= 0)
+                return BadRequest("Payment amount is required.");
+
+            request.OrganizationId = invoice.OrganizationId;
+            request.OrganizationClientId = invoice.OrganizationClientId;
+            request.ProductName ??= $"Invoice {invoice.InvoiceNumber}";
+        }
+
         var processor = _processorFactory.GetProcessor(org.Value.PaymentProvider.ToString());
 
         string checkoutUrl;

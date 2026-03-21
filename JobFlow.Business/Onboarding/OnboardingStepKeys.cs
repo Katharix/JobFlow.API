@@ -2,6 +2,8 @@
 
 public static class OnboardingStepKeys
 {
+    public const string ChooseTrack = "choose_track";
+    public const string ChooseIndustryPreset = "choose_industry_preset";
     public const string CreateCustomer = "create_customer";
     public const string CreateJob = "create_job";
     public const string ScheduleJob = "schedule_job";
