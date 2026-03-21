@@ -54,6 +54,24 @@ public class JobService : IJobService
         return Result.Success(job);
     }
 
+    public async Task<Result<Job>> GetJobForClientAsync(
+        Guid id,
+        Guid organizationId,
+        Guid organizationClientId)
+    {
+        var job = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j =>
+                j.Id == id &&
+                j.OrganizationClient.OrganizationId == organizationId &&
+                j.OrganizationClientId == organizationClientId);
+
+        if (job == null)
+            return Result.Failure<Job>(JobErrors.NotFound);
+
+        return Result.Success(job);
+    }
+
     public async Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(
         Guid organizationId,
         JobLifecycleStatus status)
@@ -63,6 +81,21 @@ public class JobService : IJobService
             .Where(j =>
                 j.LifecycleStatus == status &&
                 j.OrganizationClient.OrganizationId == organizationId)
+            .ToListAsync();
+
+        return Result.Success<IEnumerable<Job>>(list);
+    }
+
+    public async Task<Result<IEnumerable<Job>>> GetJobsForClientAsync(
+        Guid organizationId,
+        Guid organizationClientId)
+    {
+        var list = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .Where(j =>
+                j.OrganizationClient.OrganizationId == organizationId &&
+                j.OrganizationClientId == organizationClientId)
+            .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
 
         return Result.Success<IEnumerable<Job>>(list);

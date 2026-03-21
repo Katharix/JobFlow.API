@@ -5,6 +5,7 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using MapsterMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -15,12 +16,18 @@ public class JobController : ControllerBase
 {
     private readonly IJobService _jobService;
     private readonly IJobRecurrenceService _recurrenceService;
+    private readonly IJobUpdateService _jobUpdates;
     private readonly IMapper _mapper;
 
-    public JobController(IJobService jobService, IJobRecurrenceService recurrenceService, IMapper mapper)
+    public JobController(
+        IJobService jobService,
+        IJobRecurrenceService recurrenceService,
+        IJobUpdateService jobUpdates,
+        IMapper mapper)
     {
         _jobService = jobService;
         _recurrenceService = recurrenceService;
+        _jobUpdates = jobUpdates;
         _mapper = mapper;
     }
 
@@ -128,5 +135,84 @@ public class JobController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpGet("{jobId:guid}/updates")]
+    public async Task<IActionResult> GetJobUpdates(Guid jobId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await _jobUpdates.GetByJobAsync(jobId, organizationId);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("{jobId:guid}/updates")]
+    [RequestSizeLimit(55_000_000)]
+    public async Task<IActionResult> CreateJobUpdate(
+        Guid jobId,
+        [FromForm] CreateJobUpdateFormRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var uploads = new List<JobUpdateAttachmentUpload>();
+        if (request.Attachments is not null)
+        {
+            foreach (var file in request.Attachments)
+            {
+                if (file.Length <= 0)
+                    continue;
+
+                await using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+
+                uploads.Add(new JobUpdateAttachmentUpload(
+                    file.FileName,
+                    file.ContentType,
+                    stream.ToArray(),
+                    file.Length));
+            }
+        }
+
+        var createRequest = new CreateJobUpdateRequest(
+            request.Type,
+            request.Message,
+            request.Status,
+            uploads);
+
+        var result = await _jobUpdates.CreateAsync(jobId, organizationId, createRequest);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("{jobId:guid}/updates/{updateId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadJobUpdateAttachment(
+        Guid jobId,
+        Guid updateId,
+        Guid attachmentId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await _jobUpdates.GetAttachmentAsync(jobId, updateId, attachmentId, organizationId);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+    }
+
 
 }
+
+public record CreateJobUpdateFormRequest(
+    JobUpdateType Type,
+    string? Message,
+    JobLifecycleStatus? Status,
+    List<IFormFile>? Attachments);
