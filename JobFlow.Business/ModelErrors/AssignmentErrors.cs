@@ -50,6 +50,12 @@ public static class AssignmentErrors
             "Scheduled end date and time must be after the scheduled start."
         );
 
+    public static readonly Error ScheduleConflictWithBuffer =
+        Error.Validation(
+            "Assignment.ScheduleConflictWithBuffer",
+            "This schedule overlaps another assignment when travel buffer is applied."
+        );
+
     // ─────────────────────────────────────────────
     // Status / Lifecycle
     // ─────────────────────────────────────────────

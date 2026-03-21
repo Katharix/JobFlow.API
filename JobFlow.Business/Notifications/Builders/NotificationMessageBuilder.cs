@@ -99,6 +99,28 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildClientJobRescheduled(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd)
+    {
+        var previousSlot = FormatScheduleRange(previousStart, previousEnd);
+        var nextSlot = FormatScheduleRange(newStart, newEnd);
+
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Appointment Updated: {job.Title}",
+            Body = $"Your appointment was rescheduled from {previousSlot} to {nextSlot}.",
+            Sms = $"Appointment updated: {nextSlot}."
+        };
+    }
+
     public NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice)
     {
         return new NotificationMessage
@@ -247,5 +269,18 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Link = magicLink,
             TemplateId = EmailTemplate.OrganizationWelcome
         };
+    }
+
+    private static string FormatScheduleRange(DateTimeOffset start, DateTimeOffset? end)
+    {
+        var localStart = start.ToLocalTime();
+        var localEnd = (end ?? start).ToLocalTime();
+
+        if (localStart.Date == localEnd.Date)
+        {
+            return $"{localStart:MMM dd, yyyy} {localStart:t} - {localEnd:t}";
+        }
+
+        return $"{localStart:MMM dd, yyyy h:mm tt} - {localEnd:MMM dd, yyyy h:mm tt}";
     }
 }

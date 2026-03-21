@@ -27,6 +27,8 @@ public class AssignmentDto
     public JobLifecycleStatus JobLifecycleStatus { get; set; }
     public List<AssignmentAssigneeDto> Assignees { get; set; } = new();
 
+    public string? StatusLabel { get; set; }
+
     // Useful for UI calendar
     public string? JobTitle { get; set; }
     public Guid OrganizationClientId { get; set; }

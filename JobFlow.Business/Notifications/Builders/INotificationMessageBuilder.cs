@@ -12,6 +12,13 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildClientWelcome(OrganizationClient client);
     NotificationMessage BuildClientJobCreated(OrganizationClient client, Job job);
     NotificationMessage BuildClientJobScheduled(OrganizationClient client, Job job);
+    NotificationMessage BuildClientJobRescheduled(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd);
     NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice);
     NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice);
 

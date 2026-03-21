@@ -13,6 +13,13 @@ public interface INotificationService
     Task SendClientWelcomeNotificationAsync(OrganizationClient client);
     Task SendClientJobCreatedNotificationAsync(OrganizationClient client, Job job);
     Task SendClientJobScheduledNotificationAsync(OrganizationClient client, Job job);
+    Task SendClientJobRescheduledNotificationAsync(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd);
     Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice);
     Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice);
     Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes);

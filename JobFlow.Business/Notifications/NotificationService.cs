@@ -67,6 +67,18 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendClientJobRescheduledNotificationAsync(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd)
+    {
+        var message = _builder.BuildClientJobRescheduled(client, job, previousStart, previousEnd, newStart, newEnd);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice)
     {
         var message = _builder.BuildClientInvoiceCreated(client, invoice);
