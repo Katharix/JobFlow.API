@@ -50,6 +50,11 @@ public class EmailController : ControllerBase
         [FromServices] ICaptchaVerificationService captchaService,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.CaptchaToken))
+        {
+            return BadRequest(new { message = "Captcha token is required." });
+        }
+
         var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
         var verification = await captchaService.VerifyAsync(

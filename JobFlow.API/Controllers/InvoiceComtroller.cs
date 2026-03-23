@@ -125,8 +125,15 @@ public class InvoiceController : ControllerBase
 
         var invoice = result.Value;
 
+        if (invoice.OrganizationClient is null)
+            return BadRequest("Invoice client is missing.");
+
+        if (invoice.OrganizationClient is null)
+            return BadRequest("Invoice client is missing.");
+
+        var client = invoice.OrganizationClient;
         string? linkOverride = null;
-        var email = invoice.OrganizationClient?.EmailAddress;
+        var email = client.EmailAddress;
         if (!string.IsNullOrWhiteSpace(email))
         {
             var returnUrl = $"/client-hub/invoices/{invoice.Id}";
@@ -143,7 +150,7 @@ public class InvoiceController : ControllerBase
         }
 
         await notificationService.SendClientInvoiceReminderNotificationAsync(
-            invoice.OrganizationClient,
+            client,
             invoice,
             linkOverride
         );

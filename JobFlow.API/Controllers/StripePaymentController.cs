@@ -112,5 +112,5 @@ public class StripePaymentController : ControllerBase
 
 public class AccountLinkPostBody
 {
-    public string Account { get; set; }
+    public string Account { get; set; } = string.Empty;
 }

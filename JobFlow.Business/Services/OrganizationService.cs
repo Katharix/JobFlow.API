@@ -126,4 +126,19 @@ public class OrganizationService : IOrganizationService
 
         return Result.Success(model);
     }
+
+    public async Task<Result<Organization>> UpdateIndustryAsync(Guid organizationId, string? industryKey)
+    {
+        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        if (organization == null)
+        {
+            return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
+        }
+
+        organization.IndustryKey = string.IsNullOrWhiteSpace(industryKey) ? null : industryKey.Trim();
+        _unitOfWork.RepositoryOf<Organization>().Update(organization);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success(organization);
+    }
 }

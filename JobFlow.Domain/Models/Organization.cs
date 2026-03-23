@@ -23,6 +23,7 @@ public class Organization : Entity
     public string? OnboardingPresetKey { get; set; }
     public DateTimeOffset? OnboardingTrackSelectedAt { get; set; }
     public DateTimeOffset? OnboardingPresetAppliedAt { get; set; }
+    public string? IndustryKey { get; set; }
 
     public bool CanAcceptPayments =>
         PaymentProvider == PaymentProvider.Stripe &&

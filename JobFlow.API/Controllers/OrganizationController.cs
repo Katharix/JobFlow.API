@@ -58,6 +58,15 @@ public class OrganizationController : ControllerBase
     {
         try
         {
+            if (!model.Id.HasValue)
+                return Results.BadRequest("Organization id is required.");
+
+            if (string.IsNullOrWhiteSpace(model.UserRole))
+                return Results.BadRequest("User role is required.");
+
+            if (string.IsNullOrWhiteSpace(model.FireBaseUid))
+                return Results.BadRequest("Firebase uid is required.");
+
             var user = new User
             {
                 Email = model.EmailAddress,
@@ -93,12 +102,33 @@ public class OrganizationController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [HttpPut]
+    [Route("industry")]
+    public async Task<IResult> UpdateIndustry([FromBody] OrganizationIndustryUpdateDto request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _organizationService.UpdateIndustryAsync(organizationId, request.IndustryKey);
+        if (result.IsFailure)
+        {
+            return result.ToProblemDetails();
+        }
+
+        var dtoResult = await _organizationService.GetOrganizationDtoById(organizationId);
+        return dtoResult.IsSuccess ? Results.Ok(dtoResult.Value) : dtoResult.ToProblemDetails();
+    }
+
     [HttpPost]
     [Route("onboarding")]
     public async Task<IResult> OrganizationOnboarding([FromBody] OnboardingDto onboarding)
     {
         var orgResult = await _organizationService.GetAllOrganizations();
         var ownerId = orgResult.Value.FirstOrDefault(e => e.OrganizationType?.TypeName == "Master Account")?.Id;
+        if (!ownerId.HasValue)
+            return Results.Problem("Master account not found.");
+
+        var paymentProfileDto = onboarding.PaymentProfile;
+        if (paymentProfileDto is null)
+            return Results.Problem("Payment profile is required.");
         var org = new Organization
         {
             Id = onboarding.OrganizationId,
@@ -106,21 +136,25 @@ public class OrganizationController : ControllerBase
             EnableTax = onboarding.EnableTax,
             OnBoardingComplete = onboarding.OnboardingComplete
         };
-        var branding = new OrganizationBranding
+        OrganizationBranding? branding = null;
+        if (onboarding.Branding is not null)
         {
-            LogoUrl = onboarding?.Branding?.LogoUrl,
-            FooterNote = onboarding?.Branding?.FooterNote,
-            PrimaryColor = onboarding?.Branding?.PrimaryColor,
-            SecondaryColor = onboarding?.Branding?.SecondaryColor,
-            Tagline = onboarding?.Branding?.Tagline,
-            CreatedAt = DateTime.UtcNow
-        };
+            branding = new OrganizationBranding
+            {
+                LogoUrl = onboarding.Branding.LogoUrl,
+                FooterNote = onboarding.Branding.FooterNote,
+                PrimaryColor = onboarding.Branding.PrimaryColor,
+                SecondaryColor = onboarding.Branding.SecondaryColor,
+                Tagline = onboarding.Branding.Tagline,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
         var paymentProfile = new CustomerPaymentProfile
         {
             OwnerType = PaymentEntityType.Organization,
             OwnerId = ownerId.Value,
-            Provider = onboarding.PaymentProfile.Provider,
-            ProviderCustomerId = onboarding.PaymentProfile.ProviderCustomerId,
+            Provider = paymentProfileDto.Provider,
+            ProviderCustomerId = paymentProfileDto.ProviderCustomerId,
             CreatedAt = DateTime.UtcNow
         };
 

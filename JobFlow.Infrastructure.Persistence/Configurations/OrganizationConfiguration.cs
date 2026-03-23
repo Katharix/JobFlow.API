@@ -12,6 +12,8 @@ internal class OrganizationConfiguration : IEntityTypeConfiguration<Organization
         builder.HasKey(e => e.Id);
         builder.Property(x => x.DefaultTaxRate)
             .HasPrecision(18, 2);
+        builder.Property(x => x.IndustryKey)
+            .HasMaxLength(80);
         builder.HasOne(e => e.OrganizationType)
             .WithMany()
             .HasForeignKey(e => e.OrganizationTypeId)

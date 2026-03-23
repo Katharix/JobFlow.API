@@ -380,7 +380,7 @@ public class PaymentController : ControllerBase
                 _stripeSettings.WebhookKey
             );
         }
-        catch (StripeException e)
+        catch (StripeException)
         {
             return BadRequest();
         }

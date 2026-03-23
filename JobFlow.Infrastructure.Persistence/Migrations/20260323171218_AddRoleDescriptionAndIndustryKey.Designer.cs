@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260323171218_AddRoleDescriptionAndIndustryKey")]
+    partial class AddRoleDescriptionAndIndustryKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -509,306 +512,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("EmployeeRoles", (string)null);
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePreset", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeactivatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(240)
-                        .HasColumnType("nvarchar(240)");
-
-                    b.Property<string>("IndustryKey")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<Guid?>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.ToTable("EmployeeRolePresets", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("1a2b3c4d-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Default roles for field service teams.",
-                            IndustryKey = "home-services",
-                            IsActive = true,
-                            IsSystem = true,
-                            Name = "Home services"
-                        },
-                        new
-                        {
-                            Id = new Guid("1a2b3c4d-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Default roles for creative studios.",
-                            IndustryKey = "creative",
-                            IsActive = true,
-                            IsSystem = true,
-                            Name = "Creative"
-                        },
-                        new
-                        {
-                            Id = new Guid("1a2b3c4d-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Default roles for consulting teams.",
-                            IndustryKey = "consulting",
-                            IsActive = true,
-                            IsSystem = true,
-                            Name = "Consulting"
-                        },
-                        new
-                        {
-                            Id = new Guid("1a2b3c4d-4444-4444-4444-444444444444"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Default roles for repair shops.",
-                            IndustryKey = "tech-repair",
-                            IsActive = true,
-                            IsSystem = true,
-                            Name = "Tech repair"
-                        });
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePresetItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeactivatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(240)
-                        .HasColumnType("nvarchar(240)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<Guid>("PresetId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PresetId");
-
-                    b.ToTable("EmployeeRolePresetItems", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Field technician for on-site work.",
-                            IsActive = true,
-                            Name = "Technician",
-                            PresetId = new Guid("1a2b3c4d-1111-1111-1111-111111111111"),
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-1111-1111-1111-111111111112"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Lead for quality checks and approvals.",
-                            IsActive = true,
-                            Name = "Supervisor",
-                            PresetId = new Guid("1a2b3c4d-1111-1111-1111-111111111111"),
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-1111-1111-1111-111111111113"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Routes schedules and job assignments.",
-                            IsActive = true,
-                            Name = "Dispatcher",
-                            PresetId = new Guid("1a2b3c4d-1111-1111-1111-111111111111"),
-                            SortOrder = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-1111-1111-1111-111111111114"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Back-office support and billing.",
-                            IsActive = true,
-                            Name = "Admin",
-                            PresetId = new Guid("1a2b3c4d-1111-1111-1111-111111111111"),
-                            SortOrder = 4
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-2222-2222-2222-222222222221"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Primary creator and deliverable owner.",
-                            IsActive = true,
-                            Name = "Designer",
-                            PresetId = new Guid("1a2b3c4d-2222-2222-2222-222222222222"),
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Owns timelines, approvals, and client comms.",
-                            IsActive = true,
-                            Name = "Producer",
-                            PresetId = new Guid("1a2b3c4d-2222-2222-2222-222222222222"),
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-2222-2222-2222-222222222223"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Schedules tasks and supports delivery.",
-                            IsActive = true,
-                            Name = "Coordinator",
-                            PresetId = new Guid("1a2b3c4d-2222-2222-2222-222222222222"),
-                            SortOrder = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-2222-2222-2222-222222222224"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Operations and billing support.",
-                            IsActive = true,
-                            Name = "Admin",
-                            PresetId = new Guid("1a2b3c4d-2222-2222-2222-222222222222"),
-                            SortOrder = 4
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-3333-3333-3333-333333333331"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Client-facing delivery specialist.",
-                            IsActive = true,
-                            Name = "Consultant",
-                            PresetId = new Guid("1a2b3c4d-3333-3333-3333-333333333333"),
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-3333-3333-3333-333333333332"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Owns engagement delivery and quality.",
-                            IsActive = true,
-                            Name = "Lead",
-                            PresetId = new Guid("1a2b3c4d-3333-3333-3333-333333333333"),
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Plans meetings and follow-ups.",
-                            IsActive = true,
-                            Name = "Coordinator",
-                            PresetId = new Guid("1a2b3c4d-3333-3333-3333-333333333333"),
-                            SortOrder = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-3333-3333-3333-333333333334"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Back-office support and billing.",
-                            IsActive = true,
-                            Name = "Admin",
-                            PresetId = new Guid("1a2b3c4d-3333-3333-3333-333333333333"),
-                            SortOrder = 4
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-4444-4444-4444-444444444441"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Executes diagnostics and repairs.",
-                            IsActive = true,
-                            Name = "Repair Tech",
-                            PresetId = new Guid("1a2b3c4d-4444-4444-4444-444444444444"),
-                            SortOrder = 1
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-4444-4444-4444-444444444442"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Final testing and release approvals.",
-                            IsActive = true,
-                            Name = "QA",
-                            PresetId = new Guid("1a2b3c4d-4444-4444-4444-444444444444"),
-                            SortOrder = 2
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-4444-4444-4444-444444444443"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Client intake and status updates.",
-                            IsActive = true,
-                            Name = "Service Advisor",
-                            PresetId = new Guid("1a2b3c4d-4444-4444-4444-444444444444"),
-                            SortOrder = 3
-                        },
-                        new
-                        {
-                            Id = new Guid("2a2b3c4d-4444-4444-4444-444444444444"),
-                            CreatedAt = new DateTime(2026, 3, 23, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Operations and billing support.",
-                            IsActive = true,
-                            Name = "Admin",
-                            PresetId = new Guid("1a2b3c4d-4444-4444-4444-444444444444"),
-                            SortOrder = 4
-                        });
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Estimate", b =>
@@ -2642,27 +2345,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePreset", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePresetItem", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.EmployeeRolePreset", "Preset")
-                        .WithMany("Items")
-                        .HasForeignKey("PresetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Preset");
-                });
-
             modelBuilder.Entity("JobFlow.Domain.Models.Estimate", b =>
                 {
                     b.HasOne("JobFlow.Domain.Models.OrganizationClient", "OrganizationClient")
@@ -2986,11 +2668,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRole", b =>
                 {
                     b.Navigation("Employees");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePreset", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Estimate", b =>

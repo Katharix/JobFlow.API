@@ -37,4 +37,5 @@ public class OrganizationDto
     public bool? OnBoardingComplete { get; set; }
     public bool CanAcceptPayments { get; set; }
     public string? SubscriptionPlanName { get; set; }
+    public string? IndustryKey { get; set; }
 }

@@ -2,5 +2,5 @@
 
 public class MarkStepRequestDto
 {
-    public string StepName { get; set; }
+    public string StepName { get; set; } = string.Empty;
 }

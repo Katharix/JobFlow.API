@@ -12,7 +12,8 @@ public static class InvoiceMappingExtensions
         {
             Id = Guid.NewGuid(),
             OrganizationId = request.OrganizationId,
-            OrganizationClientId = request.OrganizationClientId.Value,
+            OrganizationClientId = request.OrganizationClientId
+                ?? throw new InvalidOperationException("Organization client is required."),
             JobId = request.JobId,
             InvoiceNumber = invoiceNumber,
             InvoiceDate = DateTime.UtcNow,

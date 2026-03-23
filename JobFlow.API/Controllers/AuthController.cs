@@ -219,7 +219,7 @@ public class AuthController : ControllerBase
 // ============================================================
 public class TokenDto
 {
-    public string Token { get; set; }
+    public string Token { get; set; } = string.Empty;
 }
 
 public class CreateAccountRequest

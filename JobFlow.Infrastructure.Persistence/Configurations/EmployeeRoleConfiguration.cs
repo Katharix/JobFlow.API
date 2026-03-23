@@ -18,6 +18,9 @@ internal class EmployeeRoleConfiguration : IEntityTypeConfiguration<EmployeeRole
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(er => er.Description)
+            .HasMaxLength(240);
+
         builder.HasQueryFilter(er => er.Organization.IsActive);
     }
 }

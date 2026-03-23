@@ -219,7 +219,19 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
-        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
+        var priceId = subscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name");
+
+        if (string.IsNullOrWhiteSpace(priceId))
+        {
+            _logger.LogWarning("Stripe subscription missing price id. SubscriptionId={SubscriptionId}", subscription.Id);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(planName))
+        {
+            planName = "Unknown";
+        }
 
         var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
@@ -231,7 +243,7 @@ public class StripeWebhookService : IStripeWebhookService
         await _subscriptionRecordService.CreateAsync(
             paymentProfileResult.Value.Id,
             subscription.Id,
-            subscription.Items.Data.First().Price.Id,
+            priceId,
             subscription.Status,
             planName
         );
@@ -356,7 +368,19 @@ public class StripeWebhookService : IStripeWebhookService
         var ownerId = subscription.Metadata["ownerId"];
         var ownerType = subscription.Metadata["ownerType"];
         var paymentCustomerId = subscription.Metadata["customerId"];
-        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price.Metadata["plan-name"];
+        var priceId = subscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
+        var planName = subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name");
+
+        if (string.IsNullOrWhiteSpace(priceId))
+        {
+            _logger.LogWarning("Stripe subscription missing price id. SubscriptionId={SubscriptionId}", subscription.Id);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(planName))
+        {
+            planName = "Unknown";
+        }
 
         var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
@@ -368,7 +392,7 @@ public class StripeWebhookService : IStripeWebhookService
         await _subscriptionRecordService.CreateAsync(
             paymentProfileResult.Value.Id,
             subscription.Id,
-            subscription.Items.Data.First().Price.Id,
+            priceId,
             subscription.Status,
             planName
         );

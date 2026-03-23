@@ -91,10 +91,18 @@ public class FirebaseAuthMiddleware
         };
 
             if (decodedToken.Claims.TryGetValue("role", out var role))
-                claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+            {
+                var roleValue = Convert.ToString(role);
+                if (!string.IsNullOrWhiteSpace(roleValue))
+                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
+            }
 
             if (decodedToken.Claims.TryGetValue("email", out var email))
-                claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
+            {
+                var emailValue = Convert.ToString(email);
+                if (!string.IsNullOrWhiteSpace(emailValue))
+                    claims.Add(new Claim(ClaimTypes.Email, emailValue));
+            }
 
             var userResult = await userService.GetUserByFirebaseUid(decodedToken.Uid);
 

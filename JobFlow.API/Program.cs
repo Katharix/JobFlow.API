@@ -24,7 +24,6 @@ using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -97,9 +96,10 @@ if (string.IsNullOrWhiteSpace(firebaseProjectId))
 // Create the Firebase Admin default app instance so FirebaseAuth.DefaultInstance is available.
 if (FirebaseApp.DefaultInstance is null)
 {
+    var credential = CredentialFactory.FromFile<ServiceAccountCredential>(firebaseFilePath);
     FirebaseApp.Create(new AppOptions
     {
-        Credential = GoogleCredential.FromFile(firebaseFilePath)
+        Credential = credential.ToGoogleCredential()
     });
 }
 

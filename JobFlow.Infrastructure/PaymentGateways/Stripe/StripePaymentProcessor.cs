@@ -168,7 +168,21 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
     {
         var customerId = request.StripeCustomerId;
         // If the user is subscribing for the first time, create a new Stripe customer
-        if (string.IsNullOrEmpty(customerId)) customerId = await CreateStripeCustomerAsync(request.Email);
+        if (string.IsNullOrEmpty(customerId))
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                throw new InvalidOperationException("Customer email is required for subscription checkout.");
+
+            customerId = await CreateStripeCustomerAsync(request.Email);
+        }
+
+        if (string.IsNullOrWhiteSpace(customerId))
+            throw new InvalidOperationException("Stripe customer id is required for subscription checkout.");
+
+        var resolvedCustomerId = request.StripeCustomerId ?? customerId
+            ?? throw new InvalidOperationException("Stripe customer id is required for subscription checkout.");
+        var ownerId = request.OrgId?.ToString()
+            ?? throw new InvalidOperationException("Organization id is required for subscription checkout.");
 
         var options = new SessionCreateOptions
         {
@@ -188,16 +202,16 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             {
                 Metadata = new Dictionary<string, string>
                 {
-                    { "ownerId", request.OrgId.ToString() },
+                    { "ownerId", ownerId },
                     { "ownerType", PaymentEntityType.Organization.ToString() },
-                    { "customerId", request.StripeCustomerId ?? customerId }
+                    { "customerId", resolvedCustomerId }
                 }
             },
             Metadata = new Dictionary<string, string>
             {
-                { "ownerId", request.OrgId.ToString() },
+                { "ownerId", ownerId },
                 { "ownerType", PaymentEntityType.Organization.ToString() },
-                { "customerId", customerId }
+                { "customerId", resolvedCustomerId }
             }
         };
 
@@ -214,6 +228,9 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         };
         var service = new CustomerService();
         var customer = await service.CreateAsync(options);
+
+        if (string.IsNullOrWhiteSpace(customer.Id))
+            throw new InvalidOperationException("Stripe customer id was not returned.");
 
         return customer.Id;
     }
