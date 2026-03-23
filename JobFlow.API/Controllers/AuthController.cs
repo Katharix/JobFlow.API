@@ -3,8 +3,10 @@ using System.Security.Claims;
 using System.Text;
 using FirebaseAdmin.Auth;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -58,7 +60,8 @@ public class AuthController : ControllerBase
             else
                 user = userInfo.Value;
 
-            return Ok(new { user.Organization });
+            var organizationDto = user.Organization?.Adapt<OrganizationDto>();
+            return Ok(new { organization = organizationDto });
         }
         catch (Exception ex)
         {

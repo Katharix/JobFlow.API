@@ -1,4 +1,6 @@
-﻿namespace JobFlow.Business.Models.DTOs;
+﻿using JobFlow.Domain.Enums;
+
+namespace JobFlow.Business.Models.DTOs;
 
 
 public class OrganizationClientDto
@@ -38,4 +40,6 @@ public class OrganizationDto
     public bool CanAcceptPayments { get; set; }
     public string? SubscriptionPlanName { get; set; }
     public string? IndustryKey { get; set; }
+    public PaymentProvider PaymentProvider { get; set; }
+    public string? StripeConnectAccountId { get; set; }
 }
