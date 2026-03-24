@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using FirebaseAdmin.Auth;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
@@ -90,9 +91,10 @@ public class FirebaseAuthMiddleware
             new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
         };
 
+            var roleValue = string.Empty;
             if (decodedToken.Claims.TryGetValue("role", out var role))
             {
-                var roleValue = Convert.ToString(role);
+                roleValue = Convert.ToString(role) ?? string.Empty;
                 if (!string.IsNullOrWhiteSpace(roleValue))
                     claims.Add(new Claim(ClaimTypes.Role, roleValue));
             }
@@ -102,6 +104,25 @@ public class FirebaseAuthMiddleware
                 var emailValue = Convert.ToString(email);
                 if (!string.IsNullOrWhiteSpace(emailValue))
                     claims.Add(new Claim(ClaimTypes.Email, emailValue));
+            }
+
+            var isSupportHubUser = string.Equals(roleValue, UserRoles.KatharixAdmin, StringComparison.Ordinal)
+                || string.Equals(roleValue, UserRoles.KatharixEmployee, StringComparison.Ordinal);
+
+            if (path is not null && (path.StartsWith("/api/supporthub/invites/redeem") || path.StartsWith("/api/supporthub/register")))
+            {
+                var redeemIdentity = new ClaimsIdentity(claims, "Firebase");
+                context.User.AddIdentity(redeemIdentity);
+                await _next(context);
+                return;
+            }
+
+            if (isSupportHubUser)
+            {
+                var supportIdentity = new ClaimsIdentity(claims, "Firebase");
+                context.User.AddIdentity(supportIdentity);
+                await _next(context);
+                return;
             }
 
             var userResult = await userService.GetUserByFirebaseUid(decodedToken.Uid);
