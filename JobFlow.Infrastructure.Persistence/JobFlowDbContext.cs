@@ -22,6 +22,9 @@ public class JobFlowDbContext : DbContext
     public DbSet<OrganizationType> OrganizationTypes { get; set; }
     public DbSet<EmployeeRolePreset> EmployeeRolePresets { get; set; }
     public DbSet<EmployeeRolePresetItem> EmployeeRolePresetItems { get; set; }
+    public DbSet<SupportHubTicket> SupportHubTickets { get; set; }
+    public DbSet<SupportHubSession> SupportHubSessions { get; set; }
+    public DbSet<SupportHubInvite> SupportHubInvites { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -23,4 +23,21 @@ public static class HttpContextExtensions
 
         return userId;
     }
+
+    public static string? GetFirebaseUid(this HttpContext context)
+    {
+        var uid = context.User.FindFirst("user_id")?.Value;
+        if (!string.IsNullOrWhiteSpace(uid))
+        {
+            return uid;
+        }
+
+        uid = context.User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrWhiteSpace(uid))
+        {
+            return uid;
+        }
+
+        return context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
 }
