@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -120,6 +121,51 @@ public class UserService : IUserService
         }
 
         return Result.Success(user);
+    }
+
+    public async Task<Result<UserProfileDto>> GetProfileByFirebaseUid(string uid)
+    {
+        var user = await unitOfWork.RepositoryOf<User>()
+            .Query()
+            .FirstOrDefaultAsync(u => u.FirebaseUid == uid);
+
+        if (user == null)
+            return Result.Failure<UserProfileDto>(UserErrors.UserNotFound);
+
+        return Result.Success(ToProfileDto(user));
+    }
+
+    public async Task<Result<UserProfileDto>> UpdateProfile(string uid, UserProfileUpdateRequest request)
+    {
+        var user = await unitOfWork.RepositoryOf<User>()
+            .Query()
+            .FirstOrDefaultAsync(u => u.FirebaseUid == uid);
+
+        if (user == null)
+            return Result.Failure<UserProfileDto>(UserErrors.UserNotFound);
+
+        if (request.Email != null)
+            user.Email = request.Email;
+        if (request.PhoneNumber != null)
+            user.PhoneNumber = request.PhoneNumber;
+        if (request.PreferredLanguage != null)
+            user.PreferredLanguage = request.PreferredLanguage;
+
+        unitOfWork.RepositoryOf<User>().Update(user);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success(ToProfileDto(user));
+    }
+
+    private static UserProfileDto ToProfileDto(User user)
+    {
+        return new UserProfileDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            PhoneNumber = user.PhoneNumber,
+            PreferredLanguage = user.PreferredLanguage
+        };
     }
 
 

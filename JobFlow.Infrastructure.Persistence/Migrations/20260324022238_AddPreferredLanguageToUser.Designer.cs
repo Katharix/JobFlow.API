@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260324022238_AddPreferredLanguageToUser")]
+    partial class AddPreferredLanguageToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1757,59 +1760,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.ToTable("Organization", (string)null);
                 });
 
-            modelBuilder.Entity("JobFlow.Domain.Models.OrganizationBranding", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("BusinessName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeactivatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FooterNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LogoUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PrimaryColor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SecondaryColor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tagline")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId")
-                        .IsUnique();
-
-                    b.ToTable("OrganizationBranding", (string)null);
-                });
-
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationClient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3054,17 +3004,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("OrganizationType");
-                });
-
-            modelBuilder.Entity("JobFlow.Domain.Models.OrganizationBranding", b =>
-                {
-                    b.HasOne("JobFlow.Domain.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.OrganizationClient", b =>

@@ -1,5 +1,6 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Mappings;
+using JobFlow.Business;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
@@ -64,14 +65,19 @@ public class OrganizationClientController : ControllerBase
         if (organizationId == Guid.Empty)
             return Results.BadRequest("OrganizationId is required.");
 
+        model.Organization = null;
         model.OrganizationId = organizationId;
         var entity = _mapper.Map<OrganizationClient>(model);
 
         var result = await organizationClientService.UpsertClient(entity);
 
-        return result.IsSuccess
-            ? Results.Ok(result)
-            : result.ToProblemDetails();
+        if (!result.IsSuccess)
+            return result.ToProblemDetails();
+
+        var responseDto = _mapper.Map<OrganizationClientDto>(result.Value);
+        responseDto.Organization = null;
+
+        return Results.Ok(Result.Success(responseDto));
     }
 
 

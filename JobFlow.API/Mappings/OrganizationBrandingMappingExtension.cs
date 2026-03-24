@@ -13,6 +13,7 @@ public static class OrganizationBrandingMapper
             LogoUrl = entity.LogoUrl,
             PrimaryColor = entity.PrimaryColor,
             SecondaryColor = entity.SecondaryColor,
+            BusinessName = entity.BusinessName,
             Tagline = entity.Tagline,
             FooterNote = entity.FooterNote
         };
@@ -26,6 +27,7 @@ public static class OrganizationBrandingMapper
             LogoUrl = dto.LogoUrl,
             PrimaryColor = dto.PrimaryColor,
             SecondaryColor = dto.SecondaryColor,
+            BusinessName = dto.BusinessName,
             Tagline = dto.Tagline,
             FooterNote = dto.FooterNote
         };
