@@ -1,4 +1,6 @@
-﻿using JobFlow.Business.Extensions;
+﻿using JobFlow.API.Extensions;
+using JobFlow.Business.Extensions;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -60,6 +62,30 @@ public class UsersController : ControllerBase
     public async Task<IResult> GetByFirebaseUid(string uid)
     {
         var result = await _userService.GetUserByFirebaseUid(uid);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IResult> GetMe()
+    {
+        var firebaseUid = HttpContext.GetFirebaseUid();
+        if (string.IsNullOrWhiteSpace(firebaseUid))
+            return Results.Unauthorized();
+
+        var result = await _userService.GetProfileByFirebaseUid(firebaseUid);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IResult> UpdateMe([FromBody] UserProfileUpdateRequest request)
+    {
+        var firebaseUid = HttpContext.GetFirebaseUid();
+        if (string.IsNullOrWhiteSpace(firebaseUid))
+            return Results.Unauthorized();
+
+        var result = await _userService.UpdateProfile(firebaseUid, request);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 }

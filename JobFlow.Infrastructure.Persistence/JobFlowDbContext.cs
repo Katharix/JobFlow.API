@@ -19,6 +19,7 @@ public class JobFlowDbContext : DbContext
     public DbSet<JobUpdateAttachment> JobUpdateAttachments { get; set; }
     public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
     public DbSet<Organization> Organizations { get; set; }
+    public DbSet<OrganizationBranding> OrganizationBrandings { get; set; }
     public DbSet<OrganizationType> OrganizationTypes { get; set; }
     public DbSet<EmployeeRolePreset> EmployeeRolePresets { get; set; }
     public DbSet<EmployeeRolePresetItem> EmployeeRolePresetItems { get; set; }

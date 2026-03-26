@@ -32,7 +32,7 @@ public class OrganizationBrandingService : IOrganizationBrandingService
                 .FirstOrDefaultAsync(b => b.OrganizationId == organizationId);
 
             return branding is null
-                ? Result.Failure<OrganizationBranding>(Error.NotFound("", "Branding not found."))
+                ? Result.Success(new OrganizationBranding { OrganizationId = organizationId })
                 : Result.Success(branding);
         }
         catch (Exception ex)

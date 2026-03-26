@@ -4,6 +4,7 @@ public class User : Entity
 {
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
+    public string? PreferredLanguage { get; set; }
     public Guid OrganizationId { get; set; }
     public string? FirebaseUid { get; set; }
     public Guid? ClientId { get; set; }

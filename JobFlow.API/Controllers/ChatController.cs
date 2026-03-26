@@ -43,12 +43,82 @@ public class ChatController : ControllerBase
         if (currentUser is null)
             return firebaseUidResult ?? Unauthorized();
 
+        var isOrganizationMember = await _unitOfWork.RepositoryOf<User>()
+            .Query()
+            .AnyAsync(u => u.Id == currentUser.Id && u.OrganizationId == organizationId);
+
+        var orgUserIds = isOrganizationMember
+            ? await _unitOfWork.RepositoryOf<User>()
+                .Query()
+                .Where(u => u.OrganizationId == organizationId)
+                .Select(u => u.Id)
+                .Distinct()
+                .ToListAsync()
+            : new List<Guid>();
+
+        var orgClientConversationIds = isOrganizationMember
+            ? await _unitOfWork.RepositoryOf<Conversation>()
+                .Query()
+                .Where(c => c.OrganizationClientId.HasValue
+                            && c.OrganizationClient != null
+                            && c.OrganizationClient.OrganizationId == organizationId)
+                .Select(c => c.Id)
+                .ToListAsync()
+            : new List<Guid>();
+
+        var legacyClientInitiatedConversationIds = isOrganizationMember
+            ? await _unitOfWork.RepositoryOf<Conversation>()
+                .Query()
+                .Where(c => !c.OrganizationClientId.HasValue
+                            && c.Messages.Any(m => m.ExternalSenderType == "client"
+                                                   || (!m.SenderId.HasValue && !string.IsNullOrWhiteSpace(m.ExternalSenderName)))
+                            && c.Participants.Any(p => orgUserIds.Contains(p.UserId)))
+                .Select(c => c.Id)
+                .ToListAsync()
+            : new List<Guid>();
+
         var conversations = await _unitOfWork.RepositoryOf<Conversation>()
             .Query()
             .Include(c => c.Participants)
             .Include(c => c.Messages)
-            .Where(c => c.Participants.Any(p => p.UserId == currentUser.Id))
+            .Where(c => c.Participants.Any(p => p.UserId == currentUser.Id)
+                        || orgClientConversationIds.Contains(c.Id)
+                        || legacyClientInitiatedConversationIds.Contains(c.Id))
             .ToListAsync();
+
+        if (isOrganizationMember)
+        {
+            var missingParticipantConversationIds = conversations
+                .Where(c => (c.OrganizationClientId.HasValue
+                             || c.Messages.Any(m => m.ExternalSenderType == "client"
+                                                    || (!m.SenderId.HasValue && !string.IsNullOrWhiteSpace(m.ExternalSenderName))))
+                            && !c.Participants.Any(p => p.UserId == currentUser.Id))
+                .Select(c => c.Id)
+                .ToList();
+
+            if (missingParticipantConversationIds.Count > 0)
+            {
+                foreach (var conversationId in missingParticipantConversationIds)
+                {
+                    await _unitOfWork.RepositoryOf<ConversationParticipant>().AddAsync(new ConversationParticipant
+                    {
+                        ConversationId = conversationId,
+                        UserId = currentUser.Id
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                conversations = await _unitOfWork.RepositoryOf<Conversation>()
+                    .Query()
+                    .Include(c => c.Participants)
+                    .Include(c => c.Messages)
+                    .Where(c => c.Participants.Any(p => p.UserId == currentUser.Id)
+                                || orgClientConversationIds.Contains(c.Id)
+                                || legacyClientInitiatedConversationIds.Contains(c.Id))
+                    .ToListAsync();
+            }
+        }
 
         var participantIds = conversations
             .SelectMany(c => c.Participants)
@@ -102,11 +172,8 @@ public class ChatController : ControllerBase
         if (pageSize < 1) pageSize = 50;
         if (pageSize > 200) pageSize = 200;
 
-        var isParticipant = await _unitOfWork.RepositoryOf<ConversationParticipant>()
-            .Query()
-            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == currentUser.Id);
-
-        if (!isParticipant)
+        var canAccessConversation = await EnsureConversationAccessAsync(conversationId, currentUser.Id, organizationId);
+        if (!canAccessConversation)
             return Forbid();
 
         var messageQuery = _unitOfWork.RepositoryOf<Message>()
@@ -157,11 +224,8 @@ public class ChatController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Content) && string.IsNullOrWhiteSpace(request.AttachmentUrl))
             return BadRequest("Message content or attachment is required.");
 
-        var isParticipant = await _unitOfWork.RepositoryOf<ConversationParticipant>()
-            .Query()
-            .AnyAsync(p => p.ConversationId == request.ConversationId && p.UserId == currentUser.Id);
-
-        if (!isParticipant)
+        var canAccessConversation = await EnsureConversationAccessAsync(request.ConversationId, currentUser.Id, organizationId);
+        if (!canAccessConversation)
             return Forbid();
 
         var message = new Message
@@ -199,15 +263,12 @@ public class ChatController : ControllerBase
     [HttpPost("conversations/{conversationId:guid}/read")]
     public async Task<IActionResult> MarkConversationRead(Guid conversationId)
     {
-        var (currentUser, _, firebaseUidResult) = await ResolveCurrentUserAsync();
+        var (currentUser, organizationId, firebaseUidResult) = await ResolveCurrentUserAsync();
         if (currentUser is null)
             return firebaseUidResult ?? Unauthorized();
 
-        var isParticipant = await _unitOfWork.RepositoryOf<ConversationParticipant>()
-            .Query()
-            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == currentUser.Id);
-
-        if (!isParticipant)
+        var canAccessConversation = await EnsureConversationAccessAsync(conversationId, currentUser.Id, organizationId);
+        if (!canAccessConversation)
             return Forbid();
 
         var messages = await _unitOfWork.RepositoryOf<Message>()
@@ -515,6 +576,81 @@ public class ChatController : ControllerBase
 
         var organizationId = HttpContext.GetOrganizationId();
         return (userResult.Value, organizationId, null);
+    }
+
+    private async Task<bool> EnsureConversationAccessAsync(Guid conversationId, Guid userId, Guid organizationId)
+    {
+        var participantExists = await _unitOfWork.RepositoryOf<ConversationParticipant>()
+            .Query()
+            .AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId);
+
+        if (participantExists)
+            return true;
+
+        var conversation = await _unitOfWork.RepositoryOf<Conversation>()
+            .Query()
+            .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+        if (conversation is null)
+            return false;
+
+        if (!conversation.OrganizationClientId.HasValue)
+        {
+            var orgUserIds = await _unitOfWork.RepositoryOf<User>()
+                .Query()
+                .Where(u => u.OrganizationId == organizationId)
+                .Select(u => u.Id)
+                .Distinct()
+                .ToListAsync();
+
+            var isLegacyClientInitiated = await _unitOfWork.RepositoryOf<Message>()
+                .Query()
+                .AnyAsync(m => m.ConversationId == conversationId
+                               && (m.ExternalSenderType == "client"
+                                   || (!m.SenderId.HasValue && !string.IsNullOrWhiteSpace(m.ExternalSenderName))));
+
+            if (!isLegacyClientInitiated)
+                return false;
+
+            var hasOrgParticipant = await _unitOfWork.RepositoryOf<ConversationParticipant>()
+                .Query()
+                .AnyAsync(p => p.ConversationId == conversationId && orgUserIds.Contains(p.UserId));
+
+            if (!hasOrgParticipant)
+                return false;
+
+            await _unitOfWork.RepositoryOf<ConversationParticipant>().AddAsync(new ConversationParticipant
+            {
+                ConversationId = conversationId,
+                UserId = userId
+            });
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
+        var isOrganizationMember = await _unitOfWork.RepositoryOf<User>()
+            .Query()
+            .AnyAsync(u => u.Id == userId && u.OrganizationId == organizationId);
+
+        if (!isOrganizationMember)
+            return false;
+
+        var belongsToOrganization = await _unitOfWork.RepositoryOf<OrganizationClient>()
+            .Query()
+            .AnyAsync(c => c.Id == conversation.OrganizationClientId.Value && c.OrganizationId == organizationId);
+
+        if (!belongsToOrganization)
+            return false;
+
+        await _unitOfWork.RepositoryOf<ConversationParticipant>().AddAsync(new ConversationParticipant
+        {
+            ConversationId = conversationId,
+            UserId = userId
+        });
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 
     private async Task SendToClientHubAsync(Guid conversationId, Message message)

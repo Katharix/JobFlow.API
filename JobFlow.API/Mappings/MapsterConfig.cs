@@ -35,6 +35,10 @@ public class MapsterConfig : IRegister
         //OrganizationClient → DTO
         config.NewConfig<OrganizationClient, OrganizationClientDto>();
 
+        //DTO → OrganizationClient
+        config.NewConfig<OrganizationClientDto, OrganizationClient>()
+            .Ignore(dest => dest.Organization);
+
         //Invoice → DTO
         config.NewConfig<Invoice, InvoiceDto>();
 
