@@ -26,6 +26,10 @@ public class JobFlowDbContext : DbContext
     public DbSet<SupportHubTicket> SupportHubTickets { get; set; }
     public DbSet<SupportHubSession> SupportHubSessions { get; set; }
     public DbSet<SupportHubInvite> SupportHubInvites { get; set; }
+    public DbSet<FollowUpSequence> FollowUpSequences { get; set; }
+    public DbSet<FollowUpStep> FollowUpSteps { get; set; }
+    public DbSet<FollowUpRun> FollowUpRuns { get; set; }
+    public DbSet<FollowUpExecutionLog> FollowUpExecutionLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

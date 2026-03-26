@@ -17,6 +17,7 @@ public class EstimateService : IEstimateService
     private readonly INotificationService notificationService;
     private readonly IPdfGenerator pdfGenerator;
     private readonly IOrganizationClientPortalService clientPortalService;
+    private readonly IFollowUpAutomationService? _followUpAutomation;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
@@ -25,12 +26,14 @@ public class EstimateService : IEstimateService
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
         IPdfGenerator pdfGenerator,
-        IOrganizationClientPortalService clientPortalService)
+        IOrganizationClientPortalService clientPortalService,
+        IFollowUpAutomationService? followUpAutomation = null)
     {
         this.unitOfWork = unitOfWork;
         this.notificationService = notificationService;
         this.pdfGenerator = pdfGenerator;
         this.clientPortalService = clientPortalService;
+        _followUpAutomation = followUpAutomation;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
         clients = unitOfWork.RepositoryOf<OrganizationClient>();
@@ -179,6 +182,12 @@ public class EstimateService : IEstimateService
         estimates.Update(estimate);
         await unitOfWork.SaveChangesAsync();
 
+        if (_followUpAutomation != null)
+            await _followUpAutomation.StartEstimateSequenceAsync(
+                estimate.OrganizationId,
+                estimate.Id,
+                estimate.OrganizationClientId);
+
         await clientPortalService.SendMagicLinkAsync(estimate.OrganizationId, client.Id, client.EmailAddress ?? string.Empty);
 
         var full = await estimates.Query()
@@ -262,6 +271,15 @@ public class EstimateService : IEstimateService
 
         estimates.Update(estimate);
         await unitOfWork.SaveChangesAsync();
+
+        if (_followUpAutomation != null && newStatus is EstimateStatus.Accepted or EstimateStatus.Declined)
+        {
+            var reason = newStatus == EstimateStatus.Accepted
+                ? FollowUpStopReason.EstimateAccepted
+                : FollowUpStopReason.EstimateDeclined;
+
+            await _followUpAutomation.StopEstimateSequenceAsync(estimate.Id, reason);
+        }
 
         return Result<EstimateDto>.Success(ToDto(estimate));
     }

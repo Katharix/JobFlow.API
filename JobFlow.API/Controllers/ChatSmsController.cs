@@ -1,5 +1,6 @@
 using JobFlow.API.Hubs;
 using JobFlow.API.Models;
+using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -16,15 +17,18 @@ public class ChatSmsController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IHubContext<ChatHub> _hubContext;
     private readonly IHubContext<ClientChatHub> _clientHubContext;
+    private readonly IFollowUpAutomationService? _followUpAutomation;
 
     public ChatSmsController(
         IUnitOfWork unitOfWork,
         IHubContext<ChatHub> hubContext,
-        IHubContext<ClientChatHub> clientHubContext)
+        IHubContext<ClientChatHub> clientHubContext,
+        IFollowUpAutomationService? followUpAutomation = null)
     {
         _unitOfWork = unitOfWork;
         _hubContext = hubContext;
         _clientHubContext = clientHubContext;
+        _followUpAutomation = followUpAutomation;
     }
 
     [HttpPost("inbound")]
@@ -46,6 +50,11 @@ public class ChatSmsController : ControllerBase
         var client = clients.FirstOrDefault(c => NormalizePhone(c.PhoneNumber) == fromNormalized);
         if (client is null)
             return TwilioOk();
+
+        if (_followUpAutomation != null)
+        {
+            await _followUpAutomation.StopEstimateSequencesOnClientReplyAsync(client.OrganizationId, client.Id);
+        }
 
         var conversation = await _unitOfWork.RepositoryOf<Conversation>()
             .Query()
