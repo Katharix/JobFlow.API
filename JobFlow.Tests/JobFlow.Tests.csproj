@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JobFlow.API\JobFlow.API.csproj" />
     <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
     <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />

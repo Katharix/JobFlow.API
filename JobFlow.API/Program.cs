@@ -325,6 +325,11 @@ builder.Services.AddMapsterConfiguration();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IInvoiceRealtimeNotifier, InvoiceRealtimeNotifier>();
 builder.Services.AddScoped<IFollowUpJobScheduler, FollowUpJobScheduler>();
+builder.Services.AddScoped<ClientImportCsvService>();
+builder.Services.AddScoped<ClientImportProcessor>();
+builder.Services.AddScoped<ClientImportUploadSessionService>();
+builder.Services.AddScoped<DataExportBuilderService>();
+builder.Services.AddScoped<DataExportJobProcessor>();
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembly, typeof(IUserService).Assembly);
 
