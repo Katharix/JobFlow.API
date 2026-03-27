@@ -35,6 +35,7 @@ public class PaymentController : ControllerBase
     private readonly IStripeSettings _stripeSettings;
     private readonly ISquareSettings _squareSettings;
     private readonly ISquareWebhookService _squareWebhookService;
+    private readonly ISquareTokenEncryptionService _squareTokenEncryption;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IFrontendSettings _frontEndSettings;
 
@@ -48,6 +49,7 @@ public class PaymentController : ControllerBase
         IInvoiceService invoiceService,
         IStripeSettings stripeSettings,
         ISquareSettings squareSettings,
+        ISquareTokenEncryptionService squareTokenEncryption,
         IHostEnvironment hostEnvironment,
         IFrontendSettings frontEndSettings)
     {
@@ -60,6 +62,7 @@ public class PaymentController : ControllerBase
         _invoiceService = invoiceService;
         _stripeSettings = stripeSettings;
         _squareSettings = squareSettings;
+        _squareTokenEncryption = squareTokenEncryption;
         _hostEnvironment = hostEnvironment;
         _frontEndSettings = frontEndSettings;
     }
@@ -114,7 +117,9 @@ public class PaymentController : ControllerBase
             }
         }
 
-        var processor = _processorFactory.GetProcessor(provider);
+        var processor = provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, provider)
+            : _processorFactory.GetProcessor(provider);
 
         string checkoutUrl;
         if (request.Mode == "subscription")
@@ -231,7 +236,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support refund operations.");
 
@@ -257,7 +264,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support adjustment operations.");
 
@@ -285,7 +294,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support deposit operations.");
 
@@ -454,12 +465,26 @@ public class PaymentController : ControllerBase
         }
 
         using var tokenDocument = await JsonDocument.ParseAsync(await tokenResponse.Content.ReadAsStreamAsync());
-        var merchantId = tokenDocument.RootElement.TryGetProperty("merchant_id", out var merchantElement)
+        var root = tokenDocument.RootElement;
+
+        var merchantId = root.TryGetProperty("merchant_id", out var merchantElement)
             ? merchantElement.GetString()
+            : null;
+        var accessToken = root.TryGetProperty("access_token", out var atEl)
+            ? atEl.GetString()
+            : null;
+        var refreshToken = root.TryGetProperty("refresh_token", out var rtEl)
+            ? rtEl.GetString()
+            : null;
+        var expiresAt = root.TryGetProperty("expires_at", out var expEl)
+            ? expEl.GetString()
             : null;
 
         if (string.IsNullOrWhiteSpace(merchantId))
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString("Square merchant id was not returned.")}");
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString("Square access token was not returned.")}");
 
         var orgResult = await _organizationService.GetOrganiztionById(organizationId);
         if (orgResult.IsFailure)
@@ -467,12 +492,22 @@ public class PaymentController : ControllerBase
 
         var organization = orgResult.Value;
         organization.PaymentProvider = PaymentProvider.Square;
+        organization.SquareMerchantId = merchantId;
+        organization.IsSquareConnected = true;
 
-        var profileResult = await _paymentProfileService.UpsertAsync(
+        var tokenExpiresAtUtc = !string.IsNullOrWhiteSpace(expiresAt)
+            ? DateTime.Parse(expiresAt).ToUniversalTime()
+            : DateTime.UtcNow.AddDays(30);
+
+        var profileResult = await _paymentProfileService.UpsertWithTokensAsync(
             organizationId,
             PaymentEntityType.Organization,
             PaymentProvider.Square,
-            merchantId);
+            merchantId,
+            _squareTokenEncryption.Encrypt(accessToken),
+            string.IsNullOrWhiteSpace(refreshToken) ? string.Empty : _squareTokenEncryption.Encrypt(refreshToken),
+            tokenExpiresAtUtc,
+            null);
 
         if (profileResult.IsFailure)
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString(profileResult.Error?.ToString() ?? "Unable to save Square payment profile.")}");

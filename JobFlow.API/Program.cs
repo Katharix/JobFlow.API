@@ -324,6 +324,7 @@ builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOpti
 builder.Services.AddMapsterConfiguration();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
 builder.Services.AddScoped<IInvoiceRealtimeNotifier, InvoiceRealtimeNotifier>();
+builder.Services.AddScoped<IFollowUpJobScheduler, FollowUpJobScheduler>();
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembly, typeof(IUserService).Assembly);
 

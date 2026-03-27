@@ -241,6 +241,29 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildClientEstimateFollowUp(OrganizationClient client, Estimate estimate, string message)
+    {
+        var link = $"{baseUrl}/estimate/view/{estimate.PublicToken}";
+
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Quick Follow-Up: {estimate.EstimateNumber}",
+            Body = $"""
+                        Hello {client.ClientFullName()},
+
+                        {message}
+
+                        View estimate: {link}
+                    """,
+            Sms = $"{message} ",
+            Link = link,
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
     public NotificationMessage BuildOrganizationEstimateRevisionRequested(
         Organization organization,
         OrganizationClient client,

@@ -1,6 +1,7 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Domain.Enums;
+using JobFlow.Infrastructure.PaymentGateways.Square;
 using JobFlow.Infrastructure.PaymentGateways.SquarePayment;
 using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,5 +31,22 @@ public class PaymentProcessorFactory : IPaymentProcessorFactory
     public IPaymentProcessor GetProcessor(PaymentProvider provider)
     {
         return GetProcessor(provider.ToString());
+    }
+
+    public async Task<IPaymentProcessor> GetProcessorForOrgAsync(Guid organizationId, PaymentProvider provider)
+    {
+        if (provider != PaymentProvider.Square)
+            return GetProcessor(provider);
+
+        var processor = _serviceProvider.GetRequiredService<SquarePaymentProcessor>();
+        var refreshService = _serviceProvider.GetRequiredService<ISquareTokenRefreshService>();
+
+        var tokenSet = await refreshService.RefreshIfNeededAsync(organizationId);
+        if (tokenSet != null)
+        {
+            processor.ConfigureForOrganization(tokenSet.AccessToken, null);
+        }
+
+        return processor;
     }
 }

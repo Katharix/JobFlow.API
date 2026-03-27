@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260326184716_AddFollowUpAutomation")]
+    partial class AddFollowUpAutomation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -272,12 +275,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("DefaultPaymentMethodId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EncryptedAccessToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EncryptedRefreshToken")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -302,12 +299,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<string>("ProviderCustomerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SquareLocationId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("TokenExpiresAtUtc")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1939,9 +1930,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsSquareConnected")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsStripeConnected")
                         .HasColumnType("bit");
 
@@ -1970,9 +1958,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SquareMerchantId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")

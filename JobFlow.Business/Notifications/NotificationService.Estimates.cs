@@ -9,4 +9,10 @@ public partial class NotificationService
         var message = _builder.BuildClientEstimateSent(client, estimate);
         await SendNotificationAsync(message);
     }
+
+    public async Task SendClientEstimateFollowUpNotificationAsync(OrganizationClient client, Estimate estimate, string followUpMessage)
+    {
+        var message = _builder.BuildClientEstimateFollowUp(client, estimate, followUpMessage);
+        await SendNotificationAsync(message);
+    }
 }

@@ -38,7 +38,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
         }
         catch (Exception e)
         {
-            _logger.LogError("An unknown error occured saving changes to the database", e);
+            _logger.LogError(e, "An unknown error occurred saving changes to the database");
 
             throw;
         }
@@ -68,7 +68,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
         }
         catch (Exception e)
         {
-            _logger.LogError("An unknown error occured saving changes to the database", e);
+            _logger.LogError(e, "An unknown error occurred saving changes to the database");
 
             throw;
         }
