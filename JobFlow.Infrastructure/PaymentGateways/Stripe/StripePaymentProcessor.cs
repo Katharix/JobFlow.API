@@ -4,6 +4,7 @@ using JobFlow.Business.Extensions;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Domain.Enums;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using Stripe;
 using Stripe.Checkout;
 
@@ -13,9 +14,11 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe;
 public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, IConnectedAccountProcessor
 {
     private readonly IPaymentSettings _paymentSettings;
-    public StripePaymentProcessor(IPaymentSettings paymentSettings)
+    private readonly IStripeSettings _stripeSettings;
+    public StripePaymentProcessor(IPaymentSettings paymentSettings, IStripeSettings stripeSettings)
     {
         _paymentSettings = paymentSettings;
+        _stripeSettings = stripeSettings;
     }
     public async Task<string> CreateConnectedAccountAsync()
     {
@@ -57,8 +60,10 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var accountLink = await service.CreateAsync(new AccountLinkCreateOptions
         {
             Account = accountId,
-            ReturnUrl = "http://localhost:4200/admin",
-            RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{accountId}",
+            ReturnUrl = _stripeSettings.ReturnUrl,
+            RefreshUrl = string.IsNullOrWhiteSpace(_stripeSettings.RefreshUrl)
+                ? _stripeSettings.ReturnUrl
+                : _stripeSettings.RefreshUrl,
             Type = "account_onboarding"
         });
 
@@ -73,7 +78,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var amountInCents =
             request.Amount?.ToCents()
             ?? throw new InvalidOperationException("Payment amount is required.");
-        long applicationFee = 75L;
+        long applicationFee = _paymentSettings.ApplicationFee.ToCents();
         var options = new PaymentIntentCreateOptions
         {
             Amount = amountInCents,

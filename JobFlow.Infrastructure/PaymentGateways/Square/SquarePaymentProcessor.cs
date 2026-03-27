@@ -13,31 +13,56 @@ namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
 [ScopedService]
 public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor
 {
-    private readonly SquareClient _client;
-    private readonly string _accessToken;
-    private readonly string _locationId;
+    private readonly ISquareSettings _settings;
+    private readonly IHostEnvironment _hostEnvironment;
     private readonly string _baseUrl;
+
+    // Per-org token override (set by the factory when resolving for a specific org)
+    private string? _orgAccessToken;
+    private string? _orgLocationId;
 
     public SquarePaymentProcessor(ISquareSettings settings, IHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        if (string.IsNullOrWhiteSpace(settings.AccessToken))
-            throw new InvalidOperationException("Square access token is not configured.");
-
-        _accessToken = settings.AccessToken;
+        _settings = settings;
+        _hostEnvironment = hostEnvironment;
 
         _baseUrl = hostEnvironment.IsDevelopment()
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
+    }
 
-        _client = new SquareClient(settings.AccessToken, new ClientOptions
+    /// <summary>
+    /// Configure this processor instance to use a specific org's OAuth token and location.
+    /// </summary>
+    public void ConfigureForOrganization(string accessToken, string? locationId)
+    {
+        _orgAccessToken = accessToken;
+        _orgLocationId = locationId;
+    }
+
+    private string ResolveAccessToken()
+    {
+        var token = _orgAccessToken ?? _settings.AccessToken;
+        if (string.IsNullOrWhiteSpace(token))
+            throw new InvalidOperationException("Square access token is not configured.");
+        return token;
+    }
+
+    private string ResolveLocationId()
+    {
+        var locationId = _orgLocationId ?? _settings.LocationId;
+        if (string.IsNullOrWhiteSpace(locationId))
+            throw new InvalidOperationException("Square location id is not configured.");
+        return locationId;
+    }
+
+    private SquareClient CreateSquareClient()
+    {
+        return new SquareClient(ResolveAccessToken(), new ClientOptions
         {
             BaseUrl = _baseUrl
         });
-
-        _locationId = settings.LocationId ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(_locationId))
-            throw new InvalidOperationException("Square location id is not configured.");
     }
 
     public async Task<string> CreateCheckoutSessionAsync(PaymentSessionRequest request)
@@ -60,7 +85,7 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         {
             Name = request.ProductName,
             PriceMoney = money,
-            LocationId = _locationId
+            LocationId = ResolveLocationId()
         };
 
         var paymentLinkRequest = new CreatePaymentLinkRequest
@@ -77,14 +102,15 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
 
         try
         {
-            var result = await _client.Checkout.PaymentLinks.CreateAsync(paymentLinkRequest);
+            var client = CreateSquareClient();
+            var result = await client.Checkout.PaymentLinks.CreateAsync(paymentLinkRequest);
             return result.PaymentLink?.Url ?? throw new Exception("Square returned an empty payment link.");
         }
         catch (SquareApiException ex)
         {
             throw new Exception($"Square API error: {ex.Message}", ex);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not InvalidOperationException)
         {
             throw new Exception("An error occurred while creating the Square checkout session.", ex);
         }
@@ -167,12 +193,13 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
 
     private HttpClient CreateApiClient()
     {
+        var accessToken = ResolveAccessToken();
         var httpClient = new HttpClient
         {
             BaseAddress = new Uri($"{_baseUrl}/")
         };
         httpClient.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         httpClient.DefaultRequestHeaders.Add("Square-Version", "2025-10-16");
         return httpClient;
     }

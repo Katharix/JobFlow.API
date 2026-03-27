@@ -71,9 +71,11 @@ public class StripeWebhookService : IStripeWebhookService
                     {
                         await _organizationService.MarkStripeConnectedAsync(account.Id);
                     }
-                    else
+                    else if (!account.ChargesEnabled || !account.PayoutsEnabled)
                     {
-                        //await _organizationService.MarkStripeDisconnectedAsync(account.Id);
+                        _logger.LogInformation(
+                            "Stripe account {AccountId} is not fully connected. ChargesEnabled={Charges}, PayoutsEnabled={Payouts}",
+                            account.Id, account.ChargesEnabled, account.PayoutsEnabled);
                     }
 
                     break;
@@ -213,12 +215,25 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleCheckoutSessionAsync(Session session)
     {
+        if (string.IsNullOrWhiteSpace(session.SubscriptionId))
+        {
+            _logger.LogWarning("Stripe checkout.session.completed has no SubscriptionId. SessionId={SessionId}", session.Id);
+            return;
+        }
+
         var subscriptionService = new SubscriptionService();
         var subscription = await subscriptionService.GetAsync(session.SubscriptionId);
 
-        var ownerId = subscription.Metadata["ownerId"];
-        var ownerType = subscription.Metadata["ownerType"];
-        var paymentCustomerId = subscription.Metadata["customerId"];
+        if (!subscription.Metadata.TryGetValue("ownerId", out var ownerId) ||
+            !subscription.Metadata.TryGetValue("ownerType", out var ownerType) ||
+            !subscription.Metadata.TryGetValue("customerId", out var paymentCustomerId))
+        {
+            _logger.LogWarning(
+                "Stripe subscription missing required metadata (ownerId/ownerType/customerId). SubscriptionId={SubscriptionId}",
+                subscription.Id);
+            return;
+        }
+
         var priceId = subscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
         var planName = subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name");
 
@@ -300,12 +315,21 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandlePaymentIntentFailedAsync(PaymentIntent intent)
     {
+        Guid entityId = Guid.Empty;
+        if (intent.Metadata.TryGetValue("invoiceId", out var failedInvoiceId) &&
+            Guid.TryParse(failedInvoiceId, out var parsedInvoiceId))
+        {
+            var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(parsedInvoiceId);
+            if (invoiceResult.IsSuccess)
+                entityId = invoiceResult.Value.OrganizationId;
+        }
+
         await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
         {
             Id = Guid.NewGuid(),
             PaymentProvider = PaymentProvider.Stripe,
             EntityType = PaymentEntityType.Organization,
-            EntityId = Guid.Empty,
+            EntityId = entityId,
             InvoiceId = null,
             StripePaymentIntentId = intent.Id,
             AmountPaid = intent.Amount,
@@ -319,12 +343,33 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleChargeRefundedAsync(Charge charge, string eventType)
     {
+        Guid entityId = Guid.Empty;
+        if (!string.IsNullOrWhiteSpace(charge.PaymentIntentId))
+        {
+            var piService = new PaymentIntentService();
+            try
+            {
+                var pi = await piService.GetAsync(charge.PaymentIntentId);
+                if (pi.Metadata.TryGetValue("invoiceId", out var refundInvoiceId) &&
+                    Guid.TryParse(refundInvoiceId, out var parsedId))
+                {
+                    var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(parsedId);
+                    if (invoiceResult.IsSuccess)
+                        entityId = invoiceResult.Value.OrganizationId;
+                }
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Could not resolve PaymentIntent {PaymentIntentId} for charge refund org lookup", charge.PaymentIntentId);
+            }
+        }
+
         await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
         {
             Id = Guid.NewGuid(),
             PaymentProvider = PaymentProvider.Stripe,
             EntityType = PaymentEntityType.Organization,
-            EntityId = Guid.Empty,
+            EntityId = entityId,
             InvoiceId = null,
             StripePaymentIntentId = charge.PaymentIntentId,
             AmountPaid = -charge.AmountRefunded,
@@ -365,9 +410,16 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleSubscriptionCreatedAsync(Subscription subscription)
     {
-        var ownerId = subscription.Metadata["ownerId"];
-        var ownerType = subscription.Metadata["ownerType"];
-        var paymentCustomerId = subscription.Metadata["customerId"];
+        if (!subscription.Metadata.TryGetValue("ownerId", out var ownerId) ||
+            !subscription.Metadata.TryGetValue("ownerType", out var ownerType) ||
+            !subscription.Metadata.TryGetValue("customerId", out var paymentCustomerId))
+        {
+            _logger.LogWarning(
+                "Stripe subscription.created missing required metadata (ownerId/ownerType/customerId). SubscriptionId={SubscriptionId}",
+                subscription.Id);
+            return;
+        }
+
         var priceId = subscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
         var planName = subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name");
 
