@@ -10,6 +10,7 @@ public class JobDto
     public JobLifecycleStatus LifecycleStatus { get; set; }
     public InvoicingWorkflow? InvoicingWorkflow { get; set; }
     public Guid OrganizationClientId { get; set; }
+    public Guid? EstimateId { get; set; }
     public OrganizationClientDto? OrganizationClient { get; set; }
 
     public IEnumerable<AssignmentDto>? Assignments { get; set; }

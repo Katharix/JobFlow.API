@@ -5,7 +5,7 @@ namespace JobFlow.Domain.Models;
 public class Assignment : Entity
 {
     public Guid JobId { get; set; }
-    public virtual Job Job { get; set; }
+    public virtual Job Job { get; set; } = null!;
 
     // Window vs exact is semantic; both use ScheduledStart/End
     public ScheduleType ScheduleType { get; set; } = ScheduleType.Window;

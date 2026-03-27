@@ -6,6 +6,6 @@ public class AssignmentOrder
     public Guid OrderId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public virtual Assignment Assignment { get; set; }
-    public virtual Order Order { get; set; }
+    public virtual Assignment Assignment { get; set; } = null!;
+    public virtual Order Order { get; set; } = null!;
 }

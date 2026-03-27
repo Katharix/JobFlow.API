@@ -13,6 +13,6 @@ public class ClientImportJob : Entity
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
 
-    public virtual Organization Organization { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
     public virtual ICollection<ClientImportJobError> Errors { get; set; } = new List<ClientImportJobError>();
 }

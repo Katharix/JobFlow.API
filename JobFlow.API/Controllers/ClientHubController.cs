@@ -627,6 +627,46 @@ public class ClientHubController : ControllerBase
             : result.ToProblemDetails();
     }
 
+    [HttpPost("jobs/{jobId:guid}/updates")]
+    [RequestSizeLimit(55_000_000)]
+    public async Task<IResult> CreateJobUpdate(Guid jobId, [FromForm] ClientHubJobUpdateRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var orgClientId = HttpContext.GetUserId();
+
+        var jobResult = await _jobs.GetJobForClientAsync(jobId, organizationId, orgClientId);
+        if (!jobResult.IsSuccess)
+            return jobResult.ToProblemDetails();
+
+        var uploads = new List<JobUpdateAttachmentUpload>();
+        if (request.Attachments is not null)
+        {
+            foreach (var file in request.Attachments)
+            {
+                if (file.Length <= 0)
+                    continue;
+
+                await using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+
+                uploads.Add(new JobUpdateAttachmentUpload(
+                    file.FileName,
+                    file.ContentType,
+                    stream.ToArray(),
+                    file.Length));
+            }
+        }
+
+        var createRequest = new CreateJobUpdateRequest(
+            request.Type,
+            request.Message,
+            null,
+            uploads);
+
+        var result = await _jobUpdates.CreateAsync(jobId, organizationId, createRequest);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
     private static DateTimeOffset ToDateTimeOffset(DateTime value)
     {
         var utc = DateTime.SpecifyKind(value, DateTimeKind.Utc);
@@ -754,6 +794,11 @@ public record UpdateOrganizationClientRequest(
     string? ZipCode);
 
 public record CreateEstimateRevisionFormRequest(
+    string? Message,
+    List<IFormFile>? Attachments);
+
+public record ClientHubJobUpdateRequest(
+    JobUpdateType Type,
     string? Message,
     List<IFormFile>? Attachments);
 

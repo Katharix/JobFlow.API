@@ -19,9 +19,13 @@ public class WorkflowStatusUpsertRequestDto
 public class InvoicingSettingsDto
 {
     public InvoicingWorkflow DefaultWorkflow { get; set; }
+    public bool DepositRequired { get; set; }
+    public decimal DepositPercentage { get; set; }
 }
 
 public class InvoicingSettingsUpsertRequestDto
 {
     public InvoicingWorkflow DefaultWorkflow { get; set; }
+    public bool DepositRequired { get; set; }
+    public decimal DepositPercentage { get; set; }
 }

@@ -18,6 +18,7 @@ public class EstimateService : IEstimateService
     private readonly IPdfGenerator pdfGenerator;
     private readonly IOrganizationClientPortalService clientPortalService;
     private readonly IFollowUpAutomationService? _followUpAutomation;
+    private readonly IJobService _jobService;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
@@ -27,12 +28,14 @@ public class EstimateService : IEstimateService
         INotificationService notificationService,
         IPdfGenerator pdfGenerator,
         IOrganizationClientPortalService clientPortalService,
+        IJobService jobService,
         IFollowUpAutomationService? followUpAutomation = null)
     {
         this.unitOfWork = unitOfWork;
         this.notificationService = notificationService;
         this.pdfGenerator = pdfGenerator;
         this.clientPortalService = clientPortalService;
+        _jobService = jobService;
         _followUpAutomation = followUpAutomation;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
@@ -281,6 +284,11 @@ public class EstimateService : IEstimateService
             await _followUpAutomation.StopEstimateSequenceAsync(estimate.Id, reason);
         }
 
+        if (newStatus == EstimateStatus.Accepted)
+        {
+            await CreateJobFromEstimateAsync(estimate);
+        }
+
         return Result<EstimateDto>.Success(ToDto(estimate));
     }
 
@@ -289,6 +297,20 @@ public class EstimateService : IEstimateService
         estimate.Subtotal = Math.Round(estimate.LineItems.Sum(x => x.Total), 2);
         estimate.TaxTotal = 0m;
         estimate.Total = Math.Round(estimate.Subtotal + estimate.TaxTotal, 2);
+    }
+
+    private async Task CreateJobFromEstimateAsync(Estimate estimate)
+    {
+        var job = new Job
+        {
+            OrganizationClientId = estimate.OrganizationClientId,
+            EstimateId = estimate.Id,
+            Title = estimate.Title ?? $"Job from {estimate.EstimateNumber}",
+            Comments = estimate.Description,
+            LifecycleStatus = JobLifecycleStatus.Approved
+        };
+
+        await _jobService.UpsertJobAsync(job, estimate.OrganizationId);
     }
 
     private async Task<string> GenerateEstimateNumberAsync(Guid organizationId)

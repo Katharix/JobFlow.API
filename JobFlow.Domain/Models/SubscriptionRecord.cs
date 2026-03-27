@@ -13,5 +13,5 @@ public class SubscriptionRecord : Entity
     public DateTime StartDate { get; set; }
     public DateTime? CanceledAt { get; set; }
 
-    public virtual CustomerPaymentProfile PaymentProfile { get; set; }
+    public virtual CustomerPaymentProfile PaymentProfile { get; set; } = null!;
 }

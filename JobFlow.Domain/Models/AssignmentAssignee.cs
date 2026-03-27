@@ -7,10 +7,10 @@ namespace JobFlow.Domain.Models
     public class AssignmentAssignee
     {
         public Guid AssignmentId { get; set; }
-        public virtual Assignment Assignment { get; set; }
+        public virtual Assignment Assignment { get; set; } = null!;
 
         public Guid EmployeeId { get; set; } // assuming you already have Employee entity
-        public virtual Employee Employee { get; set; }
+        public virtual Employee Employee { get; set; } = null!;
         public bool IsLead { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
