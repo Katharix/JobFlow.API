@@ -1,6 +1,5 @@
 ﻿using JobFlow.Domain.Models;
 using System.Linq.Expressions;
-using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobFlow.Infrastructure.Persistence;
@@ -30,6 +29,11 @@ public class JobFlowDbContext : DbContext
     public DbSet<FollowUpStep> FollowUpSteps { get; set; }
     public DbSet<FollowUpRun> FollowUpRuns { get; set; }
     public DbSet<FollowUpExecutionLog> FollowUpExecutionLogs { get; set; }
+    public DbSet<ClientImportJob> ClientImportJobs { get; set; }
+    public DbSet<ClientImportJobError> ClientImportJobErrors { get; set; }
+    public DbSet<ClientImportUploadSession> ClientImportUploadSessions { get; set; }
+    public DbSet<ClientImportUploadRow> ClientImportUploadRows { get; set; }
+    public DbSet<DataExportJob> DataExportJobs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
