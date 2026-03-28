@@ -1,0 +1,15 @@
+{
+  "seededIdentity": {
+    "description": "User whose JWT includes organizationId claim",
+    "source": "Firebase login -> API login-with-firebase",
+    "requiredEnv": [
+      "JOBFLOW_API_BEARER_TOKEN",
+      "JOBFLOW_ORGANIZATION_ID"
+    ]
+  },
+  "sampleClient": {
+    "firstName": "E2E",
+    "lastName": "Client",
+    "emailDomain": "example.test"
+  }
+}
