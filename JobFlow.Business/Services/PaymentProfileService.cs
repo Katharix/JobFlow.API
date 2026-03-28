@@ -185,4 +185,33 @@ public class PaymentProfileService : IPaymentProfileService
 
         return Result.Success();
     }
+
+    public async Task<Result> DisconnectOrganizationProviderAsync(Guid organizationId, PaymentProvider provider)
+    {
+        if (organizationId == Guid.Empty)
+            return Result.Failure(PaymentProfileErrors.NullOrEmptyOwnerId);
+
+        var profiles = await paymentProfiles.Query()
+            .Where(p => p.OwnerId == organizationId
+                        && p.OwnerType == PaymentEntityType.Organization
+                        && p.Provider == provider)
+            .ToListAsync();
+
+        if (profiles.Count == 0)
+            return Result.Success();
+
+        foreach (var profile in profiles)
+        {
+            profile.ProviderCustomerId = string.Empty;
+            profile.DefaultPaymentMethodId = null;
+            profile.EncryptedAccessToken = null;
+            profile.EncryptedRefreshToken = null;
+            profile.TokenExpiresAtUtc = null;
+            profile.SquareLocationId = null;
+            profile.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
 }

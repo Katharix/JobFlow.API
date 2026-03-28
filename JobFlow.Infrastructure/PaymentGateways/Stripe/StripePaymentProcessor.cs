@@ -200,7 +200,10 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
                     Quantity = request.Quantity
                 }
             },
-            SuccessUrl = $"{request.SuccessUrl}?organizationId={request.OrgId}&session_id={{CHECKOUT_SESSION_ID}}",
+            SuccessUrl = BuildSubscriptionSuccessUrl(
+                request.SuccessUrl,
+                ownerId,
+                "{CHECKOUT_SESSION_ID}"),
             CancelUrl = request.CancelUrl,
             Customer = customerId,
             SubscriptionData = new SessionSubscriptionDataOptions
@@ -238,5 +241,39 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             throw new InvalidOperationException("Stripe customer id was not returned.");
 
         return customer.Id;
+    }
+
+    private static string BuildSubscriptionSuccessUrl(
+        string? baseUrl,
+        string organizationId,
+        string sessionIdPlaceholder)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new InvalidOperationException("Success URL is required for subscription checkout.");
+
+        var urlWithoutFragment = baseUrl;
+        var fragment = string.Empty;
+        var fragmentIndex = baseUrl.IndexOf('#');
+        if (fragmentIndex >= 0)
+        {
+            urlWithoutFragment = baseUrl[..fragmentIndex];
+            fragment = baseUrl[fragmentIndex..];
+        }
+
+        var queryIndex = urlWithoutFragment.IndexOf('?');
+        var path = queryIndex >= 0 ? urlWithoutFragment[..queryIndex] : urlWithoutFragment;
+        var query = queryIndex >= 0 ? urlWithoutFragment[(queryIndex + 1)..] : string.Empty;
+
+        var parts = query
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(p =>
+                !p.StartsWith("organizationId=", StringComparison.OrdinalIgnoreCase)
+                && !p.StartsWith("session_id=", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        parts.Add($"organizationId={Uri.EscapeDataString(organizationId)}");
+        parts.Add($"session_id={sessionIdPlaceholder}");
+
+        return $"{path}?{string.Join("&", parts)}{fragment}";
     }
 }

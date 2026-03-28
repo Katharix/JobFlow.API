@@ -24,4 +24,6 @@ public interface IPaymentProfileService
 
     Task<Result> UpdateTokensAsync(Guid profileId, string encryptedAccessToken,
         string encryptedRefreshToken, DateTime tokenExpiresAtUtc);
+
+    Task<Result> DisconnectOrganizationProviderAsync(Guid organizationId, PaymentProvider provider);
 }

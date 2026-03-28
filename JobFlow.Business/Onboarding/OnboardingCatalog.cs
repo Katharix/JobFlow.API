@@ -18,10 +18,10 @@ public static class OnboardingCatalog
         { OnboardingStepKeys.ConnectStripe, 10 },
         { OnboardingStepKeys.CreateCustomer, 20 },
         { OnboardingStepKeys.CreateJob, 30 },
-        { OnboardingStepKeys.CreateInvoice, 40 },
-        { OnboardingStepKeys.SendInvoice, 50 },
-        { OnboardingStepKeys.ReceivePayment, 60 },
-        { OnboardingStepKeys.ScheduleJob, 70 }
+        { OnboardingStepKeys.ScheduleJob, 40 },
+        { OnboardingStepKeys.CreateInvoice, 50 },
+        { OnboardingStepKeys.SendInvoice, 60 },
+        { OnboardingStepKeys.ReceivePayment, 70 }
     };
 
     private static readonly Dictionary<string, int> OrganizedFirstOrder = new()
@@ -45,7 +45,7 @@ public static class OnboardingCatalog
         new(OnboardingStepKeys.CreateJob, "Create your first job", 20, _ => true),
         new(OnboardingStepKeys.ScheduleJob, "Schedule the job", 30, _ => true),
         new(OnboardingStepKeys.CreateInvoice, "Create an invoice", 40, _ => true),
-        new(OnboardingStepKeys.ConnectStripe, "Create Stripe connected account", 50, _ => true),
+        new(OnboardingStepKeys.ConnectStripe, "Connect your payment account", 50, _ => true),
         new(OnboardingStepKeys.SendInvoice, "Send the invoice", 60, _ => true),
         new(
             OnboardingStepKeys.ReceivePayment,

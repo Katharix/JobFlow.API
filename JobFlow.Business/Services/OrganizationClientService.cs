@@ -68,9 +68,6 @@ public class OrganizationClientService : IOrganizationClientService
     public async Task<Result<IEnumerable<OrganizationClient>>> GetAllClients()
     {
         var clients = await organizationClient.Query().ToListAsync();
-        if (!clients.Any())
-            return Result.Failure<IEnumerable<OrganizationClient>>(OrganizationClientErrors.NoClientsToShow);
-
         return Result.Success<IEnumerable<OrganizationClient>>(clients);
     }
 
@@ -78,9 +75,6 @@ public class OrganizationClientService : IOrganizationClientService
     {
         var clients = await organizationClient.Query().Where(client => client.OrganizationId == organizationId)
             .ToListAsync();
-        if (!clients.Any())
-            return Result.Failure<IEnumerable<OrganizationClient>>(OrganizationClientErrors.NoClientFound);
-
         return Result.Success<IEnumerable<OrganizationClient>>(clients);
     }
 

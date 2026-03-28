@@ -108,6 +108,14 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         }
         catch (SquareApiException ex)
         {
+            if (ex.Message.Contains("INSUFFICIENT_SCOPES", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("ORDERS_WRITE", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Square account needs updated permissions (ORDERS_WRITE). Please reconnect Square from Connected Payment to re-authorize the required scopes.",
+                    ex);
+            }
+
             throw new Exception($"Square API error: {ex.Message}", ex);
         }
         catch (Exception ex) when (ex is not InvalidOperationException)
