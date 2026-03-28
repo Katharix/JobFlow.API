@@ -32,9 +32,25 @@ public class SubscriptionRecordService : ISubscriptionRecordService
 
         if (string.IsNullOrWhiteSpace(providerSubscriptionId))
             return Result.Failure<SubscriptionRecord>(SubscriptionErrors.MissingProviderSubscriptionId);
+
+        providerSubscriptionId = providerSubscriptionId.Trim();
+
         var paymentProfile = await paymentProfiles.Query().FirstOrDefaultAsync(p => p.Id == paymentProfileId);
         if (paymentProfile == null)
             return Result.Failure<SubscriptionRecord>(SubscriptionErrors.InvalidPaymentProfile);
+
+        var existing = await subscriptions.Query()
+            .FirstOrDefaultAsync(s => s.ProviderSubscriptionId == providerSubscriptionId);
+
+        if (existing is not null)
+        {
+            if (existing.PaymentProfileId != paymentProfileId)
+                return Result.Failure<SubscriptionRecord>(Error.Conflict(
+                    "Subscription",
+                    "Provider subscription ID is already linked to a different payment profile."));
+
+            return Result.Success(existing);
+        }
 
         var subscription = new SubscriptionRecord
         {

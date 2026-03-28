@@ -27,7 +27,9 @@ public class MapsterConfig : IRegister
         config.NewConfig<EmployeeRole, EmployeeRoleDto>();
 
         // Organization → DTO
-        config.NewConfig<Organization, OrganizationDto>();
+        config.NewConfig<Organization, OrganizationDto>()
+            .Map(dest => dest.Email, src => src.EmailAddress)
+            .Map(dest => dest.EmailAddress, src => src.EmailAddress);
 
         //OrganizationBranding → DTO
         config.NewConfig<OrganizationBranding, BrandingDto>();

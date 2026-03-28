@@ -389,7 +389,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseExceptionHandler(app.Environment.IsProduction() ? "/error" : "/error-development");
 
 app.UseRouting();

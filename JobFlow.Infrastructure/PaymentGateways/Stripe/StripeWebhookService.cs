@@ -248,6 +248,8 @@ public class StripeWebhookService : IStripeWebhookService
             planName = "Unknown";
         }
 
+        var existingSubscription = await _subscriptionRecordService.GetByProviderIdAsync(subscription.Id);
+
         var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
             Enum.Parse<PaymentEntityType>(ownerType),
@@ -262,6 +264,11 @@ public class StripeWebhookService : IStripeWebhookService
             subscription.Status,
             planName
         );
+
+        if (existingSubscription.IsFailure)
+        {
+            await TrySendOrganizationWelcomeAsync(ownerId, ownerType, subscription.Status, subscription.Id, StripeEvents.CheckoutSessionCompleted);
+        }
     }
 
     private async Task HandlePaymentIntentAsync(PaymentIntent intent)
@@ -402,10 +409,19 @@ public class StripeWebhookService : IStripeWebhookService
         if (!subResult.IsSuccess)
             return;
 
+        var previousStatus = subResult.Value.Status;
+
         subResult.Value.Status = subscription.Status;
         subResult.Value.ProviderPriceId = subscription.Items.Data.First().Price.Id;
 
         await _subscriptionRecordService.UpdateAsync(subResult.Value);
+
+        if (!IsSubscriptionCompleteStatus(previousStatus)
+            && IsSubscriptionCompleteStatus(subscription.Status)
+            && TryGetSubscriptionOwnerMetadata(subscription, out var ownerId, out var ownerType))
+        {
+            await TrySendOrganizationWelcomeAsync(ownerId, ownerType, subscription.Status, subscription.Id, StripeEvents.CustomerSubscriptionUpdated);
+        }
     }
 
     private async Task HandleSubscriptionCreatedAsync(Subscription subscription)
@@ -434,6 +450,8 @@ public class StripeWebhookService : IStripeWebhookService
             planName = "Unknown";
         }
 
+        var existingSubscription = await _subscriptionRecordService.GetByProviderIdAsync(subscription.Id);
+
         var paymentProfileResult = await _paymentProfileService.UpsertAsync(
             Guid.Parse(ownerId),
             Enum.Parse<PaymentEntityType>(ownerType),
@@ -448,6 +466,77 @@ public class StripeWebhookService : IStripeWebhookService
             subscription.Status,
             planName
         );
+
+        if (existingSubscription.IsFailure)
+        {
+            await TrySendOrganizationWelcomeAsync(ownerId, ownerType, subscription.Status, subscription.Id, StripeEvents.SubscriptionCreated);
+        }
+    }
+
+    private async Task TrySendOrganizationWelcomeAsync(
+        string ownerIdRaw,
+        string ownerTypeRaw,
+        string? subscriptionStatus,
+        string subscriptionId,
+        string sourceEvent)
+    {
+        if (!IsSubscriptionCompleteStatus(subscriptionStatus))
+            return;
+
+        if (!Enum.TryParse<PaymentEntityType>(ownerTypeRaw, true, out var ownerType)
+            || ownerType != PaymentEntityType.Organization)
+            return;
+
+        if (!Guid.TryParse(ownerIdRaw, out var organizationId))
+        {
+            _logger.LogWarning(
+                "Unable to parse organization owner id for welcome notification. SubscriptionId={SubscriptionId}, OwnerId={OwnerId}, EventType={EventType}",
+                subscriptionId,
+                ownerIdRaw,
+                sourceEvent);
+            return;
+        }
+
+        var orgResult = await _organizationService.GetOrganiztionById(organizationId);
+        if (orgResult.IsFailure)
+        {
+            _logger.LogWarning(
+                "Organization not found for welcome notification. OrganizationId={OrganizationId}, SubscriptionId={SubscriptionId}, EventType={EventType}",
+                organizationId,
+                subscriptionId,
+                sourceEvent);
+            return;
+        }
+
+        await _notificationService.SendOrganizationWelcomeNotificationAsync(orgResult.Value);
+    }
+
+    private static bool IsSubscriptionCompleteStatus(string? status)
+    {
+        return string.Equals(status, "active", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "trialing", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetSubscriptionOwnerMetadata(
+        Subscription subscription,
+        out string ownerId,
+        out string ownerType)
+    {
+        ownerId = string.Empty;
+        ownerType = string.Empty;
+
+        if (subscription.Metadata == null)
+            return false;
+
+        if (!subscription.Metadata.TryGetValue("ownerId", out var ownerIdValue)
+            || !subscription.Metadata.TryGetValue("ownerType", out var ownerTypeValue))
+            return false;
+
+        ownerId = ownerIdValue ?? string.Empty;
+        ownerType = ownerTypeValue ?? string.Empty;
+
+        return !string.IsNullOrWhiteSpace(ownerId)
+               && !string.IsNullOrWhiteSpace(ownerType);
     }
 
     private async Task HandleSubscriptionTrialWillEndAsync(Subscription subscription)

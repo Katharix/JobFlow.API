@@ -6,6 +6,7 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -14,7 +15,6 @@ namespace JobFlow.API.Controllers;
 [ApiController]
 public class OrganizationController : ControllerBase
 {
-    private readonly INotificationService _notificationService;
     private readonly IOrganizationBrandingService _organizationBrandingService;
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
@@ -24,14 +24,12 @@ public class OrganizationController : ControllerBase
         IOrganizationService organizationService,
         IUserService userService,
         IPaymentProfileService paymentProfileService,
-        INotificationService notificationService,
         IOrganizationBrandingService organizationBrandingService
     )
     {
         _organizationService = organizationService;
         _userService = userService;
         _paymentProfileService = paymentProfileService;
-        _notificationService = notificationService;
         _organizationBrandingService = organizationBrandingService;
     }
 
@@ -45,10 +43,10 @@ public class OrganizationController : ControllerBase
 
     [HttpPost]
     [Route("create")]
+    [AllowAnonymous]
     public async Task<IResult> CreateOrganizationAccount(Organization model)
     {
         var result = await _organizationService.UpsertOrganization(model);
-        if (result.IsSuccess) await _notificationService.SendOrganizationWelcomeNotificationAsync(model);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
@@ -96,6 +94,7 @@ public class OrganizationController : ControllerBase
 
     [HttpPost]
     [Route("retrieve")]
+    [AllowAnonymous]
     public async Task<IResult> GetOrganizationById([FromBody] OrganizationRequest org)
     {
         var result = await _organizationService.GetOrganizationDtoById(org.OrganizationId);

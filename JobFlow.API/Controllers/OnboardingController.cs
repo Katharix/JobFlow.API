@@ -50,12 +50,12 @@ public class OnboardingController : ControllerBase
             return orgResult.ToProblemDetails();
         }
 
-        if (!HasMinPlan(orgResult.Value.SubscriptionPlanName, "Flow"))
+        if (!HasMinPlan(orgResult.Value.SubscriptionPlanName, "Go"))
         {
             return Results.Problem(
                 statusCode: StatusCodes.Status403Forbidden,
                 title: "Subscription Required",
-                detail: "A Flow plan is required to apply quick-start presets.");
+            detail: "A Go plan is required to apply quick-start presets.");
         }
 
         var result = await onboarding.ApplyQuickStartAsync(organizationId, request);
