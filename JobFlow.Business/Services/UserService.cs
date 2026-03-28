@@ -117,7 +117,8 @@ public class UserService : IUserService
                 .OrderByDescending(s => s.StartDate)
                 .FirstOrDefaultAsync();
 
-            user.Organization.SubscriptionPlanName = latestSubscription?.PlanName;
+            if (user.Organization is not null)
+                user.Organization.SubscriptionPlanName = latestSubscription?.PlanName;
         }
 
         return Result.Success(user);

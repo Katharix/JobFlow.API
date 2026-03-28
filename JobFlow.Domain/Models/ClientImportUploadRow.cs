@@ -6,5 +6,5 @@ public class ClientImportUploadRow : Entity
     public int RowNumber { get; set; }
     public string RowDataJson { get; set; } = string.Empty;
 
-    public virtual ClientImportUploadSession Session { get; set; }
+    public virtual ClientImportUploadSession Session { get; set; } = null!;
 }

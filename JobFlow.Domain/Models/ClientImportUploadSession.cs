@@ -9,6 +9,6 @@ public class ClientImportUploadSession : Entity
     public DateTime ExpiresAtUtc { get; set; }
     public DateTime? ConsumedAtUtc { get; set; }
 
-    public virtual Organization Organization { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
     public virtual ICollection<ClientImportUploadRow> Rows { get; set; } = new List<ClientImportUploadRow>();
 }

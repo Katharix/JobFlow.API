@@ -11,7 +11,7 @@ public class OrganizationClientPortalSession : Entity
 
     public string TokenHash { get; set; } = string.Empty;
     public DateTimeOffset ExpiresAt { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public new DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? RedeemedAt { get; set; }
 
     public OrganizationClient? OrganizationClient { get; set; }

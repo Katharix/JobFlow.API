@@ -5,7 +5,7 @@ namespace JobFlow.Domain;
 public interface IRepository<TEntity> where TEntity : class
 {
     // 🔹 Query
-    IQueryable<TEntity> Query(Expression<Func<TEntity, bool>> filter = null);
+    IQueryable<TEntity> Query(Expression<Func<TEntity, bool>>? filter = null);
     IQueryable<TEntity> QueryWithNoTracking();
 
     // 🔹 Create

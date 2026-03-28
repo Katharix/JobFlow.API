@@ -115,7 +115,8 @@ public class InvoiceService : IInvoiceService
                 model.Id = Guid.NewGuid();
 
             // Attach invoice to line items
-            foreach (var li in model.LineItems) li.InvoiceId = model.Id;
+            if (model.LineItems is not null)
+                foreach (var li in model.LineItems) li.InvoiceId = model.Id;
 
             await invoices.AddAsync(model);
         }
@@ -230,6 +231,44 @@ public class InvoiceService : IInvoiceService
         return Result.Success(invoice);
     }
 
+    public async Task<Result<Invoice>> RecordDepositAsync(
+        Guid invoiceId,
+        decimal depositAmount,
+        PaymentProvider provider,
+        string externalPaymentId)
+    {
+        var invoice = await invoices.Query()
+            .Include(e => e.OrganizationClient)
+            .ThenInclude(e => e.Organization)
+            .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+        if (invoice == null)
+            return Result.Failure<Invoice>(InvoiceErrors.NotFound);
+
+        if (invoice.Status == InvoiceStatus.Paid)
+            return Result.Success(invoice);
+
+        invoice.AmountPaid += depositAmount;
+        invoice.PaymentProvider = provider;
+        invoice.ExternalPaymentId = externalPaymentId;
+
+        if (invoice.AmountPaid >= invoice.TotalAmount)
+        {
+            invoice.Status = InvoiceStatus.Paid;
+            invoice.PaidAt = DateTimeOffset.UtcNow;
+        }
+
+        invoices.Update(invoice);
+        await unitOfWork.SaveChangesAsync();
+
+        if (invoice.Status == InvoiceStatus.Paid && _realtimeNotifier != null)
+        {
+            await _realtimeNotifier.NotifyInvoicePaidAsync(invoice);
+        }
+
+        return Result.Success(invoice);
+    }
+
     private async Task SendInvoiceToClientAsync(Invoice invoice)
     {
         var client = invoice.OrganizationClient;
@@ -259,7 +298,20 @@ public class InvoiceService : IInvoiceService
 
     private async Task<Result<Invoice>> CreateInvoiceFromEstimateAsync(Guid organizationId, Job job)
     {
-        var estimate = await estimates.Query()
+        Estimate? estimate = null;
+
+        // Prefer direct link via EstimateId on Job
+        if (job.EstimateId.HasValue)
+        {
+            estimate = await estimates.Query()
+                .Include(e => e.LineItems)
+                .FirstOrDefaultAsync(e =>
+                    e.Id == job.EstimateId.Value &&
+                    e.Status == EstimateStatus.Accepted);
+        }
+
+        // Fallback: match by client + accepted status
+        estimate ??= await estimates.Query()
             .Include(e => e.LineItems)
             .OrderByDescending(e => e.UpdatedAt ?? e.CreatedAt)
             .FirstOrDefaultAsync(e =>
@@ -283,6 +335,7 @@ public class InvoiceService : IInvoiceService
             OrganizationId = organizationId,
             OrganizationClientId = job.OrganizationClientId,
             JobId = job.Id,
+            EstimateId = estimate.Id,
             InvoiceNumber = await _numberGenerator.GenerateAsync(organizationId),
             InvoiceDate = DateTime.UtcNow,
             DueDate = DateTime.UtcNow.AddDays(14),

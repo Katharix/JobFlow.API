@@ -14,5 +14,5 @@ public class DataExportJob : Entity
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime? ExpiresAtUtc { get; set; }
 
-    public virtual Organization Organization { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
 }

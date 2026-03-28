@@ -20,4 +20,10 @@ public interface IInvoiceService
         PaymentProvider provider,
         string externalPaymentId,
         decimal amountReceived);
+
+    Task<Result<Invoice>> RecordDepositAsync(
+        Guid invoiceId,
+        decimal depositAmount,
+        PaymentProvider provider,
+        string externalPaymentId);
 }

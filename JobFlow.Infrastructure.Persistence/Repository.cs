@@ -18,7 +18,7 @@ public class Repository<T> : IRepository<T> where T : class
     }
 
     // 🔹 Query
-    public IQueryable<T> Query(Expression<Func<T, bool>> filter = null)
+    public IQueryable<T> Query(Expression<Func<T, bool>>? filter = null)
     {
         return filter != null ? _dbSet.Where(filter) : _dbSet;
     }
@@ -140,12 +140,12 @@ public class Repository<T> : IRepository<T> where T : class
     // 🔹 Read Helpers
     public async Task<T> GetByIdAsync(Guid id)
     {
-        return await _dbSet.FindAsync(id);
+        return (await _dbSet.FindAsync(id))!;
     }
 
     public async Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.FirstOrDefaultAsync(predicate);
+        return (await _dbSet.FirstOrDefaultAsync(predicate))!;
     }
 
     public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)

@@ -25,6 +25,7 @@ public class AssignmentService : IAssignmentService
     private readonly IWorkflowSettingsService _workflowSettings;
     private readonly IScheduleSettingsService _scheduleSettings;
     private readonly INotificationService _notificationService;
+    private readonly IJobService _jobService;
     private readonly ILogger<AssignmentService> _logger;
 
     public AssignmentService(
@@ -34,6 +35,7 @@ public class AssignmentService : IAssignmentService
         IWorkflowSettingsService workflowSettings,
         IScheduleSettingsService scheduleSettings,
         INotificationService notificationService,
+        IJobService jobService,
         ILogger<AssignmentService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -47,6 +49,7 @@ public class AssignmentService : IAssignmentService
         _workflowSettings = workflowSettings;
         _scheduleSettings = scheduleSettings;
         _notificationService = notificationService;
+        _jobService = jobService;
         _logger = logger;
     }
 
@@ -176,6 +179,12 @@ public class AssignmentService : IAssignmentService
 
         _assignments.Update(assignment);
         await _unitOfWork.SaveChangesAsync();
+
+        // When assignment is completed, check if all assignments for the job are done
+        if (dto.Status == AssignmentStatus.Completed)
+        {
+            await TryCompleteJobAsync(organizationId, assignment.JobId);
+        }
 
         return Result.Success(await MapToDtoAsync(organizationId, assignment));
     }
@@ -316,6 +325,39 @@ public class AssignmentService : IAssignmentService
         var labelMap = labelMapResult.IsSuccess ? labelMapResult.Value : new Dictionary<JobLifecycleStatus, string>();
 
         return MapToDto(assignment, labelMap);
+    }
+
+    private async Task TryCompleteJobAsync(Guid organizationId, Guid jobId)
+    {
+        var allJobAssignments = await _assignments.Query()
+            .Where(a => a.JobId == jobId)
+            .ToListAsync();
+
+        var allDone = allJobAssignments.All(a =>
+            a.Status is AssignmentStatus.Completed or AssignmentStatus.Skipped or AssignmentStatus.Canceled);
+
+        if (!allDone)
+            return;
+
+        var hasCompleted = allJobAssignments.Any(a => a.Status == AssignmentStatus.Completed);
+        if (!hasCompleted)
+            return;
+
+        var job = await _jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j => j.Id == jobId);
+
+        if (job == null || job.LifecycleStatus == JobLifecycleStatus.Completed)
+            return;
+
+        var result = await _jobService.UpdateJobStatusAsync(organizationId, jobId, JobLifecycleStatus.Completed);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning(
+                "Auto-complete failed for job {JobId} after all assignments finished: {Error}",
+                jobId,
+                result.Error.Description);
+        }
     }
 
     private AssignmentDto MapToDto(Assignment assignment, Dictionary<JobLifecycleStatus, string> labelMap)

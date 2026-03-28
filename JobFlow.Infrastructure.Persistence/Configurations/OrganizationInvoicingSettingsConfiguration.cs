@@ -14,5 +14,8 @@ public class OrganizationInvoicingSettingsConfiguration : IEntityTypeConfigurati
         builder.Property(x => x.DefaultWorkflow)
             .HasConversion<int>()
             .HasDefaultValue(JobFlow.Domain.Enums.InvoicingWorkflow.SendInvoice);
+
+        builder.Property(x => x.DepositPercentage)
+            .HasPrecision(5, 2);
     }
 }

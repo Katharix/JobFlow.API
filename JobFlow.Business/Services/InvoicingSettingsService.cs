@@ -54,6 +54,8 @@ public class InvoicingSettingsService : IInvoicingSettingsService
         }
 
         settings.DefaultWorkflow = dto.DefaultWorkflow;
+        settings.DepositRequired = dto.DepositRequired;
+        settings.DepositPercentage = dto.DepositPercentage;
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -64,7 +66,9 @@ public class InvoicingSettingsService : IInvoicingSettingsService
     {
         return new InvoicingSettingsDto
         {
-            DefaultWorkflow = settings.DefaultWorkflow
+            DefaultWorkflow = settings.DefaultWorkflow,
+            DepositRequired = settings.DepositRequired,
+            DepositPercentage = settings.DepositPercentage
         };
     }
 }

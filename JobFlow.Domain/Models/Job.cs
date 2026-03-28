@@ -10,7 +10,10 @@ public class Job : Entity
     public string? Comments { get; set; }
 
     public Guid OrganizationClientId { get; set; }
-    public virtual OrganizationClient OrganizationClient { get; set; }
+    public virtual OrganizationClient OrganizationClient { get; set; } = null!;
+
+    public Guid? EstimateId { get; set; }
+    public virtual Estimate? Estimate { get; set; }
 
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }

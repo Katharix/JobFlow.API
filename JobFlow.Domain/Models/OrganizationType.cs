@@ -2,5 +2,5 @@
 
 public class OrganizationType : Entity
 {
-    public string TypeName { get; set; }
+    public string TypeName { get; set; } = string.Empty;
 }

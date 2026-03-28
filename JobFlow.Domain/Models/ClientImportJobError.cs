@@ -6,5 +6,5 @@ public class ClientImportJobError : Entity
     public int RowNumber { get; set; }
     public string Message { get; set; } = string.Empty;
 
-    public virtual ClientImportJob ClientImportJob { get; set; }
+    public virtual ClientImportJob ClientImportJob { get; set; } = null!;
 }

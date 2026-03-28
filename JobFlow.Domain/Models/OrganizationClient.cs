@@ -13,7 +13,7 @@ public class OrganizationClient : Entity
     public string? EmailAddress { get; set; }
     public string? ZipCode { get; set; }
 
-    public virtual Organization Organization { get; set; }
+    public virtual Organization Organization { get; set; } = null!;
 
     // ✅ Replace the old join collection with a direct Jobs collection
     public virtual ICollection<Job> Jobs { get; set; } = new List<Job>();

@@ -16,7 +16,6 @@ namespace JobFlow.Business.Services;
 [ScopedService]
 public class EmployeeInviteService : IEmployeeInviteService
 {
-    private readonly IRepository<Employee> _employees;
     private readonly IFrontendSettings _frontendSettings;
     private readonly IRepository<EmployeeInvite> _invites;
     private readonly ILogger<EmployeeInviteService> _logger;
@@ -71,7 +70,8 @@ public class EmployeeInviteService : IEmployeeInviteService
                 .Include(i => i.Role)
                 .FirstOrDefaultAsync(i => i.Id == invite.Id);
             var dto = _mapper.Map<EmployeeInviteDto>(invite);
-            await _notifications.SendEmployeeInviteNotificationAsync(createdInvite);
+            if (createdInvite is not null)
+                await _notifications.SendEmployeeInviteNotificationAsync(createdInvite);
 
             return Result.Success(dto);
         }
@@ -146,8 +146,8 @@ public class EmployeeInviteService : IEmployeeInviteService
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
-            FirstName = invite.FirstName,
-            LastName = invite.LastName,
+            FirstName = invite.FirstName ?? string.Empty,
+            LastName = invite.LastName ?? string.Empty,
             Email = invite.Email,
             RoleId = invite.RoleId,
             OrganizationId = invite.OrganizationId,

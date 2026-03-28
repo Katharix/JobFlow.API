@@ -164,7 +164,7 @@ public partial class NotificationService : INotificationService
                 Name = message.Name,
                 Subject = message.Subject,
                 Message = message.Body,
-                TemplateId = (int)message.TemplateId,
+                TemplateId = (int)(message.TemplateId ?? 0),
                 Link = message.Link
             });
         }

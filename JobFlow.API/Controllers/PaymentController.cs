@@ -313,6 +313,16 @@ public class PaymentController : ControllerBase
                 : null
         });
 
+        // Record the deposit against the linked invoice
+        if (request.InvoiceId.HasValue && !string.IsNullOrEmpty(result.ProviderPaymentId))
+        {
+            await _invoiceService.RecordDepositAsync(
+                request.InvoiceId.Value,
+                request.Amount,
+                request.Provider,
+                result.ProviderPaymentId);
+        }
+
         return Ok(new
         {
             clientSecret = result.ClientSecret,
