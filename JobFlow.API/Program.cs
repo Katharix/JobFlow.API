@@ -41,6 +41,11 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
 
+// On Linux App Service, bind explicitly to the platform-provided port to avoid startup timeouts.
+var appServicePort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(appServicePort))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{appServicePort}");
+
 // ============================================================
 // CONFIGURATION SOURCES (Hybrid: Appsettings + UserSecrets + KeyVault + EnvVars)
 // ============================================================
@@ -525,6 +530,7 @@ app.UseMiddleware<AuditLoggingMiddleware>();
 
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<ClientChatHub>("/hubs/client-chat");
