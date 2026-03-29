@@ -79,27 +79,42 @@ builder.Services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOpt
 // FIREBASE INITIALIZATION
 // ============================================================
 
-var firebaseFilePath = Path.Combine(env.ContentRootPath, "job-flow-firebase-adminsdk.json");
-
-if (!System.IO.File.Exists(firebaseFilePath))
-    throw new InvalidOperationException($"Firebase service account file not found: {firebaseFilePath}");
-
+var firebaseAdminSdkJson = builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK];
 string firebaseProjectId;
-using (var doc = JsonDocument.Parse(System.IO.File.ReadAllText(firebaseFilePath)))
+GoogleCredential firebaseCredential;
+
+if (!string.IsNullOrWhiteSpace(firebaseAdminSdkJson))
 {
+    using var doc = JsonDocument.Parse(firebaseAdminSdkJson);
     firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+    var credential = CredentialFactory.FromJson<ServiceAccountCredential>(firebaseAdminSdkJson);
+    firebaseCredential = credential.ToGoogleCredential();
+}
+else
+{
+    var firebaseFilePath = Path.Combine(env.ContentRootPath, "job-flow-firebase-adminsdk.json");
+
+    if (!System.IO.File.Exists(firebaseFilePath))
+        throw new InvalidOperationException(
+            $"Firebase admin credentials were not found. Configure '{ConfigConstants.FIREBASE_ADMIN_SDK}' in Key Vault or provide local file: {firebaseFilePath}");
+
+    var firebaseJson = System.IO.File.ReadAllText(firebaseFilePath);
+
+    using var doc = JsonDocument.Parse(firebaseJson);
+    firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+    var credential = CredentialFactory.FromFile<ServiceAccountCredential>(firebaseFilePath);
+    firebaseCredential = credential.ToGoogleCredential();
 }
 
 if (string.IsNullOrWhiteSpace(firebaseProjectId))
-    throw new InvalidOperationException("Firebase project_id is missing in job-flow-firebase-adminsdk.json");
+    throw new InvalidOperationException("Firebase project_id is missing in configured Firebase admin credentials.");
 
 // Create the Firebase Admin default app instance so FirebaseAuth.DefaultInstance is available.
 if (FirebaseApp.DefaultInstance is null)
 {
-    var credential = CredentialFactory.FromFile<ServiceAccountCredential>(firebaseFilePath);
     FirebaseApp.Create(new AppOptions
     {
-        Credential = credential.ToGoogleCredential()
+        Credential = firebaseCredential
     });
 }
 
@@ -119,7 +134,7 @@ builder.Services
     })
     .AddJwtBearer("ClientPortalJwt", options =>
     {
-        var signingKey = builder.Configuration["Auth:ClientPortal:SigningKey"];
+        var signingKey = builder.Configuration["Auth-ClientPortal-SigningKey"];
         if (string.IsNullOrWhiteSpace(signingKey))
             throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
 
@@ -259,6 +274,8 @@ builder.Services.AddCors(o =>
             return host == "localhost"
                    || host == "gojobflow.com"
                    || host == "www.gojobflow.com"
+                     || host == "jobflow-ui-web-staging.web.app"
+                     || host == "jobflow-ui-web-staging.firebaseapp.com"
                    || host.EndsWith(".gojobflow.app")
                    || host.EndsWith(".gojobflow.com");
         })
