@@ -1,6 +1,8 @@
 ﻿using System.Security.Claims;
 using FirebaseAdmin.Auth;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
 namespace JobFlow.Infrastructure.Middleware;
@@ -16,26 +18,69 @@ public class FirebaseAuthMiddleware
 
     public async Task Invoke(HttpContext context, IUserService userService)
     {
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+        {
+            await _next(context);
+            return;
+        }
+
         var path = context.Request.Path.Value?.ToLower();
 
-        // Skip onboarding endpoints
+        // Skip endpoints that must be reachable without a Firebase bearer token.
         if (path != null &&
            (path.StartsWith("/api/organizations/register") ||
             path.StartsWith("/api/organizations/retrieve") ||
-            path.StartsWith("/api/organization/types")))
+            path.StartsWith("/api/organization/types") ||
+            path.StartsWith("/api/auth/") ||
+            path.StartsWith("/api/client-hub-auth") ||
+            path.StartsWith("/api/client-hub")))
         {
             await _next(context);
             return;
         }
+
+        string? token = null;
 
         var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+        {
+            token = authHeader.Substring("Bearer ".Length);
+        }
+
+        if (string.IsNullOrWhiteSpace(token)
+            && path is not null
+            && path.StartsWith("/hubs/")
+            && context.Request.Query.TryGetValue("access_token", out var accessToken))
+        {
+            token = accessToken.FirstOrDefault();
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
         {
             await _next(context);
             return;
         }
 
-        var token = authHeader.Substring("Bearer ".Length);
+        // If this is a locally-issued Client Portal JWT, do not attempt Firebase verification.
+        // The JwtBearer handler for the ClientPortalJwt scheme will validate and populate claims.
+        try
+        {
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            if (handler.CanReadToken(token))
+            {
+                var jwt = handler.ReadJwtToken(token);
+                if (string.Equals(jwt.Issuer, "JobFlow.ClientPortal", StringComparison.Ordinal))
+                {
+                    await _next(context);
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            // ignore and fall back to Firebase verification
+        }
 
         try
         {
@@ -46,16 +91,47 @@ public class FirebaseAuthMiddleware
             new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
         };
 
+            var roleValue = string.Empty;
             if (decodedToken.Claims.TryGetValue("role", out var role))
-                claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+            {
+                roleValue = Convert.ToString(role) ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(roleValue))
+                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
+            }
 
             if (decodedToken.Claims.TryGetValue("email", out var email))
-                claims.Add(new Claim(ClaimTypes.Email, email.ToString()));
+            {
+                var emailValue = Convert.ToString(email);
+                if (!string.IsNullOrWhiteSpace(emailValue))
+                    claims.Add(new Claim(ClaimTypes.Email, emailValue));
+            }
+
+            var isSupportHubUser = string.Equals(roleValue, UserRoles.KatharixAdmin, StringComparison.Ordinal)
+                || string.Equals(roleValue, UserRoles.KatharixEmployee, StringComparison.Ordinal);
+
+            if (path is not null && (path.StartsWith("/api/supporthub/invites/redeem") || path.StartsWith("/api/supporthub/register")))
+            {
+                var redeemIdentity = new ClaimsIdentity(claims, "Firebase");
+                context.User.AddIdentity(redeemIdentity);
+                await _next(context);
+                return;
+            }
+
+            if (isSupportHubUser)
+            {
+                var supportIdentity = new ClaimsIdentity(claims, "Firebase");
+                context.User.AddIdentity(supportIdentity);
+                await _next(context);
+                return;
+            }
 
             var userResult = await userService.GetUserByFirebaseUid(decodedToken.Uid);
 
             if (!userResult.IsSuccess)
             {
+                if (context.Response.HasStarted)
+                    return;
+
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("User is not linked to an organization.");
                 return;
@@ -68,6 +144,9 @@ public class FirebaseAuthMiddleware
         }
         catch
         {
+            if (context.Response.HasStarted)
+                return;
+
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }

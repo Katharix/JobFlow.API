@@ -16,22 +16,48 @@ public class OrganizationClientService : IOrganizationClientService
     private readonly ILogger<OrganizationClientService> logger;
     private readonly IRepository<OrganizationClient> organizationClient;
     private readonly IOnboardingService onboardingService;
+    private readonly IOrganizationClientPortalService _clientPortal;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
 
-    public OrganizationClientService(ILogger<OrganizationClientService> logger, IUnitOfWork unitOfWork, IOnboardingService onboardingService, IMapper mapper)
+    public OrganizationClientService(
+        ILogger<OrganizationClientService> logger,
+        IUnitOfWork unitOfWork,
+        IOnboardingService onboardingService,
+        IOrganizationClientPortalService clientPortal,
+        IMapper mapper)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         this.onboardingService = onboardingService;
+        _clientPortal = clientPortal;
         organizationClient = this.unitOfWork.RepositoryOf<OrganizationClient>();
         _mapper = mapper;
     }
 
     public async Task<Result> DeleteClient(Guid clientId)
     {
-        var clientToDelete = await organizationClient.Query().FirstOrDefaultAsync(client => client.Id == clientId);
-        if (clientToDelete == null) return Result.Failure(OrganizationClientErrors.NoClientFound);
+        var clientToDelete = await organizationClient.Query()
+            .FirstOrDefaultAsync(client => client.Id == clientId);
+
+        if (clientToDelete == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
+        var clientName = clientToDelete.ClientFullName();
+        organizationClient.Remove(clientToDelete);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success($"{clientName} was successfully removed.");
+    }
+
+    public async Task<Result> DeleteClient(Guid clientId, Guid organizationId)
+    {
+        var clientToDelete = await organizationClient.Query()
+            .FirstOrDefaultAsync(client => client.Id == clientId && client.OrganizationId == organizationId);
+
+        if (clientToDelete == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
         var clientName = clientToDelete.ClientFullName();
         organizationClient.Remove(clientToDelete);
         await unitOfWork.SaveChangesAsync();
@@ -42,9 +68,6 @@ public class OrganizationClientService : IOrganizationClientService
     public async Task<Result<IEnumerable<OrganizationClient>>> GetAllClients()
     {
         var clients = await organizationClient.Query().ToListAsync();
-        if (!clients.Any())
-            return Result.Failure<IEnumerable<OrganizationClient>>(OrganizationClientErrors.NoClientsToShow);
-
         return Result.Success<IEnumerable<OrganizationClient>>(clients);
     }
 
@@ -52,9 +75,6 @@ public class OrganizationClientService : IOrganizationClientService
     {
         var clients = await organizationClient.Query().Where(client => client.OrganizationId == organizationId)
             .ToListAsync();
-        if (!clients.Any())
-            return Result.Failure<IEnumerable<OrganizationClient>>(OrganizationClientErrors.NoClientFound);
-
         return Result.Success<IEnumerable<OrganizationClient>>(clients);
     }
 
@@ -64,6 +84,40 @@ public class OrganizationClientService : IOrganizationClientService
         if (client == null) return Result.Failure<OrganizationClient>(OrganizationClientErrors.NoClientFound);
 
         return Result.Success<OrganizationClient>(client);
+    }
+
+    public async Task<Result<OrganizationClient>> GetOrganizationClientByEmailAsync(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return Result.Failure<OrganizationClient>(OrganizationClientErrors.NoClientFound);
+
+        var normalized = emailAddress.Trim().ToLowerInvariant();
+
+        var match = await organizationClient.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.EmailAddress != null && c.EmailAddress.ToLower() == normalized);
+
+        return match is null
+            ? Result.Failure<OrganizationClient>(OrganizationClientErrors.NoClientFound)
+            : Result.Success(match);
+    }
+
+    public async Task<Result<IReadOnlyList<OrganizationClient>>> GetOrganizationClientsByEmailAsync(string emailAddress)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            return Result.Failure<IReadOnlyList<OrganizationClient>>(OrganizationClientErrors.NoClientFound);
+
+        var normalized = emailAddress.Trim().ToLowerInvariant();
+
+        var matches = await organizationClient.Query()
+            .AsNoTracking()
+            .Include(c => c.Organization)
+            .Where(c => c.EmailAddress != null && c.EmailAddress.ToLower() == normalized)
+            .ToListAsync();
+
+        return matches.Count == 0
+            ? Result.Failure<IReadOnlyList<OrganizationClient>>(OrganizationClientErrors.NoClientFound)
+            : Result.Success<IReadOnlyList<OrganizationClient>>(matches);
     }
 
     public async Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model)
@@ -81,13 +135,25 @@ public class OrganizationClientService : IOrganizationClientService
         }
 
         await unitOfWork.SaveChangesAsync();
-        
+
         if (!exists)
         {
             await onboardingService.MarkStepCompleteAsync(
                 model.OrganizationId,
                 OnboardingStepKeys.CreateCustomer
             );
+
+            if (!string.IsNullOrWhiteSpace(model.EmailAddress))
+            {
+                try
+                {
+                    await _clientPortal.SendMagicLinkAsync(model.OrganizationId, model.Id, model.EmailAddress);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to send client portal magic link for OrganizationClient {ClientId}", model.Id);
+                }
+            }
         }
         return Result.Success(model);
     }
@@ -106,5 +172,23 @@ public class OrganizationClientService : IOrganizationClientService
 
         await unitOfWork.SaveChangesAsync();
         return Result.Success<IEnumerable<OrganizationClient>>(modelList);
+    }
+
+    public async Task<Result> RestoreClient(Guid clientId, Guid organizationId)
+    {
+        var clientToRestore = await organizationClient.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(client => client.Id == clientId && client.OrganizationId == organizationId);
+
+        if (clientToRestore == null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
+        clientToRestore.IsActive = true;
+        clientToRestore.DeactivatedAtUtc = null;
+
+        organizationClient.Update(clientToRestore);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success($"{clientToRestore.ClientFullName()} was successfully restored.");
     }
 }

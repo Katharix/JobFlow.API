@@ -26,6 +26,7 @@ public class SquareWebhookService : ISquareWebhookService
     private readonly ISubscriptionRecordService _subscriptionRecordService;
     private readonly IOnboardingService _onboardingService;
     private readonly IPaymentHistoryService _paymentHistoryService;
+    private readonly IOrganizationService _organizationService;
     private readonly IRepository<CustomerPaymentProfile> _paymentProfiles;
     private readonly ISquareSettings _squareSettings;
     private readonly ILogger<SquareWebhookService> _logger;
@@ -36,6 +37,7 @@ public class SquareWebhookService : ISquareWebhookService
         ISubscriptionRecordService subscriptionRecordService,
         IOnboardingService onboardingService,
         IPaymentHistoryService paymentHistoryService,
+        IOrganizationService organizationService,
         IUnitOfWork unitOfWork,
         ISquareSettings squareSettings,
         ILogger<SquareWebhookService> logger)
@@ -45,6 +47,7 @@ public class SquareWebhookService : ISquareWebhookService
         _subscriptionRecordService = subscriptionRecordService;
         _onboardingService = onboardingService;
         _paymentHistoryService = paymentHistoryService;
+        _organizationService = organizationService;
         _paymentProfiles = unitOfWork.RepositoryOf<CustomerPaymentProfile>();
         _squareSettings = squareSettings;
         _logger = logger;
@@ -58,23 +61,51 @@ public class SquareWebhookService : ISquareWebhookService
         using var document = JsonDocument.Parse(rawBody);
         var root = document.RootElement;
 
-        var eventType = root.GetProperty("data").GetProperty("type").GetString();
+        var eventType = root.TryGetProperty("type", out var typeEl)
+            ? typeEl.GetString()
+            : null;
+
         if (string.IsNullOrWhiteSpace(eventType))
             return;
 
-        _logger.LogInformation("Square webhook received: Type={Type}", eventType);
+        var merchantId = root.TryGetProperty("merchant_id", out var merchantEl)
+            ? merchantEl.GetString()
+            : null;
 
-        if (eventType is "payment.created" or "payment.updated")
-            await HandlePaymentEventAsync(root, rawBody, eventType);
+        _logger.LogInformation("Square webhook received: Type={Type}, MerchantId={MerchantId}", eventType, merchantId);
 
-        if (eventType is "refund.created" or "refund.updated")
-            await HandleRefundEventAsync(root, rawBody, eventType);
+        Guid? organizationId = null;
+        if (!string.IsNullOrWhiteSpace(merchantId))
+        {
+            var orgResult = await _organizationService.GetBySquareMerchantIdAsync(merchantId);
+            if (orgResult.IsSuccess)
+                organizationId = orgResult.Value.Id;
+        }
 
-        if (eventType is "subscription.created" or "subscription.updated" or "subscription.canceled" or "subscription.deleted")
-            await HandleSubscriptionEventAsync(root, rawBody, eventType);
+        switch (eventType)
+        {
+            case "payment.created":
+            case "payment.updated":
+                await HandlePaymentEventAsync(root, rawBody, eventType, organizationId);
+                break;
+
+            case "refund.created":
+            case "refund.updated":
+                await HandleRefundEventAsync(root, rawBody, eventType, organizationId);
+                break;
+
+            case "subscription.created":
+            case "subscription.updated":
+                await HandleSubscriptionEventAsync(root, rawBody, eventType);
+                break;
+
+            case "oauth.authorization.revoked":
+                await HandleOAuthRevokedAsync(merchantId);
+                break;
+        }
     }
 
-    private async Task HandlePaymentEventAsync(JsonElement root, string rawBody, string eventType)
+    private async Task HandlePaymentEventAsync(JsonElement root, string rawBody, string eventType, Guid? organizationId)
     {
         var payment = root.GetProperty("data").GetProperty("object").GetProperty("payment");
         var status = payment.GetProperty("status").GetString();
@@ -106,17 +137,19 @@ public class SquareWebhookService : ISquareWebhookService
             }
         }
 
+        var entityId = organizationId ?? Guid.Empty;
         if (invoiceId.HasValue)
         {
             var invoice = await _invoiceService.GetInvoiceByIdAsync(invoiceId.Value);
             if (invoice.IsSuccess)
             {
+                entityId = invoice.Value.OrganizationId;
                 await _paymentHistoryService.LogAsync(new PaymentHistory
                 {
                     Id = Guid.NewGuid(),
                     PaymentProvider = PaymentProvider.Square,
                     EntityType = PaymentEntityType.Organization,
-                    EntityId = invoice.Value.OrganizationId,
+                    EntityId = entityId,
                     InvoiceId = invoice.Value.Id,
                     AmountPaid = amountCents,
                     Currency = currency,
@@ -127,6 +160,23 @@ public class SquareWebhookService : ISquareWebhookService
                     StripePaymentIntentId = paymentId
                 });
             }
+        }
+        else
+        {
+            await _paymentHistoryService.LogAsync(new PaymentHistory
+            {
+                Id = Guid.NewGuid(),
+                PaymentProvider = PaymentProvider.Square,
+                EntityType = PaymentEntityType.Organization,
+                EntityId = entityId,
+                AmountPaid = amountCents,
+                Currency = currency,
+                Status = status ?? "UNKNOWN",
+                EventType = eventType,
+                PaidAt = DateTime.UtcNow,
+                RawEventJson = rawBody,
+                StripePaymentIntentId = paymentId
+            });
         }
     }
 
@@ -144,8 +194,8 @@ public class SquareWebhookService : ISquareWebhookService
         var planName = TryGetString(subscription, "plan_id") ?? string.Empty;
         var status = (TryGetString(subscription, "status") ?? eventType).ToLowerInvariant();
 
-        var isCanceledEvent = eventType is "subscription.canceled" or "subscription.deleted" || status.Contains("cancel");
-        if (isCanceledEvent)
+        var isCanceledStatus = status.Contains("cancel") || status.Contains("deactivated");
+        if (isCanceledStatus)
         {
             await _subscriptionRecordService.CancelAsync(providerSubscriptionId, DateTime.UtcNow);
             await _paymentHistoryService.LogAsync(new PaymentHistory
@@ -215,7 +265,7 @@ public class SquareWebhookService : ISquareWebhookService
         );
     }
 
-    private async Task HandleRefundEventAsync(JsonElement root, string rawBody, string eventType)
+    private async Task HandleRefundEventAsync(JsonElement root, string rawBody, string eventType, Guid? organizationId)
     {
         var refund = root.GetProperty("data").GetProperty("object").GetProperty("refund");
         var status = refund.TryGetProperty("status", out var statusEl) ? statusEl.GetString() : "UNKNOWN";
@@ -228,7 +278,7 @@ public class SquareWebhookService : ISquareWebhookService
             Id = Guid.NewGuid(),
             PaymentProvider = PaymentProvider.Square,
             EntityType = PaymentEntityType.Organization,
-            EntityId = Guid.Empty,
+            EntityId = organizationId ?? Guid.Empty,
             InvoiceId = null,
             AmountPaid = -amountCents,
             Currency = currency,
@@ -238,6 +288,18 @@ public class SquareWebhookService : ISquareWebhookService
             RawEventJson = rawBody,
             StripePaymentIntentId = paymentId
         });
+    }
+
+    private async Task HandleOAuthRevokedAsync(string? merchantId)
+    {
+        if (string.IsNullOrWhiteSpace(merchantId))
+        {
+            _logger.LogWarning("Square oauth.authorization.revoked received without merchant_id");
+            return;
+        }
+
+        _logger.LogInformation("Square OAuth revoked for MerchantId={MerchantId}", merchantId);
+        await _organizationService.MarkSquareDisconnectedAsync(merchantId);
     }
 
     private bool IsValidSignature(string rawBody, string signatureHeader, string callbackUrl)

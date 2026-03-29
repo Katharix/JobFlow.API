@@ -37,7 +37,8 @@ public class EmployeeInviteConfiguration : IEntityTypeConfiguration<EmployeeInvi
             .IsRequired();
 
         builder.Property(e => e.Status)
-            .HasDefaultValue(EmployeeInviteStatus.Pending);
+            .HasDefaultValue(EmployeeInviteStatus.Pending)
+            .HasSentinel(EmployeeInviteStatus.Pending);
 
         builder.HasOne(e => e.Organization)
             .WithMany()

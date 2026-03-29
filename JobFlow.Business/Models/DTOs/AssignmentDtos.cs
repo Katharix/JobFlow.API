@@ -24,6 +24,11 @@ public class AssignmentDto
 
     public string? Notes { get; set; }
 
+    public JobLifecycleStatus JobLifecycleStatus { get; set; }
+    public List<AssignmentAssigneeDto> Assignees { get; set; } = new();
+
+    public string? StatusLabel { get; set; }
+
     // Useful for UI calendar
     public string? JobTitle { get; set; }
     public Guid OrganizationClientId { get; set; }
@@ -59,4 +64,22 @@ public class UpdateAssignmentStatusRequestDto
     public AssignmentStatus Status { get; set; }
     public DateTimeOffset? ActualStart { get; set; }
     public DateTimeOffset? ActualEnd { get; set; }
+}
+
+public class AssignmentAssigneeDto
+{
+    public Guid EmployeeId { get; set; }
+    public string? EmployeeName { get; set; }
+    public bool IsLead { get; set; }
+}
+
+public class UpdateAssignmentAssigneesRequestDto
+{
+    public List<Guid> EmployeeIds { get; set; } = new();
+    public Guid? LeadEmployeeId { get; set; }
+}
+
+public class UpdateAssignmentNotesRequestDto
+{
+    public string? Notes { get; set; }
 }

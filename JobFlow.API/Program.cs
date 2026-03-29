@@ -10,6 +10,7 @@ using JobFlow.API.Constants;
 using JobFlow.API.Filters;
 using JobFlow.API.Hubs;
 using JobFlow.API.Mappings;
+using JobFlow.API.Services;
 using JobFlow.Business.ConfigurationSettings;
 using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 using JobFlow.Business.DI;
@@ -23,7 +24,8 @@ using JobFlow.Infrastructure.ExternalServices.ConfigurationModels;
 using JobFlow.Infrastructure.HttpClients;
 using JobFlow.Infrastructure.Middleware;
 using JobFlow.Infrastructure.Persistence;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Threading.RateLimiting;
@@ -31,6 +33,10 @@ using QuestPDF;
 using QuestPDF.Infrastructure;
 using Stripe;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 var env = builder.Environment;
@@ -75,26 +81,42 @@ builder.Services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOpt
 // FIREBASE INITIALIZATION
 // ============================================================
 
-var firebaseFilePath = Path.Combine(env.ContentRootPath, "job-flow-firebase-adminsdk.json");
-
-if (!System.IO.File.Exists(firebaseFilePath))
-    throw new InvalidOperationException($"Firebase service account file not found: {firebaseFilePath}");
-
+var firebaseAdminSdkJson = builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK];
 string firebaseProjectId;
-using (var doc = JsonDocument.Parse(System.IO.File.ReadAllText(firebaseFilePath)))
+GoogleCredential firebaseCredential;
+
+if (!string.IsNullOrWhiteSpace(firebaseAdminSdkJson))
 {
+    using var doc = JsonDocument.Parse(firebaseAdminSdkJson);
     firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+    var credential = CredentialFactory.FromJson<ServiceAccountCredential>(firebaseAdminSdkJson);
+    firebaseCredential = credential.ToGoogleCredential();
+}
+else
+{
+    var firebaseFilePath = Path.Combine(env.ContentRootPath, "job-flow-firebase-adminsdk.json");
+
+    if (!System.IO.File.Exists(firebaseFilePath))
+        throw new InvalidOperationException(
+            $"Firebase admin credentials were not found. Configure '{ConfigConstants.FIREBASE_ADMIN_SDK}' in Key Vault or provide local file: {firebaseFilePath}");
+
+    var firebaseJson = System.IO.File.ReadAllText(firebaseFilePath);
+
+    using var doc = JsonDocument.Parse(firebaseJson);
+    firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+    var credential = CredentialFactory.FromFile<ServiceAccountCredential>(firebaseFilePath);
+    firebaseCredential = credential.ToGoogleCredential();
 }
 
 if (string.IsNullOrWhiteSpace(firebaseProjectId))
-    throw new InvalidOperationException("Firebase project_id is missing in job-flow-firebase-adminsdk.json");
+    throw new InvalidOperationException("Firebase project_id is missing in configured Firebase admin credentials.");
 
 // Create the Firebase Admin default app instance so FirebaseAuth.DefaultInstance is available.
 if (FirebaseApp.DefaultInstance is null)
 {
     FirebaseApp.Create(new AppOptions
     {
-        Credential = GoogleCredential.FromFile(firebaseFilePath)
+        Credential = firebaseCredential
     });
 }
 
@@ -110,6 +132,42 @@ builder.Services
             ValidateAudience = true,
             ValidAudience = firebaseProjectId,
             ValidateLifetime = true
+        };
+    })
+    .AddJwtBearer("ClientPortalJwt", options =>
+    {
+        var signingKey = builder.Configuration["Auth-ClientPortal-SigningKey"];
+        if (string.IsNullOrWhiteSpace(signingKey))
+            throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken)
+                    && (path.StartsWithSegments("/hubs/client-chat")
+                        || path.StartsWithSegments("/hubs/client-portal")))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "JobFlow.ClientPortal",
+            ValidateAudience = true,
+            ValidAudience = "JobFlow.ClientPortal",
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
 
@@ -129,12 +187,7 @@ builder.Services
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
-
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddMemoryCache();
 
 // ============================================================
 // SIGNALR
@@ -240,7 +293,17 @@ if (env.IsDevelopment())
 builder.Services.AddCors(o =>
 {
     o.AddPolicy(apiAllowOrigins, p => p
-        .WithOrigins(allowedOrigins.ToArray())
+        .SetIsOriginAllowed(origin =>
+        {
+            var host = new Uri(origin).Host;
+            return host == "localhost"
+                   || host == "gojobflow.com"
+                   || host == "www.gojobflow.com"
+                     || host == "jobflow-ui-web-staging.web.app"
+                     || host == "jobflow-ui-web-staging.firebaseapp.com"
+                   || host.EndsWith(".gojobflow.app")
+                   || host.EndsWith(".gojobflow.com");
+        })
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials());
@@ -315,10 +378,12 @@ builder.Services.Configure<BrevoSettings>(options =>
     options.ApiKey = builder.Configuration["BrevoSettings-ApiKey"] ?? "";
 });
 
-builder.Services.Configure<ReCAPTCHASettings>(options =>
-{
-    options.SecretKey = builder.Configuration["reCAPTCHA-Api"] ?? "";
-});
+builder.Services.Configure<JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileOptions>(
+    builder.Configuration.GetSection("Turnstile"));
+
+builder.Services.AddHttpClient<
+    JobFlow.Infrastructure.ExternalServices.Turnstile.ICaptchaVerificationService,
+    JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileVerificationService>();
 
 builder.Services.Configure<SquareSettings>(options =>
 {
@@ -336,7 +401,6 @@ builder.Services.Configure<SquareSettings>(options =>
 builder.Services.AddSingleton<ITwilioSettings>(sp => sp.GetRequiredService<IOptions<TwilioSettings>>().Value);
 builder.Services.AddSingleton<IStripeSettings>(sp => sp.GetRequiredService<IOptions<StripeSettings>>().Value);
 builder.Services.AddSingleton<IBrevoSettings>(sp => sp.GetRequiredService<IOptions<BrevoSettings>>().Value);
-builder.Services.AddSingleton<IReCAPTCHASettings>(sp => sp.GetRequiredService<IOptions<ReCAPTCHASettings>>().Value);
 builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOptions<SquareSettings>>().Value);
 
 // ============================================================
@@ -345,11 +409,21 @@ builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOpti
 
 builder.Services.AddMapsterConfiguration();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
+builder.Services.AddScoped<IInvoiceRealtimeNotifier, InvoiceRealtimeNotifier>();
+builder.Services.AddScoped<IFollowUpJobScheduler, FollowUpJobScheduler>();
+builder.Services.AddScoped<ClientImportCsvService>();
+builder.Services.AddScoped<ClientImportProcessor>();
+builder.Services.AddScoped<ClientImportUploadSessionService>();
+builder.Services.AddScoped<DataExportBuilderService>();
+builder.Services.AddScoped<DataExportJobProcessor>();
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembly, typeof(IUserService).Assembly);
 
 builder.Services.AddAuthorization(options =>
 {
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
     options.AddPolicy("OrganizationAdminOnly", policy => policy.RequireRole(UserRoles.OrganizationAdmin));
     options.AddPolicy("OrganizationEmployeeOnly", policy => policy.RequireRole(UserRoles.OrganizationEmployee));
     options.AddPolicy("OrganizationClientOnly", policy => policy.RequireRole(UserRoles.OrganizationClient));
@@ -375,11 +449,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    recurringJobManager.AddOrUpdate<ISecurityAlertService>(
-        "security-alert-detector",
-        service => service.EvaluateRecentEventsAsync(),
-        Cron.MinuteInterval(5));
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<JobFlowDbContext>>();
+    await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+    await dbContext.Database.MigrateAsync();
 }
 
 StripeConfiguration.ApiKey = builder.Configuration["StripeSettings-ApiKey"];
@@ -394,7 +466,10 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseExceptionHandler(app.Environment.IsProduction() ? "/error" : "/error-development");
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
@@ -414,5 +489,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ClientChatHub>("/hubs/client-chat");
+app.MapHub<NotifierHub>("/hubs/notifier");
+app.MapHub<ClientPortalHub>("/hubs/client-portal");
 
 app.Run();

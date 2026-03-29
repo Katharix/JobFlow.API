@@ -6,6 +6,7 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -14,7 +15,6 @@ namespace JobFlow.API.Controllers;
 [ApiController]
 public class OrganizationController : ControllerBase
 {
-    private readonly INotificationService _notificationService;
     private readonly IOrganizationBrandingService _organizationBrandingService;
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
@@ -24,14 +24,12 @@ public class OrganizationController : ControllerBase
         IOrganizationService organizationService,
         IUserService userService,
         IPaymentProfileService paymentProfileService,
-        INotificationService notificationService,
         IOrganizationBrandingService organizationBrandingService
     )
     {
         _organizationService = organizationService;
         _userService = userService;
         _paymentProfileService = paymentProfileService;
-        _notificationService = notificationService;
         _organizationBrandingService = organizationBrandingService;
     }
 
@@ -45,10 +43,10 @@ public class OrganizationController : ControllerBase
 
     [HttpPost]
     [Route("create")]
+    [AllowAnonymous]
     public async Task<IResult> CreateOrganizationAccount(Organization model)
     {
         var result = await _organizationService.UpsertOrganization(model);
-        if (result.IsSuccess) await _notificationService.SendOrganizationWelcomeNotificationAsync(model);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
@@ -58,6 +56,15 @@ public class OrganizationController : ControllerBase
     {
         try
         {
+            if (!model.Id.HasValue)
+                return Results.BadRequest("Organization id is required.");
+
+            if (string.IsNullOrWhiteSpace(model.UserRole))
+                return Results.BadRequest("User role is required.");
+
+            if (string.IsNullOrWhiteSpace(model.FireBaseUid))
+                return Results.BadRequest("Firebase uid is required.");
+
             var user = new User
             {
                 Email = model.EmailAddress,
@@ -87,10 +94,26 @@ public class OrganizationController : ControllerBase
 
     [HttpPost]
     [Route("retrieve")]
+    [AllowAnonymous]
     public async Task<IResult> GetOrganizationById([FromBody] OrganizationRequest org)
     {
         var result = await _organizationService.GetOrganizationDtoById(org.OrganizationId);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpPut]
+    [Route("industry")]
+    public async Task<IResult> UpdateIndustry([FromBody] OrganizationIndustryUpdateDto request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _organizationService.UpdateIndustryAsync(organizationId, request.IndustryKey);
+        if (result.IsFailure)
+        {
+            return result.ToProblemDetails();
+        }
+
+        var dtoResult = await _organizationService.GetOrganizationDtoById(organizationId);
+        return dtoResult.IsSuccess ? Results.Ok(dtoResult.Value) : dtoResult.ToProblemDetails();
     }
 
     [HttpPost]
@@ -99,6 +122,12 @@ public class OrganizationController : ControllerBase
     {
         var orgResult = await _organizationService.GetAllOrganizations();
         var ownerId = orgResult.Value.FirstOrDefault(e => e.OrganizationType?.TypeName == "Master Account")?.Id;
+        if (!ownerId.HasValue)
+            return Results.Problem("Master account not found.");
+
+        var paymentProfileDto = onboarding.PaymentProfile;
+        if (paymentProfileDto is null)
+            return Results.Problem("Payment profile is required.");
         var org = new Organization
         {
             Id = onboarding.OrganizationId,
@@ -106,21 +135,25 @@ public class OrganizationController : ControllerBase
             EnableTax = onboarding.EnableTax,
             OnBoardingComplete = onboarding.OnboardingComplete
         };
-        var branding = new OrganizationBranding
+        OrganizationBranding? branding = null;
+        if (onboarding.Branding is not null)
         {
-            LogoUrl = onboarding?.Branding?.LogoUrl,
-            FooterNote = onboarding?.Branding?.FooterNote,
-            PrimaryColor = onboarding?.Branding?.PrimaryColor,
-            SecondaryColor = onboarding?.Branding?.SecondaryColor,
-            Tagline = onboarding?.Branding?.Tagline,
-            CreatedAt = DateTime.UtcNow
-        };
+            branding = new OrganizationBranding
+            {
+                LogoUrl = onboarding.Branding.LogoUrl,
+                FooterNote = onboarding.Branding.FooterNote,
+                PrimaryColor = onboarding.Branding.PrimaryColor,
+                SecondaryColor = onboarding.Branding.SecondaryColor,
+                Tagline = onboarding.Branding.Tagline,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
         var paymentProfile = new CustomerPaymentProfile
         {
             OwnerType = PaymentEntityType.Organization,
             OwnerId = ownerId.Value,
-            Provider = onboarding.PaymentProfile.Provider,
-            ProviderCustomerId = onboarding.PaymentProfile.ProviderCustomerId,
+            Provider = paymentProfileDto.Provider,
+            ProviderCustomerId = paymentProfileDto.ProviderCustomerId,
             CreatedAt = DateTime.UtcNow
         };
 

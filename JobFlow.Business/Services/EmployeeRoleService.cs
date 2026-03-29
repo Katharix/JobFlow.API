@@ -1,5 +1,6 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
@@ -12,6 +13,7 @@ namespace JobFlow.Business.Services;
 public class EmployeeRoleService : IEmployeeRoleService
 {
     private readonly IRepository<EmployeeRole> employeeRoles;
+    private readonly IRepository<Employee> employees;
     private readonly ILogger<EmployeeRoleService> logger;
     private readonly IUnitOfWork unitOfWork;
 
@@ -20,6 +22,7 @@ public class EmployeeRoleService : IEmployeeRoleService
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         employeeRoles = unitOfWork.RepositoryOf<EmployeeRole>();
+        employees = unitOfWork.RepositoryOf<Employee>();
     }
 
     // 🔹 Get all roles for an organization
@@ -55,6 +58,36 @@ public class EmployeeRoleService : IEmployeeRoleService
 
         await unitOfWork.SaveChangesAsync();
         return Result<EmployeeRole>.Success(model);
+    }
+
+    public async Task<Result<IEnumerable<EmployeeRoleUsageDto>>> GetRoleUsageByOrganizationAsync(Guid organizationId)
+    {
+        var roles = await employeeRoles.Query()
+            .Where(role => role.OrganizationId == organizationId)
+            .Select(role => role.Id)
+            .ToListAsync();
+
+        if (roles.Count == 0)
+        {
+            return Result<IEnumerable<EmployeeRoleUsageDto>>.Success(Enumerable.Empty<EmployeeRoleUsageDto>());
+        }
+
+        var counts = await employees.Query()
+            .Where(employee => employee.OrganizationId == organizationId)
+            .GroupBy(employee => employee.RoleId)
+            .Select(group => new EmployeeRoleUsageDto
+            {
+                RoleId = group.Key,
+                EmployeeCount = group.Count()
+            })
+            .ToListAsync();
+
+        var usage = roles.Select(roleId =>
+            counts.FirstOrDefault(count => count.RoleId == roleId)
+            ?? new EmployeeRoleUsageDto { RoleId = roleId, EmployeeCount = 0 })
+            .ToList();
+
+        return Result<IEnumerable<EmployeeRoleUsageDto>>.Success(usage.AsEnumerable());
     }
 
     // 🔹 Delete a role

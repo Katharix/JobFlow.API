@@ -14,6 +14,7 @@
     <ItemGroup>
         <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.4.0" />
         <PackageReference Include="Azure.Identity" Version="1.17.1" />
+        <PackageReference Include="CsvHelper" Version="33.1.0" />
         <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
         <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
         <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
@@ -22,7 +23,6 @@
         <PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.3" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
             <PrivateAssets>all</PrivateAssets>
@@ -37,14 +37,19 @@
         <PackageReference Include="Square" Version="43.0.0" />
         <PackageReference Include="Stripe.net" Version="50.3.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.3" />
-        <PackageReference Include="System.Linq.Async" Version="7.0.0" />
-        <PackageReference Include="System.Text.Json" Version="10.0.3" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
         <ProjectReference Include="..\JobFlow.Infrastructure.Persistence\JobFlow.Infrastructure.Persistence.csproj" />
         <ProjectReference Include="..\JobFlow.Infrastructure\JobFlow.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include=".github\workflows\" />
+      <Folder Include="JobFlow.Infrastructure\ConfigurationInterfaces\" />
+      <Folder Include="JobFlow.Infrastructure\ConfigurationModels\" />
+      <Folder Include="JobFlow.Infrastructure\ExternalServices\ReCAPTCHA\" />
     </ItemGroup>
 
 </Project>

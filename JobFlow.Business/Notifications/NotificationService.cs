@@ -67,9 +67,41 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
-    public async Task SendClientInvoiceCreatedNotificationAsync(OrganizationClient client, Invoice invoice)
+    public async Task SendClientJobRescheduledNotificationAsync(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd)
+    {
+        var message = _builder.BuildClientJobRescheduled(client, job, previousStart, previousEnd, newStart, newEnd);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendClientInvoiceCreatedNotificationAsync(
+        OrganizationClient client,
+        Invoice invoice,
+        string? linkOverride = null)
     {
         var message = _builder.BuildClientInvoiceCreated(client, invoice);
+        if (!string.IsNullOrWhiteSpace(linkOverride))
+        {
+            message.Link = linkOverride;
+        }
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendClientInvoiceReminderNotificationAsync(
+        OrganizationClient client,
+        Invoice invoice,
+        string? linkOverride = null)
+    {
+        var message = _builder.BuildClientInvoiceReminder(client, invoice);
+        if (!string.IsNullOrWhiteSpace(linkOverride))
+        {
+            message.Link = linkOverride;
+        }
         await SendNotificationAsync(message);
     }
 
@@ -97,9 +129,25 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendOrganizationClientPortalMagicLinkAsync(OrganizationClient client, string magicLink)
+    {
+        var message = _builder.BuildOrganizationClientPortalMagicLink(client, magicLink);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendOrganizationSubscriptionPaymentFailedNotificationAsync(Organization org)
     {
         var message = _builder.BuildOrganizationSubscriptionFailed(org);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendOrganizationEstimateRevisionRequestedNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate,
+        string revisionMessage)
+    {
+        var message = _builder.BuildOrganizationEstimateRevisionRequested(organization, client, estimate, revisionMessage);
         await SendNotificationAsync(message);
     }
 
@@ -116,7 +164,7 @@ public partial class NotificationService : INotificationService
                 Name = message.Name,
                 Subject = message.Subject,
                 Message = message.Body,
-                TemplateId = (int)message.TemplateId,
+                TemplateId = (int)(message.TemplateId ?? 0),
                 Link = message.Link
             });
         }

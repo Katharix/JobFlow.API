@@ -7,5 +7,6 @@ public enum EstimateStatus
     Accepted = 2,
     Declined = 3,
     Cancelled = 4,
-    Expired = 5
+    Expired = 5,
+    RevisionRequested = 6
 }

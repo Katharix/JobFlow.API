@@ -22,6 +22,12 @@ public static class AssignmentErrors
             "The assignment does not belong to the current organization."
         );
 
+    public static readonly Error InvalidAssignee =
+        Error.Validation(
+            "Assignment.InvalidAssignee",
+            "One or more assignees are invalid for this organization."
+        );
+
     // ─────────────────────────────────────────────
     // Scheduling
     // ─────────────────────────────────────────────
@@ -42,6 +48,12 @@ public static class AssignmentErrors
         Error.Validation(
             "Assignment.ScheduledEndMustBeAfterStart",
             "Scheduled end date and time must be after the scheduled start."
+        );
+
+    public static readonly Error ScheduleConflictWithBuffer =
+        Error.Validation(
+            "Assignment.ScheduleConflictWithBuffer",
+            "This schedule overlaps another assignment when travel buffer is applied."
         );
 
     // ─────────────────────────────────────────────

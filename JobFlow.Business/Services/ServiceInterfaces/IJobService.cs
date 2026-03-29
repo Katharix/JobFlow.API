@@ -7,8 +7,11 @@ namespace JobFlow.Business.Services.ServiceInterfaces;
 public interface IJobService
 {
     Task<Result<Job>> GetJobByIdAsync(Guid id, Guid organizationId);
+    Task<Result<Job>> GetJobForClientAsync(Guid id, Guid organizationId, Guid organizationClientId);
     Task<Result<IEnumerable<Job>>> GetJobsByStatusAsync(Guid organizationId, JobLifecycleStatus status);
+    Task<Result<IEnumerable<Job>>> GetJobsForClientAsync(Guid organizationId, Guid organizationClientId);
     Task<Result<Job>> UpsertJobAsync(Job model, Guid organizationId);
     Task<Result> DeleteJobAsync(Guid id);
     Task<Result<IEnumerable<JobDto>>> GetJobsAsync(Guid organizationId);
+    Task<Result<Job>> UpdateJobStatusAsync(Guid organizationId, Guid jobId, JobLifecycleStatus status);
 }

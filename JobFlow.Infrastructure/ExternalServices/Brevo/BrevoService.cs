@@ -43,7 +43,7 @@ public class BrevoService : IBrevoService
             Encoding.UTF8,
             "application/json");
 
-        HttpResponseMessage response = null;
+        HttpResponseMessage? response = null;
 
         await _policy.ExecuteAsync(async () =>
         {
@@ -51,7 +51,7 @@ public class BrevoService : IBrevoService
             response.EnsureSuccessStatusCode();
         });
 
-        return response.IsSuccessStatusCode;
+        return response is not null && response.IsSuccessStatusCode;
     }
 
     public async Task<bool> SendContactEmailAsync(ContactFormRequest request)
@@ -77,7 +77,7 @@ public class BrevoService : IBrevoService
             Encoding.UTF8,
             "application/json");
 
-        HttpResponseMessage response = null;
+        HttpResponseMessage? response = null;
 
         await _policy.ExecuteAsync(async () =>
         {
@@ -85,6 +85,6 @@ public class BrevoService : IBrevoService
             response.EnsureSuccessStatusCode();
         });
 
-        return response.IsSuccessStatusCode;
+        return response is not null && response.IsSuccessStatusCode;
     }
 }

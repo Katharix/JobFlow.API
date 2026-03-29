@@ -5,7 +5,7 @@ namespace JobFlow.Domain.Models
     public class JobRecurrence : Entity
     {
         public Guid JobId { get; set; }
-        public virtual Job Job { get; set; }
+        public virtual Job Job { get; set; } = null!;
 
         public RecurrenceFrequency Frequency { get; set; } = RecurrenceFrequency.Weekly;
 
@@ -25,7 +25,7 @@ namespace JobFlow.Domain.Models
         public DateTime StartDate { get; set; } // date-only semantics (stored as DateTime)
         public DateTime? EndDate { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public new bool IsActive { get; set; } = true;
 
         /// <summary>How far ahead to generate when calendar fetches.</summary>
         public int GenerateDaysAhead { get; set; } = 28;

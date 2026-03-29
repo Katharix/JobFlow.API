@@ -11,5 +11,6 @@ internal class ConversationParticipantConfiguration : IEntityTypeConfiguration<C
         builder.ToTable("ConversationParticipant", "messaging");
         builder.HasKey(e => e.Id);
         builder.HasIndex(e => new { e.ConversationId, e.UserId }).IsUnique();
+        builder.HasQueryFilter(e => e.Conversation.IsActive && e.User.IsActive);
     }
 }

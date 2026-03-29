@@ -19,10 +19,20 @@ public class Organization : Entity
     public bool OnBoardingComplete { get; set; }
     public string? StripeConnectAccountId { get; set; }
     public bool IsStripeConnected { get; set; } = false;
+    public string? SquareMerchantId { get; set; }
+    public bool IsSquareConnected { get; set; } = false;
+    public string? OnboardingTrack { get; set; }
+    public string? OnboardingPresetKey { get; set; }
+    public DateTimeOffset? OnboardingTrackSelectedAt { get; set; }
+    public DateTimeOffset? OnboardingPresetAppliedAt { get; set; }
+    public string? IndustryKey { get; set; }
 
     public bool CanAcceptPayments =>
-        PaymentProvider == PaymentProvider.Stripe &&
-        !string.IsNullOrWhiteSpace(StripeConnectAccountId);
+        (PaymentProvider == PaymentProvider.Stripe &&
+         !string.IsNullOrWhiteSpace(StripeConnectAccountId)) ||
+        (PaymentProvider == PaymentProvider.Square &&
+         IsSquareConnected &&
+         !string.IsNullOrWhiteSpace(SquareMerchantId));
 
     public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
     public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();

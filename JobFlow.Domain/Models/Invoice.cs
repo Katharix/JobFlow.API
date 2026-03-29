@@ -4,9 +4,11 @@ namespace JobFlow.Domain.Models;
 
 public class Invoice : Entity
 {
-    public string InvoiceNumber { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
     public Guid OrganizationId { get; set; }
     public Guid OrganizationClientId { get; set; }
+    public Guid? JobId { get; set; }
+    public Guid? EstimateId { get; set; }
     public Guid? OrderId { get; set; }
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }
@@ -14,13 +16,14 @@ public class Invoice : Entity
     public decimal AmountPaid { get; set; }
     public decimal BalanceDue => TotalAmount - AmountPaid;
     public InvoiceStatus Status { get; set; }
-    
+
     public PaymentProvider PaymentProvider { get; set; }
     public string? ExternalPaymentId { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
-    public virtual OrganizationClient OrganizationClient { get; set; }
-    public virtual Order Order { get; set; }
-    public virtual ICollection<PaymentHistory> Payments { get; set; }
+    public virtual OrganizationClient OrganizationClient { get; set; } = null!;
+    public virtual Job? Job { get; set; }
+    public virtual Order Order { get; set; } = null!;
+    public virtual ICollection<PaymentHistory> Payments { get; set; } = new List<PaymentHistory>();
 
     public virtual ICollection<InvoiceLineItem> LineItems { get; set; }
         = new List<InvoiceLineItem>();

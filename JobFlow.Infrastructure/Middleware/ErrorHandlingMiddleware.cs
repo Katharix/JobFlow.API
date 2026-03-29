@@ -1,24 +1,18 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Stripe;
-using Twilio.Exceptions;
-using System.Text.Json.Serialization;
+using System.Net;
 
 namespace JobFlow.Infrastructure.Middleware;
 
 public class ErrorHandlingMiddleware
 {
-    private readonly IHostEnvironment _env;
     private readonly ILogger<ErrorHandlingMiddleware> _logger;
     private readonly RequestDelegate _next;
 
-    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, IHostEnvironment env)
+    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _env = env;
     }
 
     public async Task Invoke(HttpContext context)
@@ -26,6 +20,10 @@ public class ErrorHandlingMiddleware
         try
         {
             await _next(context);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation("Request was canceled by the client.");
         }
         catch (Exception ex)
         {
@@ -44,14 +42,42 @@ public class ErrorHandlingMiddleware
 
         context.Response.Clear();
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        await context.Response.WriteAsJsonAsync(new ApiError { Message = "An unexpected error occurred.", Code = "GENERAL_ERROR" });
+
+        var apiError = new ApiError { Message = "An unexpected error occurred.", Code = "GENERAL_ERROR" };
+
+        if (exception is TimeoutException)
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            apiError = new ApiError
+            {
+                Message = "A required upstream service timed out. Please retry shortly.",
+                Code = "UPSTREAM_TIMEOUT"
+            };
+        }
+        else if (exception is HttpRequestException httpEx
+                 && (httpEx.StatusCode == HttpStatusCode.GatewayTimeout
+                     || httpEx.StatusCode == HttpStatusCode.BadGateway
+                     || httpEx.StatusCode == HttpStatusCode.ServiceUnavailable))
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            apiError = new ApiError
+            {
+                Message = "A required upstream service is currently unavailable. Please retry shortly.",
+                Code = "UPSTREAM_UNAVAILABLE"
+            };
+        }
+        else
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        }
+
+        await context.Response.WriteAsJsonAsync(apiError);
     }
 }
 
 public class ApiError
 {
-    public string Message { get; set; }
-    public string Code { get; set; }
-    public string Details { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
 }

@@ -19,8 +19,8 @@ public class Estimate : Entity
     public decimal TaxTotal { get; set; }
     public decimal Total { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset? UpdatedAt { get; set; }
+    public new DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public new DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? SentAt { get; set; }
 
     // Public unauthenticated link
@@ -29,4 +29,5 @@ public class Estimate : Entity
 
     public OrganizationClient? OrganizationClient { get; set; }
     public ICollection<EstimateLineItem> LineItems { get; set; } = new List<EstimateLineItem>();
+    public ICollection<EstimateRevisionRequest> RevisionRequests { get; set; } = new List<EstimateRevisionRequest>();
 }

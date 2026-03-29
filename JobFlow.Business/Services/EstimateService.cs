@@ -16,15 +16,27 @@ public class EstimateService : IEstimateService
     private readonly IUnitOfWork unitOfWork;
     private readonly INotificationService notificationService;
     private readonly IPdfGenerator pdfGenerator;
+    private readonly IOrganizationClientPortalService clientPortalService;
+    private readonly IFollowUpAutomationService? _followUpAutomation;
+    private readonly IJobService _jobService;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
 
-    public EstimateService(IUnitOfWork unitOfWork, INotificationService notificationService, IPdfGenerator pdfGenerator)
+    public EstimateService(
+        IUnitOfWork unitOfWork,
+        INotificationService notificationService,
+        IPdfGenerator pdfGenerator,
+        IOrganizationClientPortalService clientPortalService,
+        IJobService jobService,
+        IFollowUpAutomationService? followUpAutomation = null)
     {
         this.unitOfWork = unitOfWork;
         this.notificationService = notificationService;
         this.pdfGenerator = pdfGenerator;
+        this.clientPortalService = clientPortalService;
+        _jobService = jobService;
+        _followUpAutomation = followUpAutomation;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
         clients = unitOfWork.RepositoryOf<OrganizationClient>();
@@ -173,7 +185,13 @@ public class EstimateService : IEstimateService
         estimates.Update(estimate);
         await unitOfWork.SaveChangesAsync();
 
-        await notificationService.SendClientEstimateSentNotificationAsync(client, estimate);
+        if (_followUpAutomation != null)
+            await _followUpAutomation.StartEstimateSequenceAsync(
+                estimate.OrganizationId,
+                estimate.Id,
+                estimate.OrganizationClientId);
+
+        await clientPortalService.SendMagicLinkAsync(estimate.OrganizationId, client.Id, client.EmailAddress ?? string.Empty);
 
         var full = await estimates.Query()
             .Include(x => x.LineItems)
@@ -221,11 +239,78 @@ public class EstimateService : IEstimateService
         return Result<byte[]>.Success(pdf);
     }
 
+    public Task<Result<EstimateDto>> AcceptAsync(Guid id, Guid organizationId, Guid organizationClientId)
+    {
+        return RespondAsync(id, organizationId, organizationClientId, EstimateStatus.Accepted);
+    }
+
+    public Task<Result<EstimateDto>> DeclineAsync(Guid id, Guid organizationId, Guid organizationClientId)
+    {
+        return RespondAsync(id, organizationId, organizationClientId, EstimateStatus.Declined);
+    }
+
+    private async Task<Result<EstimateDto>> RespondAsync(
+        Guid id,
+        Guid organizationId,
+        Guid organizationClientId,
+        EstimateStatus newStatus)
+    {
+        var estimate = await estimates.Query()
+            .Include(x => x.OrganizationClient)
+            .Include(x => x.LineItems)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (estimate == null)
+            return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        if (estimate.OrganizationId != organizationId || estimate.OrganizationClientId != organizationClientId)
+            return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        if (estimate.Status != EstimateStatus.Sent)
+            return Result.Failure<EstimateDto>(EstimateErrors.CannotRespondInCurrentStatus);
+
+        estimate.Status = newStatus;
+        estimate.UpdatedAt = DateTimeOffset.UtcNow;
+
+        estimates.Update(estimate);
+        await unitOfWork.SaveChangesAsync();
+
+        if (_followUpAutomation != null && newStatus is EstimateStatus.Accepted or EstimateStatus.Declined)
+        {
+            var reason = newStatus == EstimateStatus.Accepted
+                ? FollowUpStopReason.EstimateAccepted
+                : FollowUpStopReason.EstimateDeclined;
+
+            await _followUpAutomation.StopEstimateSequenceAsync(estimate.Id, reason);
+        }
+
+        if (newStatus == EstimateStatus.Accepted)
+        {
+            await CreateJobFromEstimateAsync(estimate);
+        }
+
+        return Result<EstimateDto>.Success(ToDto(estimate));
+    }
+
     private static void RecalculateTotals(Estimate estimate)
     {
         estimate.Subtotal = Math.Round(estimate.LineItems.Sum(x => x.Total), 2);
         estimate.TaxTotal = 0m;
         estimate.Total = Math.Round(estimate.Subtotal + estimate.TaxTotal, 2);
+    }
+
+    private async Task CreateJobFromEstimateAsync(Estimate estimate)
+    {
+        var job = new Job
+        {
+            OrganizationClientId = estimate.OrganizationClientId,
+            EstimateId = estimate.Id,
+            Title = estimate.Title ?? $"Job from {estimate.EstimateNumber}",
+            Comments = estimate.Description,
+            LifecycleStatus = JobLifecycleStatus.Approved
+        };
+
+        await _jobService.UpsertJobAsync(job, estimate.OrganizationId);
     }
 
     private async Task<string> GenerateEstimateNumberAsync(Guid organizationId)

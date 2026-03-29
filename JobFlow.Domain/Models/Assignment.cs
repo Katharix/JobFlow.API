@@ -5,7 +5,7 @@ namespace JobFlow.Domain.Models;
 public class Assignment : Entity
 {
     public Guid JobId { get; set; }
-    public virtual Job Job { get; set; }
+    public virtual Job Job { get; set; } = null!;
 
     // Window vs exact is semantic; both use ScheduledStart/End
     public ScheduleType ScheduleType { get; set; } = ScheduleType.Window;
@@ -15,7 +15,7 @@ public class Assignment : Entity
 
     public DateTimeOffset? ActualStart { get; set; }
     public DateTimeOffset? ActualEnd { get; set; }
-    
+
     public AssignmentStatus Status { get; set; } = AssignmentStatus.Scheduled;
 
     // Optional: assignment-level override location (job location can differ from client address)
@@ -25,6 +25,8 @@ public class Assignment : Entity
     public string? ZipCode { get; set; }
 
     public string? Notes { get; set; }
+
+    public virtual ICollection<AssignmentAssignee> AssignmentAssignees { get; set; } = new List<AssignmentAssignee>();
 
     public virtual ICollection<AssignmentOrder> AssignmentOrders { get; set; } = new List<AssignmentOrder>();
 }

@@ -1,9 +1,6 @@
 name: Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 
 on:
-  push:
-    tags:
-      - 'release-*'
   workflow_dispatch:
 
 jobs:
@@ -20,7 +17,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          include-prerelease: true
 
       # ✅ Restore explicitly
       - name: Restore dependencies

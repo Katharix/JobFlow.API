@@ -4,6 +4,7 @@ using JobFlow.Business.Extensions;
 using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Domain.Enums;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using Stripe;
 using Stripe.Checkout;
 
@@ -13,9 +14,11 @@ namespace JobFlow.Infrastructure.PaymentGateways.Stripe;
 public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, IConnectedAccountProcessor
 {
     private readonly IPaymentSettings _paymentSettings;
-    public StripePaymentProcessor(IPaymentSettings paymentSettings)
+    private readonly IStripeSettings _stripeSettings;
+    public StripePaymentProcessor(IPaymentSettings paymentSettings, IStripeSettings stripeSettings)
     {
         _paymentSettings = paymentSettings;
+        _stripeSettings = stripeSettings;
     }
     public async Task<string> CreateConnectedAccountAsync()
     {
@@ -57,8 +60,10 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var accountLink = await service.CreateAsync(new AccountLinkCreateOptions
         {
             Account = accountId,
-            ReturnUrl = "http://localhost:4200/admin",
-            RefreshUrl = $"http://localhost:4200/dashboard/stripe-failed/{accountId}",
+            ReturnUrl = _stripeSettings.ReturnUrl,
+            RefreshUrl = string.IsNullOrWhiteSpace(_stripeSettings.RefreshUrl)
+                ? _stripeSettings.ReturnUrl
+                : _stripeSettings.RefreshUrl,
             Type = "account_onboarding"
         });
 
@@ -73,7 +78,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var amountInCents =
             request.Amount?.ToCents()
             ?? throw new InvalidOperationException("Payment amount is required.");
-        long applicationFee = 75L;
+        long applicationFee = _paymentSettings.ApplicationFee.ToCents();
         var options = new PaymentIntentCreateOptions
         {
             Amount = amountInCents,
@@ -85,7 +90,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             },
 
             ApplicationFeeAmount = applicationFee,
-            
+
             TransferData = new PaymentIntentTransferDataOptions
             {
                 Destination = request.ConnectedAccountId
@@ -168,7 +173,21 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
     {
         var customerId = request.StripeCustomerId;
         // If the user is subscribing for the first time, create a new Stripe customer
-        if (string.IsNullOrEmpty(customerId)) customerId = await CreateStripeCustomerAsync(request.Email);
+        if (string.IsNullOrEmpty(customerId))
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                throw new InvalidOperationException("Customer email is required for subscription checkout.");
+
+            customerId = await CreateStripeCustomerAsync(request.Email);
+        }
+
+        if (string.IsNullOrWhiteSpace(customerId))
+            throw new InvalidOperationException("Stripe customer id is required for subscription checkout.");
+
+        var resolvedCustomerId = request.StripeCustomerId ?? customerId
+            ?? throw new InvalidOperationException("Stripe customer id is required for subscription checkout.");
+        var ownerId = request.OrgId?.ToString()
+            ?? throw new InvalidOperationException("Organization id is required for subscription checkout.");
 
         var options = new SessionCreateOptions
         {
@@ -181,23 +200,26 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
                     Quantity = request.Quantity
                 }
             },
-            SuccessUrl = $"{request.SuccessUrl}?organizationId={request.OrgId}&session_id={{CHECKOUT_SESSION_ID}}",
+            SuccessUrl = BuildSubscriptionSuccessUrl(
+                request.SuccessUrl,
+                ownerId,
+                "{CHECKOUT_SESSION_ID}"),
             CancelUrl = request.CancelUrl,
             Customer = customerId,
             SubscriptionData = new SessionSubscriptionDataOptions
             {
                 Metadata = new Dictionary<string, string>
                 {
-                    { "ownerId", request.OrgId.ToString() },
+                    { "ownerId", ownerId },
                     { "ownerType", PaymentEntityType.Organization.ToString() },
-                    { "customerId", request.StripeCustomerId ?? customerId }
+                    { "customerId", resolvedCustomerId }
                 }
             },
             Metadata = new Dictionary<string, string>
             {
-                { "ownerId", request.OrgId.ToString() },
+                { "ownerId", ownerId },
                 { "ownerType", PaymentEntityType.Organization.ToString() },
-                { "customerId", customerId }
+                { "customerId", resolvedCustomerId }
             }
         };
 
@@ -215,6 +237,43 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         var service = new CustomerService();
         var customer = await service.CreateAsync(options);
 
+        if (string.IsNullOrWhiteSpace(customer.Id))
+            throw new InvalidOperationException("Stripe customer id was not returned.");
+
         return customer.Id;
+    }
+
+    private static string BuildSubscriptionSuccessUrl(
+        string? baseUrl,
+        string organizationId,
+        string sessionIdPlaceholder)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new InvalidOperationException("Success URL is required for subscription checkout.");
+
+        var urlWithoutFragment = baseUrl;
+        var fragment = string.Empty;
+        var fragmentIndex = baseUrl.IndexOf('#');
+        if (fragmentIndex >= 0)
+        {
+            urlWithoutFragment = baseUrl[..fragmentIndex];
+            fragment = baseUrl[fragmentIndex..];
+        }
+
+        var queryIndex = urlWithoutFragment.IndexOf('?');
+        var path = queryIndex >= 0 ? urlWithoutFragment[..queryIndex] : urlWithoutFragment;
+        var query = queryIndex >= 0 ? urlWithoutFragment[(queryIndex + 1)..] : string.Empty;
+
+        var parts = query
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(p =>
+                !p.StartsWith("organizationId=", StringComparison.OrdinalIgnoreCase)
+                && !p.StartsWith("session_id=", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        parts.Add($"organizationId={Uri.EscapeDataString(organizationId)}");
+        parts.Add($"session_id={sessionIdPlaceholder}");
+
+        return $"{path}?{string.Join("&", parts)}{fragment}";
     }
 }

@@ -96,5 +96,31 @@ public class AssignmentController : ControllerBase
         return Ok(result.Value);
     }
 
+    // Update assignees for an assignment
+    [HttpPut("{id:guid}/assignees")]
+    public async Task<IActionResult> UpdateAssignees(Guid id, [FromBody] UpdateAssignmentAssigneesRequestDto dto)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+
+        var result = await _assignmentService.UpdateAssignmentAssigneesAsync(organizationId, id, dto);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    // Update assignment notes
+    [HttpPut("{id:guid}/notes")]
+    public async Task<IActionResult> UpdateNotes(Guid id, [FromBody] UpdateAssignmentNotesRequestDto dto)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+
+        var result = await _assignmentService.UpdateAssignmentNotesAsync(organizationId, id, dto);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
 
 }

@@ -13,10 +13,10 @@ public class PaymentHistory : Entity
     public string? SubscriptionId { get; set; }
     public string? CustomerId { get; set; }
     public long AmountPaid { get; set; }
-    public string Currency { get; set; }
-    public string Status { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public DateTime PaidAt { get; set; }
-    public string EventType { get; set; }
-    public string RawEventJson { get; set; }
-    public virtual Invoice Invoice { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string RawEventJson { get; set; } = string.Empty;
+    public virtual Invoice Invoice { get; set; } = null!;
 }

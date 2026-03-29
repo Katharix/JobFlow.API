@@ -1,6 +1,8 @@
-﻿using System.Linq.Expressions;
-using JobFlow.Domain;
+﻿using JobFlow.Domain;
+using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using ISoftDeletable = JobFlow.Domain.Models.ISoftDeletable;
 
 namespace JobFlow.Infrastructure.Persistence;
 
@@ -16,7 +18,7 @@ public class Repository<T> : IRepository<T> where T : class
     }
 
     // 🔹 Query
-    public IQueryable<T> Query(Expression<Func<T, bool>> filter = null)
+    public IQueryable<T> Query(Expression<Func<T, bool>>? filter = null)
     {
         return filter != null ? _dbSet.Where(filter) : _dbSet;
     }
@@ -73,22 +75,64 @@ public class Repository<T> : IRepository<T> where T : class
     // 🔹 Delete
     public void Remove(T item)
     {
+        if (item is ISoftDeletable softDeletable)
+        {
+            softDeletable.IsActive = false;
+            softDeletable.DeactivatedAtUtc = DateTime.UtcNow;
+            _dbSet.Update(item);
+            return;
+        }
+
         _dbSet.Remove(item);
     }
 
     public Task RemoveAsync(T item)
     {
+        if (item is ISoftDeletable softDeletable)
+        {
+            softDeletable.IsActive = false;
+            softDeletable.DeactivatedAtUtc = DateTime.UtcNow;
+            _dbSet.Update(item);
+            return Task.CompletedTask;
+        }
+
         _dbSet.Remove(item);
         return Task.CompletedTask;
     }
 
     public void RemoveRange(IEnumerable<T> items)
     {
+        if (typeof(ISoftDeletable).IsAssignableFrom(typeof(T)))
+        {
+            foreach (var item in items)
+            {
+                if (item is not ISoftDeletable softDeletable) continue;
+                softDeletable.IsActive = false;
+                softDeletable.DeactivatedAtUtc = DateTime.UtcNow;
+            }
+
+            _dbSet.UpdateRange(items);
+            return;
+        }
+
         _dbSet.RemoveRange(items);
     }
 
     public Task RemoveRangeAsync(IEnumerable<T> items)
     {
+        if (typeof(ISoftDeletable).IsAssignableFrom(typeof(T)))
+        {
+            foreach (var item in items)
+            {
+                if (item is not ISoftDeletable softDeletable) continue;
+                softDeletable.IsActive = false;
+                softDeletable.DeactivatedAtUtc = DateTime.UtcNow;
+            }
+
+            _dbSet.UpdateRange(items);
+            return Task.CompletedTask;
+        }
+
         _dbSet.RemoveRange(items);
         return Task.CompletedTask;
     }
@@ -96,12 +140,12 @@ public class Repository<T> : IRepository<T> where T : class
     // 🔹 Read Helpers
     public async Task<T> GetByIdAsync(Guid id)
     {
-        return await _dbSet.FindAsync(id);
+        return (await _dbSet.FindAsync(id))!;
     }
 
     public async Task<T> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.FirstOrDefaultAsync(predicate);
+        return (await _dbSet.FirstOrDefaultAsync(predicate))!;
     }
 
     public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)

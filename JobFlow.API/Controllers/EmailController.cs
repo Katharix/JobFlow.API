@@ -1,11 +1,13 @@
 ﻿using JobFlow.Business.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
-using JobFlow.Infrastructure.ExternalServices.ReCAPTCHA;
+using JobFlow.Infrastructure.ExternalServices.Turnstile;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/email/")]
 public class EmailController : ControllerBase
 {
@@ -14,10 +16,25 @@ public class EmailController : ControllerBase
     public async Task<IActionResult> SubscribeToNewsletter(
         [FromBody] NewsletterSubscriptionRequest request,
         [FromServices] IBrevoService brevoService,
-        [FromServices] IReCAPTCHAService reCAPTCHAService)
+        [FromServices] ICaptchaVerificationService captchaService,
+        CancellationToken cancellationToken)
     {
-        var isHuman = await reCAPTCHAService.VerifyTokenAsync(request.CaptchaToken);
-        if (!isHuman) return BadRequest("reCaptcha validation failed.");
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var verification = await captchaService.VerifyAsync(
+            request.CaptchaToken,
+            "newsletter-subscribe",
+            remoteIp,
+            cancellationToken);
+
+        if (!verification.IsValid)
+        {
+            return BadRequest(new
+            {
+                message = "Turnstile validation failed.",
+                errors = verification.ErrorCodes
+            });
+        }
 
         var success = await brevoService.AddContactAsync(request.Email, request.ListId);
         return success
@@ -30,10 +47,30 @@ public class EmailController : ControllerBase
     public async Task<IActionResult> SendContactForm(
         [FromBody] ContactFormRequest request,
         [FromServices] IBrevoService brevoService,
-        [FromServices] IReCAPTCHAService reCAPTCHAService)
+        [FromServices] ICaptchaVerificationService captchaService,
+        CancellationToken cancellationToken)
     {
-        var isHuman = await reCAPTCHAService.VerifyTokenAsync(request.CaptchaToken);
-        if (!isHuman) return BadRequest("reCaptcha validation failed.");
+        if (string.IsNullOrWhiteSpace(request.CaptchaToken))
+        {
+            return BadRequest(new { message = "Captcha token is required." });
+        }
+
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var verification = await captchaService.VerifyAsync(
+            request.CaptchaToken,
+            "contact-sales",
+            remoteIp,
+            cancellationToken);
+
+        if (!verification.IsValid)
+        {
+            return BadRequest(new
+            {
+                message = "Turnstile validation failed.",
+                errors = verification.ErrorCodes
+            });
+        }
         var success = await brevoService.SendContactEmailAsync(request);
         return success
             ? Ok(new { message = "Contact form submitted." })

@@ -99,6 +99,28 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildClientJobRescheduled(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd)
+    {
+        var previousSlot = FormatScheduleRange(previousStart, previousEnd);
+        var nextSlot = FormatScheduleRange(newStart, newEnd);
+
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Appointment Updated: {job.Title}",
+            Body = $"Your appointment was rescheduled from {previousSlot} to {nextSlot}.",
+            Sms = $"Appointment updated: {nextSlot}."
+        };
+    }
+
     public NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice)
     {
         return new NotificationMessage
@@ -110,6 +132,21 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Body = $"Your invoice #{invoice.Id} for {invoice.TotalAmount:C} is ready.",
             Sms = $"Invoice #{invoice.Id} ready: {invoice.TotalAmount:C}.",
             TemplateId = EmailTemplate.InvoiceCreated,
+            Link = $"{baseUrl}/invoice/view/{invoice.Id}"
+        };
+    }
+
+    public NotificationMessage BuildClientInvoiceReminder(OrganizationClient client, Invoice invoice)
+    {
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Payment Reminder: Invoice #{invoice.InvoiceNumber}",
+            Body = $"Just a reminder that invoice #{invoice.InvoiceNumber} for {invoice.TotalAmount:C} is still open.",
+            Sms = $"Reminder: invoice #{invoice.InvoiceNumber} is still open.",
+            TemplateId = EmailTemplate.InvoiceReminder,
             Link = $"{baseUrl}/invoice/view/{invoice.Id}"
         };
     }
@@ -202,5 +239,86 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Link = $"{link}",
             TemplateId = EmailTemplate.OrganizationWelcome
         };
+    }
+
+    public NotificationMessage BuildClientEstimateFollowUp(OrganizationClient client, Estimate estimate, string message)
+    {
+        var link = $"{baseUrl}/estimate/view/{estimate.PublicToken}";
+
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Quick Follow-Up: {estimate.EstimateNumber}",
+            Body = $"""
+                        Hello {client.ClientFullName()},
+
+                        {message}
+
+                        View estimate: {link}
+                    """,
+            Sms = $"{message} ",
+            Link = link,
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationEstimateRevisionRequested(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate,
+        string revisionMessage)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Estimate Revision Requested: {estimate.EstimateNumber}",
+            Body = $"""
+                    Client {client.ClientFullName()} requested estimate revisions.
+
+                    Estimate: {estimate.EstimateNumber}
+                    Message: {revisionMessage}
+                    """,
+            Sms = $"Estimate revision requested for {estimate.EstimateNumber}.",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink)
+    {
+        return new NotificationMessage
+        {
+            Name = client.ClientFullName(),
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Subject = $"Your {client.Organization?.OrganizationName ?? "JobFlow"} Client Portal Link",
+            Body = $"""
+                        Hello {client.ClientFullName()},
+
+                        Use this link to access your client portal:
+                        {magicLink}
+
+                        This link will expire soon.
+                    """,
+            Sms = "Client portal link: ",
+            Link = magicLink,
+            TemplateId = EmailTemplate.OrganizationWelcome
+        };
+    }
+
+    private static string FormatScheduleRange(DateTimeOffset start, DateTimeOffset? end)
+    {
+        var localStart = start.ToLocalTime();
+        var localEnd = (end ?? start).ToLocalTime();
+
+        if (localStart.Date == localEnd.Date)
+        {
+            return $"{localStart:MMM dd, yyyy} {localStart:t} - {localEnd:t}";
+        }
+
+        return $"{localStart:MMM dd, yyyy h:mm tt} - {localEnd:MMM dd, yyyy h:mm tt}";
     }
 }

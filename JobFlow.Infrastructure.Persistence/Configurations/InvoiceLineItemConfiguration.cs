@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace JobFlow.Infrastructure.Persistence.Configurations;
 
-internal class InvoiceLineItemConfiguration : EntityTypeConfiguration<InvoiceLineItem>
+internal class InvoiceLineItemConfiguration : IEntityTypeConfiguration<InvoiceLineItem>
 {
-    public override void Map(EntityTypeBuilder<InvoiceLineItem> builder)
+    public void Configure(EntityTypeBuilder<InvoiceLineItem> builder)
     {
         builder.ToTable("InvoiceLineItem");
         builder.HasKey(e => e.Id);

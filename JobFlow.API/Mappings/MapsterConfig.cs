@@ -27,7 +27,9 @@ public class MapsterConfig : IRegister
         config.NewConfig<EmployeeRole, EmployeeRoleDto>();
 
         // Organization → DTO
-        config.NewConfig<Organization, OrganizationDto>();
+        config.NewConfig<Organization, OrganizationDto>()
+            .Map(dest => dest.Email, src => src.EmailAddress)
+            .Map(dest => dest.EmailAddress, src => src.EmailAddress);
 
         //OrganizationBranding → DTO
         config.NewConfig<OrganizationBranding, BrandingDto>();
@@ -35,15 +37,19 @@ public class MapsterConfig : IRegister
         //OrganizationClient → DTO
         config.NewConfig<OrganizationClient, OrganizationClientDto>();
 
+        //DTO → OrganizationClient
+        config.NewConfig<OrganizationClientDto, OrganizationClient>()
+            .Ignore(dest => dest.Organization);
+
         //Invoice → DTO
         config.NewConfig<Invoice, InvoiceDto>();
 
         //InvoiceLineItem → DTO
         config.NewConfig<InvoiceLineItem, InvoiceLineItemDto>();
-        
+
         //Job → DTO
         config.NewConfig<Job, JobDto>();
-        
+
         config.NewConfig<Assignment, AssignmentDto>();
         //DTO → Job
         config.NewConfig<JobDto, Job>();

@@ -12,7 +12,15 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildClientWelcome(OrganizationClient client);
     NotificationMessage BuildClientJobCreated(OrganizationClient client, Job job);
     NotificationMessage BuildClientJobScheduled(OrganizationClient client, Job job);
+    NotificationMessage BuildClientJobRescheduled(
+        OrganizationClient client,
+        Job job,
+        DateTimeOffset previousStart,
+        DateTimeOffset? previousEnd,
+        DateTimeOffset newStart,
+        DateTimeOffset? newEnd);
     NotificationMessage BuildClientInvoiceCreated(OrganizationClient client, Invoice invoice);
+    NotificationMessage BuildClientInvoiceReminder(OrganizationClient client, Invoice invoice);
     NotificationMessage BuildClientPaymentReceived(OrganizationClient client, Invoice invoice);
 
     NotificationMessage BuildClientJobTrackingEta(OrganizationClient client, Job job, int etaMinutes);
@@ -21,4 +29,8 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildEmployeeInvite(EmployeeInvite invite);
 
     NotificationMessage BuildClientEstimateSent(OrganizationClient client, Estimate estimate);
+    NotificationMessage BuildClientEstimateFollowUp(OrganizationClient client, Estimate estimate, string message);
+    NotificationMessage BuildOrganizationEstimateRevisionRequested(Organization organization, OrganizationClient client, Estimate estimate, string revisionMessage);
+
+    NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink);
 }

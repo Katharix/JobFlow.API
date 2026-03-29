@@ -18,6 +18,8 @@ public class JobService : IJobService
     private readonly IRepository<Job> jobs;
     private readonly ILogger<JobService> logger;
     private readonly IOnboardingService onboardingService;
+    private readonly IInvoicingSettingsService _invoicingSettings;
+    private readonly IInvoiceService _invoiceService;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
 
@@ -25,12 +27,16 @@ public class JobService : IJobService
         ILogger<JobService> logger,
         IUnitOfWork unitOfWork,
         IOnboardingService onboardingService,
+        IInvoicingSettingsService invoicingSettings,
+        IInvoiceService invoiceService,
         IMapper mapper)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
         this.onboardingService = onboardingService;
         jobs = unitOfWork.RepositoryOf<Job>();
+        _invoicingSettings = invoicingSettings;
+        _invoiceService = invoiceService;
         _mapper = mapper;
     }
 
@@ -41,6 +47,24 @@ public class JobService : IJobService
             .FirstOrDefaultAsync(j =>
                 j.Id == id &&
                 j.OrganizationClient.OrganizationId == organizationId);
+
+        if (job == null)
+            return Result.Failure<Job>(JobErrors.NotFound);
+
+        return Result.Success(job);
+    }
+
+    public async Task<Result<Job>> GetJobForClientAsync(
+        Guid id,
+        Guid organizationId,
+        Guid organizationClientId)
+    {
+        var job = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j =>
+                j.Id == id &&
+                j.OrganizationClient.OrganizationId == organizationId &&
+                j.OrganizationClientId == organizationClientId);
 
         if (job == null)
             return Result.Failure<Job>(JobErrors.NotFound);
@@ -62,46 +86,75 @@ public class JobService : IJobService
         return Result.Success<IEnumerable<Job>>(list);
     }
 
+    public async Task<Result<IEnumerable<Job>>> GetJobsForClientAsync(
+        Guid organizationId,
+        Guid organizationClientId)
+    {
+        var list = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .Where(j =>
+                j.OrganizationClient.OrganizationId == organizationId &&
+                j.OrganizationClientId == organizationClientId)
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+
+        return Result.Success<IEnumerable<Job>>(list);
+    }
+
     public async Task<Result<IEnumerable<JobDto>>> GetJobsAsync(Guid organizationId)
     {
         var returnedJobs = await jobs.Query()
             .Include(j => j.OrganizationClient)
             .Include(e => e.Assignments)
+            .ThenInclude(a => a.AssignmentAssignees)
+            .ThenInclude(assignee => assignee.Employee)
             .Where(j => j.OrganizationClient.OrganizationId == organizationId)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
-        
+
         var dto = returnedJobs.Select(e => new JobDto
         {
             Id = e.Id,
             OrganizationClientId = e.OrganizationClient.Id,
-            Title =  e.Title,
+            Title = e.Title,
             Comments = e.Comments,
             LifecycleStatus = e.LifecycleStatus,
+            InvoicingWorkflow = e.InvoicingWorkflow,
             Assignments = e.Assignments.Select(a => new AssignmentDto
             {
                 ScheduledStart = a.ScheduledStart,
                 ScheduledEnd = a.ScheduledEnd,
                 ActualEnd = a.ActualEnd,
                 ActualStart = a.ActualStart,
-                Id =  a.Id,
-                JobId =  e.Id,
-                JobTitle =   e.Title,
+                Id = a.Id,
+                JobId = e.Id,
+                JobTitle = e.Title,
                 Status = a.Status,
-                OrganizationClientId =  e.OrganizationClientId,
+                OrganizationClientId = e.OrganizationClientId,
+                JobLifecycleStatus = e.LifecycleStatus,
+                Assignees = a.AssignmentAssignees
+                    .Select(assignee => new AssignmentAssigneeDto
+                    {
+                        EmployeeId = assignee.EmployeeId,
+                        EmployeeName = assignee.Employee != null
+                            ? $"{assignee.Employee.FirstName} {assignee.Employee.LastName}".Trim()
+                            : null,
+                        IsLead = assignee.IsLead
+                    })
+                    .ToList()
             }),
             OrganizationClient = new OrganizationClientDto
             {
-                OrganizationId =  e.OrganizationClient.OrganizationId,
-                FirstName =  e.OrganizationClient.FirstName,
-                LastName =  e.OrganizationClient.LastName,
-                EmailAddress =  e.OrganizationClient.EmailAddress,
+                OrganizationId = e.OrganizationClient.OrganizationId,
+                FirstName = e.OrganizationClient.FirstName,
+                LastName = e.OrganizationClient.LastName,
+                EmailAddress = e.OrganizationClient.EmailAddress,
                 PhoneNumber = e.OrganizationClient.PhoneNumber,
-                Address1 =  e.OrganizationClient.Address1,
+                Address1 = e.OrganizationClient.Address1,
                 Address2 = e.OrganizationClient.Address2,
-                City =  e.OrganizationClient.City,
-                State =  e.OrganizationClient.State,    
-                ZipCode =  e.OrganizationClient.ZipCode
+                City = e.OrganizationClient.City,
+                State = e.OrganizationClient.State,
+                ZipCode = e.OrganizationClient.ZipCode
             }
         }).ToList();
         return Result.Success<IEnumerable<JobDto>>(dto);
@@ -125,6 +178,7 @@ public class JobService : IJobService
             existingModel.Comments = model.Comments;
             existingModel.Latitude = model.Latitude;
             existingModel.Longitude = model.Longitude;
+            existingModel.InvoicingWorkflow = model.InvoicingWorkflow;
 
             jobs.Update(existingModel);
         }
@@ -156,5 +210,58 @@ public class JobService : IJobService
         await unitOfWork.SaveChangesAsync();
 
         return Result.Success();
+    }
+
+    public async Task<Result<Job>> UpdateJobStatusAsync(Guid organizationId, Guid jobId, JobLifecycleStatus status)
+    {
+        var job = await jobs.Query()
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j =>
+                j.Id == jobId &&
+                j.OrganizationClient.OrganizationId == organizationId);
+
+        if (job == null)
+            return Result.Failure<Job>(JobErrors.NotFound);
+
+        job.LifecycleStatus = status;
+        jobs.Update(job);
+        await unitOfWork.SaveChangesAsync();
+
+        if (status == JobLifecycleStatus.Completed)
+        {
+            await HandleJobCompletedAsync(organizationId, job);
+        }
+
+        return Result.Success(job);
+    }
+
+    private async Task HandleJobCompletedAsync(Guid organizationId, Job job)
+    {
+        var workflow = job.InvoicingWorkflow;
+        if (workflow == null)
+        {
+            var settingsResult = await _invoicingSettings.GetInvoicingSettingsAsync(organizationId);
+            if (settingsResult.IsSuccess)
+            {
+                workflow = settingsResult.Value.DefaultWorkflow;
+            }
+        }
+
+        if (workflow == null)
+        {
+            workflow = InvoicingWorkflow.SendInvoice;
+        }
+
+        if (workflow == InvoicingWorkflow.InPerson)
+            return;
+
+        var sendResult = await _invoiceService.SendInvoiceForJobAsync(organizationId, job);
+        if (sendResult.IsFailure)
+        {
+            logger.LogWarning(
+                "Invoice auto-send failed for completed job {JobId}: {Error}",
+                job.Id,
+                sendResult.Error.Description);
+        }
     }
 }

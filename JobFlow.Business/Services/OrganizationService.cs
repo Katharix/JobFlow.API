@@ -21,7 +21,7 @@ public class OrganizationService : IOrganizationService
     private readonly IRepository<SubscriptionRecord> _subscriptions;
 
     public OrganizationService(
-        IUnitOfWork unitOfWork, 
+        IUnitOfWork unitOfWork,
         ILogger<OrganizationService> logger,
         IOnboardingService onboardingService)
     {
@@ -109,6 +109,28 @@ public class OrganizationService : IOrganizationService
         );
     }
 
+    public async Task<Result<Organization>> GetBySquareMerchantIdAsync(string squareMerchantId)
+    {
+        var org = await _organizations
+            .FirstOrDefaultAsync(o => o.SquareMerchantId == squareMerchantId);
+
+        return org is null
+            ? Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound)
+            : Result.Success(org);
+    }
+
+    public async Task MarkSquareDisconnectedAsync(string squareMerchantId)
+    {
+        var org = await _organizations
+            .FirstOrDefaultAsync(o => o.SquareMerchantId == squareMerchantId);
+
+        if (org == null)
+            return;
+
+        org.IsSquareConnected = false;
+        await _unitOfWork.SaveChangesAsync();
+    }
+
     public async Task<Result<Organization>> UpsertOrganization(Organization model)
     {
         if (model.Id == Guid.Empty)
@@ -125,5 +147,20 @@ public class OrganizationService : IOrganizationService
         }
 
         return Result.Success(model);
+    }
+
+    public async Task<Result<Organization>> UpdateIndustryAsync(Guid organizationId, string? industryKey)
+    {
+        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        if (organization == null)
+        {
+            return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
+        }
+
+        organization.IndustryKey = string.IsNullOrWhiteSpace(industryKey) ? null : industryKey.Trim();
+        _unitOfWork.RepositoryOf<Organization>().Update(organization);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success(organization);
     }
 }

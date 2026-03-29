@@ -12,10 +12,18 @@ public interface IInvoiceService
     Task<Result> DeleteInvoiceAsync(Guid id);
     Task MarkInvoiceSentAsync(Guid invoiceId);
     Task<bool> IsPaidAsync(Guid invoiceId);
+    Task<Result> SendInvoiceToClientAsync(Guid invoiceId);
+    Task<Result> SendInvoiceForJobAsync(Guid organizationId, Job job);
 
     Task<Result<Invoice>> MarkPaidAsync(
         Guid invoiceId,
         PaymentProvider provider,
         string externalPaymentId,
         decimal amountReceived);
+
+    Task<Result<Invoice>> RecordDepositAsync(
+        Guid invoiceId,
+        decimal depositAmount,
+        PaymentProvider provider,
+        string externalPaymentId);
 }

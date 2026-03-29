@@ -11,6 +11,11 @@ internal class ConversationConfiguration : IEntityTypeConfiguration<Conversation
         builder.ToTable("Conversation", "messaging");
         builder.HasKey(e => e.Id);
 
+        builder.HasOne(c => c.OrganizationClient)
+            .WithMany()
+            .HasForeignKey(c => c.OrganizationClientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(c => c.Participants)
             .WithOne(p => p.Conversation)
             .HasForeignKey(p => p.ConversationId);

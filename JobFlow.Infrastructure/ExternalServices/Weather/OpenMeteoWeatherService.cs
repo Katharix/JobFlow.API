@@ -2,6 +2,8 @@ using System.Text.Json;
 using JobFlow.Business.DI;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Infrastructure.HttpClients;
+using Microsoft.Extensions.Logging;
 
 namespace JobFlow.Infrastructure.ExternalServices.Weather;
 
@@ -9,38 +11,101 @@ namespace JobFlow.Infrastructure.ExternalServices.Weather;
 public class OpenMeteoWeatherService : IWeatherService
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<OpenMeteoWeatherService> _logger;
 
-    public OpenMeteoWeatherService(IHttpClientFactory httpClientFactory)
+    public OpenMeteoWeatherService(IHttpClientFactory httpClientFactory, ILogger<OpenMeteoWeatherService> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
-    public async Task<WeatherForecastDto> GetForecastAsync(double latitude, double longitude, int days = 5, CancellationToken cancellationToken = default)
+    public async Task<WeatherForecastDto> GetForecastAsync(
+        double latitude, double longitude, int days = 5, CancellationToken cancellationToken = default)
     {
         days = Math.Clamp(days, 1, 7);
 
-        var url = $"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days={days}";
+        var url = FormattableString.Invariant($"v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days={days}");
+        var client = _httpClientFactory.CreateClient(JobFlowNamedClient.OpenMeteo);
 
-        using var client = _httpClientFactory.CreateClient();
-        using var response = await client.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-
-        var root = doc.RootElement;
-        var timezone = root.TryGetProperty("timezone", out var tzElement) ? tzElement.GetString() ?? "UTC" : "UTC";
-
-        var current = ParseCurrent(root.GetProperty("current"));
-        var daily = ParseDaily(root.GetProperty("daily"));
-
-        return new WeatherForecastDto
+        try
         {
-            Timezone = timezone,
-            Current = current,
-            Daily = daily,
-            RiskAlerts = BuildRiskAlerts(daily)
-        };
+            var attempts = 3;
+            for (var attempt = 1; attempt <= attempts; attempt++)
+            {
+                using var response = await client.GetAsync(url, linkedCts.Token);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await using var stream = await response.Content.ReadAsStreamAsync(linkedCts.Token);
+                    using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: linkedCts.Token);
+
+                    var root = doc.RootElement;
+                    var timezone = root.TryGetProperty("timezone", out var tzElement) ? tzElement.GetString() ?? "UTC" : "UTC";
+
+                    var current = ParseCurrent(root.GetProperty("current"));
+                    var daily = ParseDaily(root.GetProperty("daily"));
+
+                    return new WeatherForecastDto
+                    {
+                        Timezone = timezone,
+                        Current = current,
+                        Daily = daily,
+                        RiskAlerts = BuildRiskAlerts(daily)
+                    };
+                }
+
+                if (IsTransientStatusCode(response.StatusCode) && attempt < attempts)
+                {
+                    var retryDelay = GetRetryDelay(attempt);
+                    _logger.LogWarning(
+                        "Transient OpenMeteo failure (status: {StatusCode}) on attempt {Attempt}/{Attempts}. Retrying in {DelayMs}ms.",
+                        (int)response.StatusCode,
+                        attempt,
+                        attempts,
+                        retryDelay.TotalMilliseconds);
+
+                    await Task.Delay(retryDelay, linkedCts.Token);
+                    continue;
+                }
+
+                throw new HttpRequestException(
+                    $"OpenMeteo returned status {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                    null,
+                    response.StatusCode);
+            }
+
+            throw new HttpRequestException("OpenMeteo request failed after all retry attempts.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw; // caller aborted request
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            throw new TimeoutException("OpenMeteo request timed out.");
+        }
+        catch (TaskCanceledException ex)
+        {
+            throw new TimeoutException("OpenMeteo request was canceled before completion.", ex);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+        {
+            throw new TimeoutException("OpenMeteo gateway timed out.", ex);
+        }
+    }
+
+    private static bool IsTransientStatusCode(System.Net.HttpStatusCode statusCode)
+    {
+        var code = (int)statusCode;
+        return code == 408 || code == 429 || code >= 500;
+    }
+
+    private static TimeSpan GetRetryDelay(int attempt)
+    {
+        return TimeSpan.FromMilliseconds(250 * Math.Pow(2, attempt - 1));
     }
 
     private static WeatherCurrentDto ParseCurrent(JsonElement current)

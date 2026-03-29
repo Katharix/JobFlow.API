@@ -25,5 +25,10 @@ public class EstimateConfiguration : IEntityTypeConfiguration<Estimate>
             .WithOne(x => x.Estimate!)
             .HasForeignKey(x => x.EstimateId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.RevisionRequests)
+            .WithOne(x => x.Estimate)
+            .HasForeignKey(x => x.EstimateId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

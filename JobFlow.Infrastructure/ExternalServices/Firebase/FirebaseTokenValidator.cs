@@ -14,7 +14,11 @@ public class FirebaseTokenValidator : IFirebaseTokenValidator
 
     public FirebaseTokenValidator(IConfiguration config)
     {
-        _firebaseProjectId = config["Firebase:ProjectId"];
+        var projectId = config["Firebase:ProjectId"];
+        if (string.IsNullOrWhiteSpace(projectId))
+            throw new InvalidOperationException("Firebase project id is missing.");
+
+        _firebaseProjectId = projectId;
     }
 
     public async Task<GoogleJsonWebSignature.Payload> ValidateTokenAsync(string idToken)

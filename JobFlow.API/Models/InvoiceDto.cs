@@ -6,9 +6,10 @@ namespace JobFlow.API.Models;
 public class InvoiceDto
 {
     public Guid Id { get; set; }
-    public string InvoiceNumber { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
     public Guid OrganizationId { get; set; }
     public Guid OrganizationClientId { get; set; }
+    public Guid? JobId { get; set; }
     public Guid? OrderId { get; set; }
     public DateTime InvoiceDate { get; set; }
     public DateTime DueDate { get; set; }

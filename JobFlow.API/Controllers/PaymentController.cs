@@ -3,6 +3,7 @@ using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.PaymentGateways.SharedModels;
 using JobFlow.Business.ConfigurationSettings.ConfigurationInterfaces;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Business.Onboarding;
 using JobFlow.Domain.Enums;
 using JobFlow.API.Extensions;
 using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
@@ -14,8 +15,9 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Stripe;
 using CreateSubscriptionRequest = JobFlow.Business.Models.DTOs.CreateSubscriptionRequest;
@@ -25,7 +27,7 @@ namespace JobFlow.API.Controllers;
 
 [ApiController]
 [Route("api/payments/")]
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + ",ClientPortalJwt")]
 public class PaymentController : ControllerBase
 {
     private const string SquareStatePurpose = "SquareOAuthState";
@@ -42,11 +44,10 @@ public class PaymentController : ControllerBase
     private readonly IStripeSettings _stripeSettings;
     private readonly ISquareSettings _squareSettings;
     private readonly ISquareWebhookService _squareWebhookService;
+    private readonly ISquareTokenEncryptionService _squareTokenEncryption;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IFrontendSettings _frontEndSettings;
-    private readonly IDataProtector _squareStateProtector;
-    private readonly IDistributedCache _distributedCache;
-    private readonly ILogger<PaymentController> _logger;
+    private readonly IOnboardingService _onboardingService;
 
     public PaymentController(
         IPaymentProcessorFactory processorFactory,
@@ -58,11 +59,10 @@ public class PaymentController : ControllerBase
         IInvoiceService invoiceService,
         IStripeSettings stripeSettings,
         ISquareSettings squareSettings,
+        ISquareTokenEncryptionService squareTokenEncryption,
         IHostEnvironment hostEnvironment,
         IFrontendSettings frontEndSettings,
-        IDataProtectionProvider dataProtectionProvider,
-        IDistributedCache distributedCache,
-        ILogger<PaymentController> logger)
+        IOnboardingService onboardingService)
     {
         _processorFactory = processorFactory;
         _organizationService = organizationService;
@@ -73,32 +73,106 @@ public class PaymentController : ControllerBase
         _invoiceService = invoiceService;
         _stripeSettings = stripeSettings;
         _squareSettings = squareSettings;
+        _squareTokenEncryption = squareTokenEncryption;
         _hostEnvironment = hostEnvironment;
         _frontEndSettings = frontEndSettings;
-        _squareStateProtector = dataProtectionProvider.CreateProtector(SquareStatePurpose);
-        _distributedCache = distributedCache;
-        _logger = logger;
+        _onboardingService = onboardingService;
     }
 
     [HttpPost("checkout")]
-    [EnableRateLimiting("payment-sensitive")]
+    [AllowAnonymous]
     public async Task<IActionResult> Checkout([FromBody] PaymentSessionRequest request)
     {
-        var orgId = HttpContext.GetOrganizationId();
+        Guid orgId;
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            orgId = HttpContext.GetOrganizationId();
+        }
+        else
+        {
+            var requestedOrgId = request.OrgId ?? request.OrganizationId;
+            if (!requestedOrgId.HasValue || requestedOrgId.Value == Guid.Empty)
+                return BadRequest("Organization id is required.");
+
+            orgId = requestedOrgId.Value;
+        }
+
         request.OrgId = orgId;
 
         var org = await _organizationService.GetOrganiztionById(orgId);
         if (org.IsFailure) return NotFound("Organization not found.");
 
-        var processor = _processorFactory.GetProcessor(org.Value.PaymentProvider.ToString());
+        var organization = org.Value;
+        var provider = Enum.IsDefined(typeof(PaymentProvider), organization.PaymentProvider)
+            ? organization.PaymentProvider
+            : PaymentProvider.Stripe;
+
+        if (request.InvoiceId.HasValue)
+        {
+            var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(request.InvoiceId.Value);
+            if (!invoiceResult.IsSuccess)
+                return NotFound("Invoice not found.");
+
+            var invoice = invoiceResult.Value;
+            if (invoice.OrganizationId != orgId)
+                return Unauthorized();
+
+            if (User.IsInRole(UserRoles.OrganizationClient))
+            {
+                var clientId = HttpContext.GetUserId();
+                if (invoice.OrganizationClientId != clientId)
+                    return Unauthorized();
+            }
+
+            if (!request.Amount.HasValue)
+            {
+                request.Amount = invoice.BalanceDue;
+            }
+
+            if (request.Amount <= 0)
+                return BadRequest("Payment amount is required.");
+
+            request.OrganizationId = invoice.OrganizationId;
+            request.OrganizationClientId = invoice.OrganizationClientId;
+            request.ProductName ??= $"Invoice {invoice.InvoiceNumber}";
+
+            if (Enum.IsDefined(typeof(PaymentProvider), invoice.PaymentProvider)
+                && invoice.PaymentProvider != 0)
+            {
+                provider = invoice.PaymentProvider;
+            }
+        }
+
+        IPaymentProcessor processor;
+        try
+        {
+            processor = provider == PaymentProvider.Square
+                ? await GetSquareProcessorForCheckoutAsync(orgId, provider)
+                : _processorFactory.GetProcessor(provider);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
 
         string checkoutUrl;
         if (request.Mode == "subscription")
             checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
         else
         {
-            request.ConnectedAccountId = org.Value.StripeConnectAccountId;
-            var paymentIntent = await processor.CreatePaymentIntentAsync(request);
+            if (provider == PaymentProvider.Stripe)
+            {
+                request.ConnectedAccountId = organization.StripeConnectAccountId;
+            }
+            PaymentSessionResult paymentIntent;
+            try
+            {
+                paymentIntent = await processor.CreatePaymentIntentAsync(request);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
 
             return Ok(new
             {
@@ -108,6 +182,18 @@ public class PaymentController : ControllerBase
             });
         }
         return Ok(new { url = checkoutUrl });
+    }
+
+    private async Task<IPaymentProcessor> GetSquareProcessorForCheckoutAsync(Guid orgId, PaymentProvider provider)
+    {
+        try
+        {
+            return await _processorFactory.GetProcessorForOrgAsync(orgId, provider);
+        }
+        catch (CryptographicException)
+        {
+            throw new InvalidOperationException("Your Square connection has expired. Disconnect and reconnect Square, then try checkout again.");
+        }
     }
 
     [HttpPost("create-connected-account")]
@@ -197,7 +283,33 @@ public class PaymentController : ControllerBase
             return BadRequest(profileResult.Error);
 
         var orgUpdate = await _organizationService.UpsertOrganization(organization);
+        if (orgUpdate.IsSuccess)
+            await _onboardingService.MarkStepCompleteAsync(orgId, OnboardingStepKeys.ConnectStripe);
+
         return orgUpdate.IsSuccess ? Ok(new { linked = true }) : BadRequest(orgUpdate.Error);
+    }
+
+    [HttpDelete("square/disconnect")]
+    public async Task<IActionResult> DisconnectSquare()
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var orgResult = await _organizationService.GetOrganiztionById(orgId);
+        if (orgResult.IsFailure)
+            return NotFound(orgResult.Error);
+
+        var organization = orgResult.Value;
+        organization.IsSquareConnected = false;
+        organization.SquareMerchantId = null;
+
+        var updateResult = await _organizationService.UpsertOrganization(organization);
+        if (updateResult.IsFailure)
+            return BadRequest(updateResult.Error);
+
+        var profileDisconnectResult = await _paymentProfileService.DisconnectOrganizationProviderAsync(orgId, PaymentProvider.Square);
+        if (profileDisconnectResult.IsFailure)
+            return BadRequest(profileDisconnectResult.Error);
+
+        return Ok(new { disconnected = true });
     }
 
     [HttpPost("refund")]
@@ -210,7 +322,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support refund operations.");
 
@@ -220,7 +334,9 @@ public class PaymentController : ControllerBase
             Amount = request.Amount,
             Currency = request.Currency,
             Reason = request.Reason,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
 
         return result.Success ? Ok(result) : BadRequest(result);
@@ -236,7 +352,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support adjustment operations.");
 
@@ -248,7 +366,9 @@ public class PaymentController : ControllerBase
             Reason = request.Reason,
             ProductName = request.ProductName,
             InvoiceId = request.InvoiceId,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
 
         return result.Success ? Ok(result) : BadRequest(result);
@@ -264,7 +384,9 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
-        var processor = _processorFactory.GetProcessor(request.Provider);
+        var processor = request.Provider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
+            : _processorFactory.GetProcessor(request.Provider);
         if (processor is not IPaymentOperationsProcessor ops)
             return BadRequest("Processor does not support deposit operations.");
 
@@ -276,8 +398,20 @@ public class PaymentController : ControllerBase
             ProductName = request.ProductName,
             Amount = request.Amount,
             DepositAmount = request.Amount,
-            ConnectedAccountId = orgResult.Value.StripeConnectAccountId
+            ConnectedAccountId = request.Provider == PaymentProvider.Stripe
+                ? orgResult.Value.StripeConnectAccountId
+                : null
         });
+
+        // Record the deposit against the linked invoice
+        if (request.InvoiceId.HasValue && !string.IsNullOrEmpty(result.ProviderPaymentId))
+        {
+            await _invoiceService.RecordDepositAsync(
+                request.InvoiceId.Value,
+                request.Amount,
+                request.Provider,
+                result.ProviderPaymentId);
+        }
 
         return Ok(new
         {
@@ -306,15 +440,24 @@ public class PaymentController : ControllerBase
 
     // POST: api/payments/subscription
     [HttpPost("subscription")]
-    [Authorize(Policy = "OrganizationAdminOnly")]
-    [EnableRateLimiting("payment-sensitive")]
+    [AllowAnonymous]
     public async Task<IActionResult> CreateSubscription([FromBody] CreateSubscriptionRequest request)
     {
+        if (request.PaymentProfileId == Guid.Empty)
+            return BadRequest("Payment profile is required.");
+
+        if (string.IsNullOrWhiteSpace(request.ProviderSubscriptionId))
+            return BadRequest("Provider subscription ID is required.");
+
+        var normalizedStatus = NormalizeSubscriptionStatus(request.Status);
+        if (normalizedStatus is null)
+            return BadRequest("Invalid subscription status.");
+
         var result = await _subscriptionRecordService.CreateAsync(
             request.PaymentProfileId,
             request.ProviderSubscriptionId,
             request.ProviderPriceId,
-            request.Status ?? "active",
+            normalizedStatus,
             ""
         );
 
@@ -323,16 +466,47 @@ public class PaymentController : ControllerBase
 
     // POST: api/payments/subscription/cancel
     [HttpPost("subscription/cancel")]
-    [Authorize(Policy = "OrganizationAdminOnly")]
-    [EnableRateLimiting("payment-sensitive")]
+    [AllowAnonymous]
     public async Task<IActionResult> CancelSubscription([FromBody] CancelSubscriptionRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.ProviderSubscriptionId))
+            return BadRequest("Provider subscription ID is required.");
+
+        var subscriptionResult = await _subscriptionRecordService.GetByProviderIdAsync(request.ProviderSubscriptionId);
+        if (subscriptionResult.IsFailure)
+            return NotFound(subscriptionResult.Error);
+
+        if (string.Equals(subscriptionResult.Value.Status, "canceled", StringComparison.OrdinalIgnoreCase))
+            return Ok();
+
+        var canceledAt = request.CanceledAt == default ? DateTime.UtcNow : request.CanceledAt.ToUniversalTime();
+
         var result = await _subscriptionRecordService.CancelAsync(
             request.ProviderSubscriptionId,
-            request.CanceledAt
+            canceledAt
         );
 
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
+    }
+
+    private static string? NormalizeSubscriptionStatus(string? status)
+    {
+        var normalized = string.IsNullOrWhiteSpace(status)
+            ? "active"
+            : status.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            "active" => "active",
+            "trialing" => "trialing",
+            "past_due" => "past_due",
+            "incomplete" => "incomplete",
+            "incomplete_expired" => "incomplete_expired",
+            "unpaid" => "unpaid",
+            "paused" => "paused",
+            "canceled" => "canceled",
+            _ => null
+        };
     }
 
     // POST: api/payments/profile/default-method
@@ -348,11 +522,10 @@ public class PaymentController : ControllerBase
 
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
     }
-    
+
 
     [HttpPost("webhook")]
     [AllowAnonymous]
-    [EnableRateLimiting("webhook")]
     public async Task<IActionResult> HandleStripeWebhook()
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
@@ -389,7 +562,6 @@ public class PaymentController : ControllerBase
 
     [HttpPost("square/webhook")]
     [AllowAnonymous]
-    [EnableRateLimiting("webhook")]
     public async Task<IActionResult> HandleSquareWebhook()
     {
         var rawBody = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
@@ -474,12 +646,26 @@ public class PaymentController : ControllerBase
         }
 
         using var tokenDocument = await JsonDocument.ParseAsync(await tokenResponse.Content.ReadAsStreamAsync());
-        var merchantId = tokenDocument.RootElement.TryGetProperty("merchant_id", out var merchantElement)
+        var root = tokenDocument.RootElement;
+
+        var merchantId = root.TryGetProperty("merchant_id", out var merchantElement)
             ? merchantElement.GetString()
+            : null;
+        var accessToken = root.TryGetProperty("access_token", out var atEl)
+            ? atEl.GetString()
+            : null;
+        var refreshToken = root.TryGetProperty("refresh_token", out var rtEl)
+            ? rtEl.GetString()
+            : null;
+        var expiresAt = root.TryGetProperty("expires_at", out var expEl)
+            ? expEl.GetString()
             : null;
 
         if (string.IsNullOrWhiteSpace(merchantId))
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString("Square merchant id was not returned.")}");
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString("Square access token was not returned.")}");
 
         var orgResult = await _organizationService.GetOrganiztionById(organizationId);
         if (orgResult.IsFailure)
@@ -487,12 +673,22 @@ public class PaymentController : ControllerBase
 
         var organization = orgResult.Value;
         organization.PaymentProvider = PaymentProvider.Square;
+        organization.SquareMerchantId = merchantId;
+        organization.IsSquareConnected = true;
 
-        var profileResult = await _paymentProfileService.UpsertAsync(
+        var tokenExpiresAtUtc = !string.IsNullOrWhiteSpace(expiresAt)
+            ? DateTime.Parse(expiresAt).ToUniversalTime()
+            : DateTime.UtcNow.AddDays(30);
+
+        var profileResult = await _paymentProfileService.UpsertWithTokensAsync(
             organizationId,
             PaymentEntityType.Organization,
             PaymentProvider.Square,
-            merchantId);
+            merchantId,
+            _squareTokenEncryption.Encrypt(accessToken),
+            string.IsNullOrWhiteSpace(refreshToken) ? string.Empty : _squareTokenEncryption.Encrypt(refreshToken),
+            tokenExpiresAtUtc,
+            null);
 
         if (profileResult.IsFailure)
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString(profileResult.Error?.ToString() ?? "Unable to save Square payment profile.")}");
@@ -500,6 +696,8 @@ public class PaymentController : ControllerBase
         var updateResult = await _organizationService.UpsertOrganization(organization);
         if (updateResult.IsFailure)
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString(updateResult.Error?.ToString() ?? "Unable to update organization payment provider.")}");
+
+        await _onboardingService.MarkStepCompleteAsync(organizationId, OnboardingStepKeys.ConnectStripe);
 
         return Redirect($"{uiBase}?provider=square&success=true&merchantId={Uri.EscapeDataString(merchantId)}");
     }
@@ -524,7 +722,7 @@ public class PaymentController : ControllerBase
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
 
-        return $"{connectBaseUrl}/oauth2/authorize?client_id={Uri.EscapeDataString(_squareSettings.ApplicationId)}&response_type=code&scope=PAYMENTS_WRITE+PAYMENTS_READ+ORDERS_READ+SUBSCRIPTIONS_READ+SUBSCRIPTIONS_WRITE&state={Uri.EscapeDataString(protectedState)}&redirect_uri={Uri.EscapeDataString(_squareSettings.RedirectUrl)}";
+        return $"{connectBaseUrl}/oauth2/authorize?client_id={Uri.EscapeDataString(_squareSettings.ApplicationId)}&response_type=code&scope=PAYMENTS_WRITE+PAYMENTS_READ+ORDERS_READ+ORDERS_WRITE+SUBSCRIPTIONS_READ+SUBSCRIPTIONS_WRITE&state={Uri.EscapeDataString(orgState)}&redirect_uri={Uri.EscapeDataString(_squareSettings.RedirectUrl)}";
     }
 
     private bool TryReadSquareState(string? state, out Guid organizationId)

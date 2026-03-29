@@ -9,7 +9,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
 {
     private readonly IDbContextFactory<JobFlowDbContext> _factory;
     private readonly ILogger<JobFlowUnitOfWork> _logger;
-    private JobFlowDbContext _context;
+    private JobFlowDbContext _context = null!;
 
     public JobFlowUnitOfWork(ILogger<JobFlowUnitOfWork> logger, IDbContextFactory<JobFlowDbContext> factory)
     {
@@ -38,7 +38,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
         }
         catch (Exception e)
         {
-            _logger.LogError("An unknown error occured saving changes to the database", e);
+            _logger.LogError(e, "An unknown error occurred saving changes to the database");
 
             throw;
         }
@@ -68,7 +68,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
         }
         catch (Exception e)
         {
-            _logger.LogError("An unknown error occured saving changes to the database", e);
+            _logger.LogError(e, "An unknown error occurred saving changes to the database");
 
             throw;
         }
@@ -77,7 +77,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
     public TEntity GetAddedEntity<TEntity>(TEntity entity) where TEntity : class
     {
         if (_context.Entry(entity).State == EntityState.Added) return entity;
-        return null;
+        return null!;
     }
 
     public void Dispose()
@@ -99,7 +99,7 @@ public class JobFlowUnitOfWork : IUnitOfWork
     private void ClearDbContext()
     {
         if (_context != null) _context.Dispose();
-        _context = null;
+        _context = null!;
     }
 
     private void EnsureDbContext()

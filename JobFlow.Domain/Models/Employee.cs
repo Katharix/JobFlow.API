@@ -9,7 +9,7 @@ public class Employee : Entity
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public Guid RoleId { get; set; }
-    public bool IsActive { get; set; }
+    public new bool IsActive { get; set; }
     public DateTime? HireDate { get; set; }
     public DateTime? TerminationDate { get; set; }
     public string? JobTitle { get; set; }
@@ -17,7 +17,7 @@ public class Employee : Entity
     public string? ProfilePictureUrl { get; set; }
     public string FullName => $"{FirstName} {LastName}";
     public bool IsConnectedUser => UserId.HasValue;
-    public EmployeeRole Role { get; set; }
-    public Organization Organization { get; set; }
+    public EmployeeRole Role { get; set; } = null!;
+    public Organization Organization { get; set; } = null!;
     public User? User { get; set; }
 }

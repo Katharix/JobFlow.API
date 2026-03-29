@@ -2,6 +2,7 @@
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JobFlow.API.Controllers;
 
@@ -20,6 +21,7 @@ public class OrganizationTypeController : ControllerBase
 
     [HttpGet]
     [Route("all")]
+    [AllowAnonymous]
     public async Task<IResult> GetAllOrganizationTypes()
     {
         var result = await organizationTypeService.GetTypes();
@@ -28,6 +30,7 @@ public class OrganizationTypeController : ControllerBase
 
     [HttpGet]
     [Route("id")]
+    [AllowAnonymous]
     public async Task<IResult> GetTypeById(Guid organizationTypeId)
     {
         var result = await organizationTypeService.GetTypeById(organizationTypeId);

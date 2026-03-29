@@ -57,7 +57,7 @@ public class OrganizationServiceService : IOrganizationServiceService
             .ToListAsync();
         if (orgServices.Count == 0)
             return Result.Failure<IEnumerable<Domain.Models.OrganizationService>>(
-                OrganizationServiceErrors.NoServiceFoundForOrganizationName(organization.OrganizationName));
+                OrganizationServiceErrors.NoServiceFoundForOrganizationName(organization.OrganizationName ?? string.Empty));
 
         return Result.Success<IEnumerable<Domain.Models.OrganizationService>>(orgServices);
     }
@@ -72,7 +72,7 @@ public class OrganizationServiceService : IOrganizationServiceService
             .FirstOrDefaultAsync(org => org.OrganizationId == organizationId);
         if (orgService == null)
             return Result.Failure<Domain.Models.OrganizationService>(
-                OrganizationServiceErrors.NoServiceFoundForOrganizationName(organization.OrganizationName));
+                OrganizationServiceErrors.NoServiceFoundForOrganizationName(organization.OrganizationName ?? string.Empty));
 
         return Result.Success<Domain.Models.OrganizationService>(orgService);
     }

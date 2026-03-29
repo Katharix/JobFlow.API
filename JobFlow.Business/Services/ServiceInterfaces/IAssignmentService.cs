@@ -10,6 +10,10 @@ public interface IAssignmentService
 
     Task<Result<AssignmentDto>> UpdateAssignmentStatusAsync(Guid organizationId, Guid assignmentId, UpdateAssignmentStatusRequestDto dto);
 
+    Task<Result<AssignmentDto>> UpdateAssignmentAssigneesAsync(Guid organizationId, Guid assignmentId, UpdateAssignmentAssigneesRequestDto dto);
+
+    Task<Result<AssignmentDto>> UpdateAssignmentNotesAsync(Guid organizationId, Guid assignmentId, UpdateAssignmentNotesRequestDto dto);
+
     Task<Result<List<AssignmentDto>>> GetAssignmentsAsync(Guid organizationId, DateTime start, DateTime end);
 
     Task<Result<AssignmentDto>> GetAssignmentByIdAsync(Guid organizationId, Guid assignmentId);

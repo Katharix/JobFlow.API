@@ -8,7 +8,7 @@ namespace JobFlow.Domain.Models
     public class AssignmentHistory : Entity
     {
         public Guid AssignmentId { get; set; }
-        public virtual Assignment Assignment { get; set; }
+        public virtual Assignment Assignment { get; set; } = null!;
 
         public AssignmentEventType EventType { get; set; }
 
