@@ -212,10 +212,21 @@ if (env.IsDevelopment())
 }
 else
 {
-    appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
+    // Prefer standard connection-string binding so Key Vault secret
+    // ConnectionStrings--JobFlowDB works out of the box.
+    appConnectionString = builder.Configuration.GetConnectionString("JobFlowDB");
+
+    // Support direct Key Vault secret name: JobFlowDB.
+    if (string.IsNullOrWhiteSpace(appConnectionString))
+        appConnectionString = builder.Configuration["JobFlowDB"];
+
+    // Backward compatibility for existing Key Vault secret naming.
+    if (string.IsNullOrWhiteSpace(appConnectionString))
+        appConnectionString = builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME];
+
     if (string.IsNullOrWhiteSpace(appConnectionString))
         throw new InvalidOperationException(
-            $"Missing Key Vault connection string: {ConfigConstants.APP_CONNECTIONSTRING_NAME}");
+            $"Missing DB connection string. Configure Key Vault secret 'JobFlowDB', 'ConnectionStrings--JobFlowDB', or '{ConfigConstants.APP_CONNECTIONSTRING_NAME}'.");
 }
 
 builder.Services.AddDbContextFactory<JobFlowDbContext>(options => options.UseSqlServer(appConnectionString, b =>
