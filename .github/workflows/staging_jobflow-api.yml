@@ -55,7 +55,6 @@ jobs:
           slot-name: 'jobflow-api-staging'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
           package: .
-          startup-command: './JobFlow.API'
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -80,4 +79,3 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
           package: .
-          startup-command: './JobFlow.API'
