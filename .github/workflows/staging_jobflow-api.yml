@@ -32,9 +32,35 @@ jobs:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
 
-  deploy:
+  migrate-staging-db:
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: 'Staging'
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Apply EF migrations to staging database
+        env:
+          ConnectionStrings__JobFlowDB: ${{ secrets.STAGING_JOBFLOWDB_CONNECTION_STRING }}
+        run: dotnet ef database update --project JobFlow.Infrastructure.Persistence/JobFlow.Infrastructure.Persistence.csproj --startup-project JobFlow.Infrastructure.Persistence/JobFlow.Infrastructure.Persistence.csproj --context JobFlowDbContext
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - migrate-staging-db
     environment:
       name: 'Staging'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
