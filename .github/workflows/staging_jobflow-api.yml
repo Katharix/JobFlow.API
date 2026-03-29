@@ -48,6 +48,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore projects for EF
+        run: |
+          dotnet restore JobFlow.Infrastructure.Persistence/JobFlow.Infrastructure.Persistence.csproj
+          dotnet restore JobFlow.Domain/JobFlow.Domain.csproj
+
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef --version 10.*
 
