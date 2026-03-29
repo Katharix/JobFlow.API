@@ -319,6 +319,7 @@ builder.Services.AddCors(o =>
                      || host == "jobflow-ui-web-staging.firebaseapp.com"
                      || host == "jobflow-api-staging.azurewebsites.net" 
                      || host == "staging.gojobflow.com"
+                     || host == "api.staging.gojobflow.com"
                    || host.EndsWith(".gojobflow.app")
                    || host.EndsWith(".gojobflow.com");
         })
