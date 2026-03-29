@@ -11,6 +11,7 @@ using JobFlow.Infrastructure.PaymentGateways;
 using JobFlow.Infrastructure.PaymentGateways.Square;
 using JobFlow.Infrastructure.PaymentGateways.Stripe;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
@@ -48,6 +49,9 @@ public class PaymentController : ControllerBase
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IFrontendSettings _frontEndSettings;
     private readonly IOnboardingService _onboardingService;
+    private readonly IDataProtector _squareStateProtector;
+    private readonly IDistributedCache _distributedCache;
+    private readonly ILogger<PaymentController> _logger;
 
     public PaymentController(
         IPaymentProcessorFactory processorFactory,
@@ -62,7 +66,10 @@ public class PaymentController : ControllerBase
         ISquareTokenEncryptionService squareTokenEncryption,
         IHostEnvironment hostEnvironment,
         IFrontendSettings frontEndSettings,
-        IOnboardingService onboardingService)
+        IOnboardingService onboardingService,
+        IDataProtectionProvider dataProtectionProvider,
+        IDistributedCache distributedCache,
+        ILogger<PaymentController> logger)
     {
         _processorFactory = processorFactory;
         _organizationService = organizationService;
@@ -77,6 +84,9 @@ public class PaymentController : ControllerBase
         _hostEnvironment = hostEnvironment;
         _frontEndSettings = frontEndSettings;
         _onboardingService = onboardingService;
+        _squareStateProtector = dataProtectionProvider.CreateProtector(SquareStatePurpose);
+        _distributedCache = distributedCache;
+        _logger = logger;
     }
 
     [HttpPost("checkout")]
@@ -117,7 +127,7 @@ public class PaymentController : ControllerBase
             if (invoice.OrganizationId != orgId)
                 return Unauthorized();
 
-            if (User.IsInRole(UserRoles.OrganizationClient))
+            if (User?.IsInRole(UserRoles.OrganizationClient) == true)
             {
                 var clientId = HttpContext.GetUserId();
                 if (invoice.OrganizationClientId != clientId)
@@ -722,7 +732,7 @@ public class PaymentController : ControllerBase
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
 
-        return $"{connectBaseUrl}/oauth2/authorize?client_id={Uri.EscapeDataString(_squareSettings.ApplicationId)}&response_type=code&scope=PAYMENTS_WRITE+PAYMENTS_READ+ORDERS_READ+ORDERS_WRITE+SUBSCRIPTIONS_READ+SUBSCRIPTIONS_WRITE&state={Uri.EscapeDataString(orgState)}&redirect_uri={Uri.EscapeDataString(_squareSettings.RedirectUrl)}";
+        return $"{connectBaseUrl}/oauth2/authorize?client_id={Uri.EscapeDataString(_squareSettings.ApplicationId)}&response_type=code&scope=PAYMENTS_WRITE+PAYMENTS_READ+ORDERS_READ+ORDERS_WRITE+SUBSCRIPTIONS_READ+SUBSCRIPTIONS_WRITE&state={Uri.EscapeDataString(protectedState)}&redirect_uri={Uri.EscapeDataString(_squareSettings.RedirectUrl)}";
     }
 
     private bool TryReadSquareState(string? state, out Guid organizationId)

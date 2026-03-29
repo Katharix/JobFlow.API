@@ -194,6 +194,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 // ============================================================
 
 builder.Services.AddSignalR();
+builder.Services.AddDataProtection();
+builder.Services.AddDistributedMemoryCache();
 
 // ============================================================
 // DATABASE
