@@ -28,6 +28,10 @@ jobs:
       - name: Publish
         run: dotnet publish JobFlow.API/JobFlow.API.csproj \
           --configuration Release \
+          --runtime linux-x64 \
+          --self-contained true \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
           --no-build \
           --output ./publish
 
@@ -62,3 +66,4 @@ jobs:
           slot-name: Production
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD }}
           package: .
+          startup-command: ./JobFlow.API

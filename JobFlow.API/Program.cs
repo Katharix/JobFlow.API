@@ -136,7 +136,10 @@ builder.Services
     })
     .AddJwtBearer("ClientPortalJwt", options =>
     {
-        var signingKey = builder.Configuration["Auth-ClientPortal-SigningKey"];
+        var signingKey = builder.Configuration["Auth:ClientPortal:SigningKey"];
+        if (string.IsNullOrWhiteSpace(signingKey))
+            signingKey = builder.Configuration["Auth-ClientPortal-SigningKey"];
+
         if (string.IsNullOrWhiteSpace(signingKey))
             throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
 
@@ -461,6 +464,25 @@ Settings.License = LicenseType.Community;
 // ============================================================
 
 var app = builder.Build();
+
+var hasConnectionStringsJobFlowDb = !string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("JobFlowDB"));
+var hasDirectJobFlowDb = !string.IsNullOrWhiteSpace(builder.Configuration["JobFlowDB"]);
+var hasLegacySqlConnectionString = !string.IsNullOrWhiteSpace(builder.Configuration[ConfigConstants.APP_CONNECTIONSTRING_NAME]);
+var hasFirebaseAdminSdk = !string.IsNullOrWhiteSpace(builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK]);
+var hasClientPortalSigningKeyColon = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:ClientPortal:SigningKey"]);
+var hasClientPortalSigningKeyHyphen = !string.IsNullOrWhiteSpace(builder.Configuration["Auth-ClientPortal-SigningKey"]);
+
+app.Logger.LogInformation(
+    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
+    env.EnvironmentName,
+    !string.IsNullOrWhiteSpace(keyVaultUri),
+    hasConnectionStringsJobFlowDb,
+    hasDirectJobFlowDb,
+    hasLegacySqlConnectionString,
+    hasFirebaseAdminSdk,
+    hasClientPortalSigningKeyColon,
+    hasClientPortalSigningKeyHyphen,
+    !string.IsNullOrWhiteSpace(frontendBaseUrl));
 
 using (var scope = app.Services.CreateScope())
 {
