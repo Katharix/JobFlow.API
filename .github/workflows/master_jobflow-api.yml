@@ -148,11 +148,12 @@ jobs:
             const value = process.env.DEPLOYED_VERSION;
 
             try {
-              await github.rest.actions.getRepoVariable({ owner, repo, name });
               await github.rest.actions.updateRepoVariable({ owner, repo, name, value });
             } catch (error) {
               if (error.status === 404) {
                 await github.rest.actions.createRepoVariable({ owner, repo, name, value });
+              } else if (error.status === 403) {
+                core.warning('Skipping API_PRODUCTION_VERSION update: token lacks actions variable permissions (403).');
               } else {
                 throw error;
               }
