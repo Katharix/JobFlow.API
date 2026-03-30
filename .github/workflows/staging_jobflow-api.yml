@@ -28,13 +28,13 @@ jobs:
         run: dotnet build JobFlow.API/JobFlow.API.csproj --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish JobFlow.API/JobFlow.API.csproj --configuration Release --runtime linux-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true --output ${{env.DOTNET_ROOT}}/myapp
+        run: dotnet publish JobFlow.API/JobFlow.API.csproj --configuration Release --runtime linux-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true --output ./myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ./myapp
 
   migrate-staging-db:
     runs-on: ubuntu-latest
@@ -118,7 +118,7 @@ jobs:
           minimum-approvals: 1
           issue-title: "Approve API production deploy"
           issue-body: "Review staging deployment and approve this production deployment by commenting 'approve'."
-          exclude-workflow-initiator-as-approver: true
+          exclude-workflow-initiator-as-approver: false
 
   create-release-tag:
     name: Create Release Tag
@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          tag="release-$(date -u +'%Y.%m.%d')-${GITHUB_RUN_NUMBER}"
+          tag="release-$(date -u +'%Y.%m.%d')-${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$tag" -m "API release $tag"
