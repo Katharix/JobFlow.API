@@ -1,16 +1,39 @@
 name: Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 
 on:
+  push:
+    tags:
+      - release-*
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Optional release tag to deploy
+        required: false
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+
+      - name: Validate release tag ref
+        env:
+          RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_REF" =~ ^release- ]]; then
+            echo "Production deployments require a release-* tag."
+            exit 1
+          fi
 
       # ✅ Install .NET 10
       - name: Setup .NET 10 SDK
@@ -50,6 +73,7 @@ jobs:
 
     permissions:
       contents: read
+      actions: read
 
     steps:
       - name: Download artifact
