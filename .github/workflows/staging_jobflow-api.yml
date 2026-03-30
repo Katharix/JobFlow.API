@@ -118,7 +118,7 @@ jobs:
           minimum-approvals: 1
           issue-title: "Approve API production deploy"
           issue-body: "Review staging deployment and approve this production deployment by commenting 'approve'."
-          exclude-workflow-initiator-as-approver: true
+          exclude-workflow-initiator-as-approver: false
 
   create-release-tag:
     name: Create Release Tag
