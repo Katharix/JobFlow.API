@@ -88,13 +88,18 @@ builder.Services.AddSingleton<IPaymentSettings>(sp => sp.GetRequiredService<IOpt
 
 var firebaseAdminSdkJson = builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK];
 string firebaseProjectId;
+string firebaseClientEmail;
 GoogleCredential firebaseCredential;
 
 if (!string.IsNullOrWhiteSpace(firebaseAdminSdkJson))
 {
-    using var doc = JsonDocument.Parse(firebaseAdminSdkJson);
+    var normalizedFirebaseAdminSdkJson = NormalizeFirebaseAdminSdkJson(firebaseAdminSdkJson);
+    using var doc = ParseFirebaseAdminSdkJson(normalizedFirebaseAdminSdkJson);
     firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
-    var credential = CredentialFactory.FromJson<ServiceAccountCredential>(firebaseAdminSdkJson);
+    firebaseClientEmail = doc.RootElement.TryGetProperty("client_email", out var clientEmailElement)
+        ? clientEmailElement.GetString() ?? ""
+        : "";
+    var credential = CredentialFactory.FromJson<ServiceAccountCredential>(normalizedFirebaseAdminSdkJson);
     firebaseCredential = credential.ToGoogleCredential();
 }
 else
@@ -109,12 +114,58 @@ else
 
     using var doc = JsonDocument.Parse(firebaseJson);
     firebaseProjectId = doc.RootElement.GetProperty("project_id").GetString() ?? "";
+    firebaseClientEmail = doc.RootElement.TryGetProperty("client_email", out var clientEmailElement)
+        ? clientEmailElement.GetString() ?? ""
+        : "";
     var credential = CredentialFactory.FromFile<ServiceAccountCredential>(firebaseFilePath);
     firebaseCredential = credential.ToGoogleCredential();
 }
 
 if (string.IsNullOrWhiteSpace(firebaseProjectId))
     throw new InvalidOperationException("Firebase project_id is missing in configured Firebase admin credentials.");
+
+static string NormalizeFirebaseAdminSdkJson(string rawJson)
+{
+    var json = rawJson.Trim();
+
+    // App settings and vault entries are sometimes stored as a JSON string literal.
+    // Example: "{\"type\":\"service_account\",...}"
+    if (json.Length >= 2 && json[0] == '"' && json[^1] == '"')
+    {
+        try
+        {
+            var unescaped = JsonSerializer.Deserialize<string>(json);
+            if (!string.IsNullOrWhiteSpace(unescaped))
+                json = unescaped.Trim();
+        }
+        catch (JsonException)
+        {
+            // Keep original value; parser will provide the final actionable error.
+        }
+    }
+
+    // Some deployments provide object JSON with escaped quotes but no outer quotes.
+    // Example: {\"type\":\"service_account\",...}
+    if (json.StartsWith("{\\\"") || json.Contains("\\\"project_id\\\""))
+        json = json.Replace("\\\"", "\"");
+
+    return json;
+}
+
+static JsonDocument ParseFirebaseAdminSdkJson(string json)
+{
+    try
+    {
+        return JsonDocument.Parse(json);
+    }
+    catch (JsonException ex)
+    {
+        var preview = json.Length > 80 ? json[..80] + "..." : json;
+        throw new InvalidOperationException(
+            $"Invalid Firebase admin SDK JSON in configuration key '{ConfigConstants.FIREBASE_ADMIN_SDK}'. Preview='{preview}'",
+            ex);
+    }
+}
 
 // Create the Firebase Admin default app instance so FirebaseAuth.DefaultInstance is available.
 if (FirebaseApp.DefaultInstance is null)
@@ -480,13 +531,15 @@ var hasClientPortalSigningKeyHyphen = !string.IsNullOrWhiteSpace(builder.Configu
 var hasStripeWebhookKey = !string.IsNullOrWhiteSpace(builder.Configuration["StripeSettings-WebhookKey"]);
 
 app.Logger.LogInformation(
-    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, StripeWebhookKeyConfigured={StripeWebhookKeyConfigured}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
+    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, FirebaseProjectId={FirebaseProjectId}, FirebaseClientEmail={FirebaseClientEmail}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, StripeWebhookKeyConfigured={StripeWebhookKeyConfigured}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
     env.EnvironmentName,
     !string.IsNullOrWhiteSpace(keyVaultUri),
     hasConnectionStringsJobFlowDb,
     hasDirectJobFlowDb,
     hasLegacySqlConnectionString,
     hasFirebaseAdminSdk,
+    firebaseProjectId,
+    firebaseClientEmail,
     hasClientPortalSigningKeyColon,
     hasClientPortalSigningKeyHyphen,
     hasStripeWebhookKey,
