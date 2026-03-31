@@ -37,13 +37,16 @@ public class OrganizationClientPortalController : ControllerBase
     [AllowAnonymous]
     public async Task<IResult> Redeem([FromBody] RedeemMagicLinkRequest request)
     {
+        if (!TryGetClientPortalSigningKey(out var signingKey, out var configurationError))
+            return configurationError!;
+
         var result = await _portal.RedeemMagicLinkAsync(request.Token);
 
         if (!result.IsSuccess)
             return result.ToProblemDetails();
 
         var client = result.Value;
-        var (accessToken, expiresAt) = IssueClientPortalJwt(client.OrganizationId, client.Id);
+        var (accessToken, expiresAt) = IssueClientPortalJwt(client.OrganizationId, client.Id, signingKey);
 
         return Results.Ok(new
         {
@@ -60,12 +63,27 @@ public class OrganizationClientPortalController : ControllerBase
         });
     }
 
-    private (string token, DateTimeOffset expiresAt) IssueClientPortalJwt(Guid organizationId, Guid organizationClientId)
+    private bool TryGetClientPortalSigningKey(out string signingKey, out IResult? errorResult)
     {
-        var signingKey = _configuration["Auth:ClientPortal:SigningKey"];
+        signingKey = _configuration["Auth:ClientPortal:SigningKey"] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(signingKey))
-            throw new InvalidOperationException("Missing configuration: Auth:ClientPortal:SigningKey");
+            signingKey = _configuration["Auth-ClientPortal-SigningKey"] ?? string.Empty;
 
+        if (string.IsNullOrWhiteSpace(signingKey))
+        {
+            errorResult = Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Client portal authentication is temporarily unavailable.",
+                detail: "Client portal auth is not configured. Please contact support.");
+            return false;
+        }
+
+        errorResult = null;
+        return true;
+    }
+
+    private (string token, DateTimeOffset expiresAt) IssueClientPortalJwt(Guid organizationId, Guid organizationClientId, string signingKey)
+    {
         var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
 
         var claims = new List<Claim>
