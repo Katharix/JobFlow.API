@@ -477,9 +477,10 @@ var hasLegacySqlConnectionString = !string.IsNullOrWhiteSpace(builder.Configurat
 var hasFirebaseAdminSdk = !string.IsNullOrWhiteSpace(builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK]);
 var hasClientPortalSigningKeyColon = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:ClientPortal:SigningKey"]);
 var hasClientPortalSigningKeyHyphen = !string.IsNullOrWhiteSpace(builder.Configuration["Auth-ClientPortal-SigningKey"]);
+var hasStripeWebhookKey = !string.IsNullOrWhiteSpace(builder.Configuration["StripeSettings-WebhookKey"]);
 
 app.Logger.LogInformation(
-    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
+    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, StripeWebhookKeyConfigured={StripeWebhookKeyConfigured}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
     env.EnvironmentName,
     !string.IsNullOrWhiteSpace(keyVaultUri),
     hasConnectionStringsJobFlowDb,
@@ -488,6 +489,7 @@ app.Logger.LogInformation(
     hasFirebaseAdminSdk,
     hasClientPortalSigningKeyColon,
     hasClientPortalSigningKeyHyphen,
+    hasStripeWebhookKey,
     !string.IsNullOrWhiteSpace(frontendBaseUrl));
 
 using (var scope = app.Services.CreateScope())

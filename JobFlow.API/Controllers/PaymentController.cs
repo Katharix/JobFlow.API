@@ -538,6 +538,12 @@ public class PaymentController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> HandleStripeWebhook()
     {
+        if (string.IsNullOrWhiteSpace(_stripeSettings.WebhookKey))
+        {
+            _logger.LogError("Stripe webhook key is not configured. Path={Path}", HttpContext.Request.Path);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
         Event stripeEvent;
 
@@ -559,9 +565,15 @@ public class PaymentController : ControllerBase
                 return Ok();
             }
         }
-        catch (StripeException)
+        catch (StripeException ex)
         {
+            _logger.LogWarning(ex, "Stripe webhook signature validation failed. Path={Path}", HttpContext.Request.Path);
             return BadRequest();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected Stripe webhook error. Path={Path}", HttpContext.Request.Path);
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         await _stripeWebhookService.HandleEventAsync(stripeEvent);
