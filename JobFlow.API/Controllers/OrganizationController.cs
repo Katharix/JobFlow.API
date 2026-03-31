@@ -19,18 +19,21 @@ public class OrganizationController : ControllerBase
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly IUserService _userService;
+    private readonly ILogger<OrganizationController> _logger;
 
     public OrganizationController(
         IOrganizationService organizationService,
         IUserService userService,
         IPaymentProfileService paymentProfileService,
-        IOrganizationBrandingService organizationBrandingService
+        IOrganizationBrandingService organizationBrandingService,
+        ILogger<OrganizationController> logger
     )
     {
         _organizationService = organizationService;
         _userService = userService;
         _paymentProfileService = paymentProfileService;
         _organizationBrandingService = organizationBrandingService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -84,11 +87,43 @@ public class OrganizationController : ControllerBase
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
         }
+        catch (FirebaseAuthException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(ex.Message)
+                && ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogCritical(ex,
+                    "Organization registration failed due to invalid Firebase service-account credentials. OrgId={OrganizationId}, FirebaseUid={FirebaseUid}",
+                    model.Id,
+                    model.FireBaseUid);
+
+                return Results.Problem(
+                    title: "Registration service temporarily unavailable.",
+                    detail: "Identity provider configuration is currently unavailable. Please try again shortly.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            _logger.LogError(ex,
+                "Organization registration failed while assigning Firebase custom claims. OrgId={OrganizationId}, FirebaseUid={FirebaseUid}",
+                model.Id,
+                model.FireBaseUid);
+
+            return Results.Problem(
+                title: "Registration service temporarily unavailable.",
+                detail: "Unable to finalize account provisioning right now. Please try again in a moment.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
         catch (Exception ex)
         {
-            // Log error if needed
-            Console.WriteLine($"❌ Registration failed: {ex.Message}");
-            return Results.Problem($"An unexpected error occurred: {ex.Message}");
+            _logger.LogError(ex,
+                "Organization registration failed unexpectedly. OrgId={OrganizationId}, FirebaseUid={FirebaseUid}",
+                model.Id,
+                model.FireBaseUid);
+
+            return Results.Problem(
+                title: "An error occurred while processing your request.",
+                detail: "An unexpected error occurred.",
+                statusCode: StatusCodes.Status500InternalServerError);
         }
     }
 
