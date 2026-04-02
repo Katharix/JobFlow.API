@@ -96,7 +96,18 @@ public class PaymentController : ControllerBase
         Guid orgId;
         if (User?.Identity?.IsAuthenticated == true)
         {
-            orgId = HttpContext.GetOrganizationId();
+            try
+            {
+                orgId = HttpContext.GetOrganizationId();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                var requestedOrgId = request.OrgId ?? request.OrganizationId;
+                if (!requestedOrgId.HasValue || requestedOrgId.Value == Guid.Empty)
+                    return Unauthorized("Organization context is missing.");
+
+                orgId = requestedOrgId.Value;
+            }
         }
         else
         {
@@ -129,7 +140,16 @@ public class PaymentController : ControllerBase
 
             if (User?.IsInRole(UserRoles.OrganizationClient) == true)
             {
-                var clientId = HttpContext.GetUserId();
+                Guid clientId;
+                try
+                {
+                    clientId = HttpContext.GetUserId();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return Unauthorized();
+                }
+
                 if (invoice.OrganizationClientId != clientId)
                     return Unauthorized();
             }
@@ -167,7 +187,16 @@ public class PaymentController : ControllerBase
 
         string checkoutUrl;
         if (request.Mode == "subscription")
-            checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
+        {
+            try
+            {
+                checkoutUrl = await processor.CreateSubscriptionCheckoutSessionAsync(request);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         else
         {
             if (provider == PaymentProvider.Stripe)
