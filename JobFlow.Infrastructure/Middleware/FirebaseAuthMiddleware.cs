@@ -91,13 +91,9 @@ public class FirebaseAuthMiddleware
             new Claim(ClaimTypes.NameIdentifier, decodedToken.Uid)
         };
 
-            var roleValue = string.Empty;
+            var tokenRole = string.Empty;
             if (decodedToken.Claims.TryGetValue("role", out var role))
-            {
-                roleValue = Convert.ToString(role) ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(roleValue))
-                    claims.Add(new Claim(ClaimTypes.Role, roleValue));
-            }
+                tokenRole = Convert.ToString(role) ?? string.Empty;
 
             if (decodedToken.Claims.TryGetValue("email", out var email))
             {
@@ -106,21 +102,13 @@ public class FirebaseAuthMiddleware
                     claims.Add(new Claim(ClaimTypes.Email, emailValue));
             }
 
-            var isSupportHubUser = string.Equals(roleValue, UserRoles.KatharixAdmin, StringComparison.Ordinal)
-                || string.Equals(roleValue, UserRoles.KatharixEmployee, StringComparison.Ordinal);
-
             if (path is not null && (path.StartsWith("/api/supporthub/invites/redeem") || path.StartsWith("/api/supporthub/register")))
             {
+                if (!string.IsNullOrWhiteSpace(tokenRole))
+                    claims.Add(new Claim(ClaimTypes.Role, tokenRole));
+
                 var redeemIdentity = new ClaimsIdentity(claims, "Firebase");
                 context.User.AddIdentity(redeemIdentity);
-                await _next(context);
-                return;
-            }
-
-            if (isSupportHubUser)
-            {
-                var supportIdentity = new ClaimsIdentity(claims, "Firebase");
-                context.User.AddIdentity(supportIdentity);
                 await _next(context);
                 return;
             }
@@ -134,6 +122,35 @@ public class FirebaseAuthMiddleware
 
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsync("User is not linked to an organization.");
+                return;
+            }
+
+            var dbRoles = userResult.Value.UserRoles
+                .Select(ur => ur.Role?.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (dbRoles.Count > 0)
+            {
+                foreach (var dbRole in dbRoles)
+                    claims.Add(new Claim(ClaimTypes.Role, dbRole));
+            }
+            else if (!string.IsNullOrWhiteSpace(tokenRole))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, tokenRole));
+            }
+
+            var isSupportHubUser = claims.Any(c => c.Type == ClaimTypes.Role &&
+                (string.Equals(c.Value, UserRoles.KatharixAdmin, StringComparison.Ordinal)
+                 || string.Equals(c.Value, UserRoles.KatharixEmployee, StringComparison.Ordinal)));
+
+            if (isSupportHubUser)
+            {
+                var supportIdentity = new ClaimsIdentity(claims, "Firebase");
+                context.User.AddIdentity(supportIdentity);
+                await _next(context);
                 return;
             }
 

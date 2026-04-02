@@ -1,6 +1,5 @@
 ﻿using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,41 +11,36 @@ internal class RoleConfiguration : IEntityTypeConfiguration<SystemRole>
     {
         builder.ToTable("Roles");
         builder.Property(u => u.Id).HasDefaultValueSql("NEWID()");
+        builder.HasData(GetSeedRoles());
     }
 
-    private IdentityRole<Guid>[] PopulateRoleData()
+    private static SystemRole[] GetSeedRoles()
     {
         return
         [
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("e88fbbe6-8bdf-4aca-b941-912785a94f0b"), Name = UserRoles.OrganizationAdmin,
-                NormalizedName = UserRoles.OrganizationAdmin.ToUpper()
+                Id = Guid.Parse("e88fbbe6-8bdf-4aca-b941-912785a94f0b"), Name = UserRoles.OrganizationAdmin
             },
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("079e4277-0eb2-4222-82e4-5a751ede48f6"), Name = UserRoles.OrganizationEmployee,
-                NormalizedName = UserRoles.OrganizationEmployee.ToUpper()
+                Id = Guid.Parse("079e4277-0eb2-4222-82e4-5a751ede48f6"), Name = UserRoles.OrganizationEmployee
             },
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("3da14c58-562a-437a-a2a6-47706b40eb70"), Name = UserRoles.OrganizationClient,
-                NormalizedName = UserRoles.OrganizationClient.ToUpper()
+                Id = Guid.Parse("3da14c58-562a-437a-a2a6-47706b40eb70"), Name = UserRoles.OrganizationClient
             },
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("5bc0d325-a915-4e17-8184-428ee533cf89"), Name = UserRoles.KatharixAdmin,
-                NormalizedName = UserRoles.KatharixAdmin.ToUpper()
+                Id = Guid.Parse("5bc0d325-a915-4e17-8184-428ee533cf89"), Name = UserRoles.KatharixAdmin
             },
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("92193eb2-dba0-433c-814e-9fca95bde016"), Name = UserRoles.KatharixEmployee,
-                NormalizedName = UserRoles.KatharixEmployee.ToUpper()
+                Id = Guid.Parse("92193eb2-dba0-433c-814e-9fca95bde016"), Name = UserRoles.KatharixEmployee
             },
-            new IdentityRole<Guid>
+            new SystemRole
             {
-                Id = Guid.Parse("dfe36ebc-bfb5-4583-b68e-59be8ba60fa9"), Name = UserRoles.SuperAdmin,
-                NormalizedName = UserRoles.SuperAdmin.ToUpper()
+                Id = Guid.Parse("dfe36ebc-bfb5-4583-b68e-59be8ba60fa9"), Name = UserRoles.SuperAdmin
             }
         ];
     }
