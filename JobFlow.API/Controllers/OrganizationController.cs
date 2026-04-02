@@ -1,4 +1,5 @@
 ﻿using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2.Responses;
 using JobFlow.API.Extensions;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
@@ -78,7 +79,9 @@ public class OrganizationController : ControllerBase
             var userResult = await _userService.UpsertUser(user);
             if (userResult.IsFailure) return userResult.ToProblemDetails();
 
-            await _userService.AssignRole(userResult.Value.Id, model.UserRole);
+            var roleAssignmentResult = await _userService.AssignRole(userResult.Value.Id, model.UserRole);
+            if (roleAssignmentResult.IsFailure) return roleAssignmentResult.ToProblemDetails();
+
             await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(model.FireBaseUid,
                 new Dictionary<string, object>
                 {
@@ -86,6 +89,32 @@ public class OrganizationController : ControllerBase
                 });
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
+        }
+        catch (TokenResponseException ex)
+        {
+            if (!string.IsNullOrWhiteSpace(ex.Error?.Error)
+                && ex.Error.Error.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogCritical(ex,
+                    "Organization registration failed due to invalid Firebase service-account JWT signature. OrgId={OrganizationId}, FirebaseUid={FirebaseUid}",
+                    model.Id,
+                    model.FireBaseUid);
+
+                return Results.Problem(
+                    title: "Registration service temporarily unavailable.",
+                    detail: "Identity provider configuration is currently unavailable. Please try again shortly.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            _logger.LogError(ex,
+                "Organization registration failed while requesting Firebase access token. OrgId={OrganizationId}, FirebaseUid={FirebaseUid}",
+                model.Id,
+                model.FireBaseUid);
+
+            return Results.Problem(
+                title: "Registration service temporarily unavailable.",
+                detail: "Unable to reach identity provider services right now. Please try again in a moment.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
         }
         catch (FirebaseAuthException ex)
         {
