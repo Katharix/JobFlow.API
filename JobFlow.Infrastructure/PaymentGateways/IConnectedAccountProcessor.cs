@@ -3,5 +3,5 @@
 public interface IConnectedAccountProcessor
 {
     Task<string> CreateConnectedAccountAsync();
-    Task<string> GenerateAccountLinkAsync(string accountId);
+    Task<string> GenerateAccountLinkAsync(string accountId, string? returnUrl = null, string? refreshUrl = null);
 }

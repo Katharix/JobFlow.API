@@ -528,10 +528,12 @@ var hasLegacySqlConnectionString = !string.IsNullOrWhiteSpace(builder.Configurat
 var hasFirebaseAdminSdk = !string.IsNullOrWhiteSpace(builder.Configuration[ConfigConstants.FIREBASE_ADMIN_SDK]);
 var hasClientPortalSigningKeyColon = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:ClientPortal:SigningKey"]);
 var hasClientPortalSigningKeyHyphen = !string.IsNullOrWhiteSpace(builder.Configuration["Auth-ClientPortal-SigningKey"]);
+var hasStripeApiKey = !string.IsNullOrWhiteSpace(builder.Configuration["StripeSettings-ApiKey"]);
+var hasStripeReturnUrl = !string.IsNullOrWhiteSpace(builder.Configuration["StripeSettings-ReturnUrl"]);
 var hasStripeWebhookKey = !string.IsNullOrWhiteSpace(builder.Configuration["StripeSettings-WebhookKey"]);
 
 app.Logger.LogInformation(
-    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, FirebaseProjectId={FirebaseProjectId}, FirebaseClientEmail={FirebaseClientEmail}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, StripeWebhookKeyConfigured={StripeWebhookKeyConfigured}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
+    "Startup config check (sanitized): Env={Environment}, KeyVaultUriConfigured={KeyVaultUriConfigured}, DbConnectionStringsJobFlowDb={DbConnectionStringsJobFlowDb}, DbJobFlowDb={DbJobFlowDb}, DbSqlConnectionString={DbSqlConnectionString}, FirebaseAdminSdk={FirebaseAdminSdk}, FirebaseProjectId={FirebaseProjectId}, FirebaseClientEmail={FirebaseClientEmail}, ClientPortalSigningKeyColon={ClientPortalSigningKeyColon}, ClientPortalSigningKeyHyphen={ClientPortalSigningKeyHyphen}, StripeApiKeyConfigured={StripeApiKeyConfigured}, StripeReturnUrlConfigured={StripeReturnUrlConfigured}, StripeWebhookKeyConfigured={StripeWebhookKeyConfigured}, FrontendBaseUrlConfigured={FrontendBaseUrlConfigured}",
     env.EnvironmentName,
     !string.IsNullOrWhiteSpace(keyVaultUri),
     hasConnectionStringsJobFlowDb,
@@ -542,6 +544,8 @@ app.Logger.LogInformation(
     firebaseClientEmail,
     hasClientPortalSigningKeyColon,
     hasClientPortalSigningKeyHyphen,
+    hasStripeApiKey,
+    hasStripeReturnUrl,
     hasStripeWebhookKey,
     !string.IsNullOrWhiteSpace(frontendBaseUrl));
 

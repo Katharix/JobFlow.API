@@ -298,7 +298,9 @@ public class PaymentController : ControllerBase
                 if (updatedOrg.IsFailure)
                     return BadRequest(updatedOrg.Error);
 
-                var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId);
+                var stripeReturnUrl = BuildStripeUiReturnUrl(accountId);
+                var stripeRefreshUrl = BuildStripeUiRefreshUrl(accountId);
+                var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId, stripeReturnUrl, stripeRefreshUrl);
                 return Ok(new { onboarding = onboardingUrl });
             }
             catch (StripeException ex)
@@ -884,6 +886,24 @@ public class PaymentController : ControllerBase
 
     private static string GetStripeReplayCacheKey(string eventId) => $"stripe-webhook:{eventId}";
     private static string GetSquareReplayCacheKey(string eventId) => $"square-webhook:{eventId}";
+
+    private string BuildStripeUiCallbackBaseUrl()
+    {
+        var baseUrl = (_frontEndSettings.BaseUrl ?? "http://localhost:4200").TrimEnd('/');
+        return $"{baseUrl}/admin/connectedpayment";
+    }
+
+    private string BuildStripeUiReturnUrl(string accountId)
+    {
+        var callbackUrl = BuildStripeUiCallbackBaseUrl();
+        return $"{callbackUrl}?provider=stripe&success=true&accountId={Uri.EscapeDataString(accountId)}";
+    }
+
+    private string BuildStripeUiRefreshUrl(string accountId)
+    {
+        var callbackUrl = BuildStripeUiCallbackBaseUrl();
+        return $"{callbackUrl}?provider=stripe&success=false&accountId={Uri.EscapeDataString(accountId)}";
+    }
 
     private string BuildSquareUiRedirectBaseUrl()
     {
