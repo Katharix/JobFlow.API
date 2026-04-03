@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Stripe;
 using System.Net;
 
 namespace JobFlow.Infrastructure.Middleware;
@@ -64,6 +65,15 @@ public class ErrorHandlingMiddleware
             {
                 Message = "A required upstream service is currently unavailable. Please retry shortly.",
                 Code = "UPSTREAM_UNAVAILABLE"
+            };
+        }
+        else if (exception is StripeException)
+        {
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            apiError = new ApiError
+            {
+                Message = "Stripe is currently unavailable or not configured.",
+                Code = "STRIPE_UNAVAILABLE"
             };
         }
         else
