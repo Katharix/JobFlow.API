@@ -264,23 +264,53 @@ public class PaymentController : ControllerBase
             return Ok(new { onboarding = onboardingUrl });
         }
 
+        if (string.IsNullOrWhiteSpace(_stripeSettings.ApiKey)
+            || string.IsNullOrWhiteSpace(_stripeSettings.ReturnUrl))
+        {
+            _logger.LogError(
+                "Stripe connected account onboarding is not configured for org {OrganizationId}. ApiKeyConfigured={ApiKeyConfigured}, ReturnUrlConfigured={ReturnUrlConfigured}",
+                orgId,
+                !string.IsNullOrWhiteSpace(_stripeSettings.ApiKey),
+                !string.IsNullOrWhiteSpace(_stripeSettings.ReturnUrl));
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = "Stripe onboarding is not configured for this environment.",
+                code = "STRIPE_NOT_CONFIGURED",
+                details = string.Empty
+            });
+        }
+
         var processor = _processorFactory.GetProcessor(organization.PaymentProvider.ToString());
 
         if (processor is IConnectedAccountProcessor connected)
         {
-            var accountId = await connected.CreateConnectedAccountAsync();
-            if (string.IsNullOrWhiteSpace(accountId))
-                return NotFound("Unable to create connected account.");
+            try
+            {
+                var accountId = await connected.CreateConnectedAccountAsync();
+                if (string.IsNullOrWhiteSpace(accountId))
+                    return NotFound("Unable to create connected account.");
 
-            organization.StripeConnectAccountId = accountId;
-            organization.IsStripeConnected = true;
+                organization.StripeConnectAccountId = accountId;
+                organization.IsStripeConnected = true;
 
-            var updatedOrg = await _organizationService.UpsertOrganization(organization);
-            if (updatedOrg.IsFailure)
-                return BadRequest(updatedOrg.Error);
+                var updatedOrg = await _organizationService.UpsertOrganization(organization);
+                if (updatedOrg.IsFailure)
+                    return BadRequest(updatedOrg.Error);
 
-            var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId);
-            return Ok(new { onboarding = onboardingUrl });
+                var onboardingUrl = await connected.GenerateAccountLinkAsync(accountId);
+                return Ok(new { onboarding = onboardingUrl });
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Stripe connected account creation failed for org {OrganizationId}.", orgId);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    message = "Stripe onboarding is currently unavailable. Please try again shortly.",
+                    code = "STRIPE_UNAVAILABLE",
+                    details = _hostEnvironment.IsDevelopment() ? ex.Message : string.Empty
+                });
+            }
         }
 
         return BadRequest("This provider does not support connected accounts.");
