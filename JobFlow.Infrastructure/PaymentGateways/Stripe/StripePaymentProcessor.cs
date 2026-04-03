@@ -54,16 +54,23 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         return account.Id;
     }
 
-    public async Task<string> GenerateAccountLinkAsync(string accountId)
+    public async Task<string> GenerateAccountLinkAsync(string accountId, string? returnUrl = null, string? refreshUrl = null)
     {
+        var resolvedReturnUrl = string.IsNullOrWhiteSpace(returnUrl)
+            ? _stripeSettings.ReturnUrl
+            : returnUrl;
+        var resolvedRefreshUrl = string.IsNullOrWhiteSpace(refreshUrl)
+            ? (string.IsNullOrWhiteSpace(_stripeSettings.RefreshUrl)
+                ? resolvedReturnUrl
+                : _stripeSettings.RefreshUrl)
+            : refreshUrl;
+
         var service = new AccountLinkService();
         var accountLink = await service.CreateAsync(new AccountLinkCreateOptions
         {
             Account = accountId,
-            ReturnUrl = _stripeSettings.ReturnUrl,
-            RefreshUrl = string.IsNullOrWhiteSpace(_stripeSettings.RefreshUrl)
-                ? _stripeSettings.ReturnUrl
-                : _stripeSettings.RefreshUrl,
+            ReturnUrl = resolvedReturnUrl,
+            RefreshUrl = resolvedRefreshUrl,
             Type = "account_onboarding"
         });
 
