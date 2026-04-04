@@ -56,27 +56,9 @@ jobs:
 
               const state = run.conclusion === 'success'
                 ? 'Deployed'
-                : (run.status === 'waiting' ? 'Awaiting approval' : (run.conclusion || run.status || 'Unknown'));
+                : (run.status === 'waiting' ? 'Approve Deploy' : (run.conclusion || run.status || 'Unknown'));
 
               return `[${state}](${run.html_url})<br/>${toCentralUs(when)}`;
-            };
-
-            const formatApprovalCell = (run) => {
-              if (!run) return 'n/a';
-
-              if (run.status === 'waiting') {
-                return `[Approve Deploy](${run.html_url})`;
-              }
-
-              if (run.conclusion === 'success') {
-                return `Approved`;
-              }
-
-              if (run.status === 'in_progress' || run.status === 'queued' || run.status === 'pending') {
-                return `[Pending Approval](${run.html_url})`;
-              }
-
-              return `[${run.conclusion || run.status || 'Unknown'}](${run.html_url})`;
             };
 
             const extractTicket = (text) => {
@@ -154,9 +136,9 @@ jobs:
               '',
               '### api',
               '',
-              '| Version | PR | Ticket | Build Time | staging | approve deploy | production |',
-              '| --- | --- | --- | --- | --- | --- | --- |',
-              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatApprovalCell(prodRun)} | ${formatEnvCell(prodRun)} |`,
+              '| Version | PR | Ticket | Build Time | staging | production |',
+              '| --- | --- | --- | --- | --- | --- |',
+              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatEnvCell(prodRun)} |`,
               '',
               '</details>'
             ].join('\n');
