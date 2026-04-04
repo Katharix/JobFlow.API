@@ -1,6 +1,7 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Mappings;
 using JobFlow.API.Models;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
@@ -57,14 +58,46 @@ public class InvoiceController : ControllerBase
     }
 
     [HttpGet("organization")]
-    public async Task<IActionResult> GetByOrganization()
+    public async Task<IActionResult> GetByOrganization(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDirection = null)
     {
         var organizationId = HttpContext.GetOrganizationId();
         if (organizationId == Guid.Empty)
             return Unauthorized("Organization context missing.");
 
-        var result = await invoiceService.GetInvoicesByOrganizationAsync(organizationId);
-        return result.IsSuccess ? Ok(result.Value.ToDto()) : BadRequest(result.Error);
+        var hasFilters = !string.IsNullOrWhiteSpace(status)
+            || !string.IsNullOrWhiteSpace(search)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection);
+
+        if (!pageSize.HasValue && string.IsNullOrWhiteSpace(cursor) && !hasFilters)
+        {
+            var legacyResult = await invoiceService.GetInvoicesByOrganizationAsync(organizationId);
+            return legacyResult.IsSuccess ? Ok(legacyResult.Value.ToDto()) : BadRequest(legacyResult.Error);
+        }
+
+        var result = await invoiceService.GetInvoicesByOrganizationPagedAsync(
+            organizationId,
+            Math.Clamp(pageSize ?? 50, 1, 100),
+            cursor,
+            status,
+            search,
+            sortBy,
+            sortDirection);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(new CursorPagedResponseDto<InvoiceDto>
+        {
+            Items = result.Value.Items.ToDto().ToList(),
+            NextCursor = result.Value.NextCursor,
+            TotalCount = result.Value.TotalCount
+        });
     }
 
     [HttpPost("{organizationId:guid}")]

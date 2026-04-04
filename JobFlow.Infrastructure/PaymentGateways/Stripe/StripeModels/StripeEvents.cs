@@ -7,9 +7,14 @@ public static class StripeEvents
     public const string InvoicePaymentFailed = "invoice.payment_failed";
     public const string CustomerSubscriptionUpdated = "customer.subscription.updated";
     public const string CustomerSubscriptionDeleted = "customer.subscription.deleted";
+    public const string CustomerSubscriptionPaused = "customer.subscription.paused";
+    public const string CustomerSubscriptionResumed = "customer.subscription.resumed";
     public const string PaymentIntentSucceeded = "payment_intent.succeeded";
     public const string PaymentIntentFailed = "payment_intent.payment_failed";
     public const string ChargeRefunded = "charge.refunded";
+    public const string ChargeDisputeCreated = "charge.dispute.created";
+    public const string ChargeDisputeUpdated = "charge.dispute.updated";
+    public const string ChargeDisputeClosed = "charge.dispute.closed";
 
     public const string InvoiceCreated = "invoice.created";
     public const string InvoiceFinalized = "invoice.finalized";
@@ -23,4 +28,9 @@ public static class StripeEvents
     public const string PaymentMethodDetached = "payment_method.detached";
     public const string AccountUpdated = "account.updated";
     public const string AccountDeleted = "account.deleted";
+    public const string PayoutCreated = "payout.created";
+    public const string PayoutPaid = "payout.paid";
+    public const string PayoutFailed = "payout.failed";
+    public const string TransferCreated = "transfer.created";
+    public const string TransferFailed = "transfer.failed";
 }

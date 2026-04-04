@@ -13,5 +13,6 @@ public interface IOrganizationService
     Task MarkStripeConnectedAsync(string stripeAccountId);
     Task<Result<Organization>> GetBySquareMerchantIdAsync(string squareMerchantId);
     Task MarkSquareDisconnectedAsync(string squareMerchantId);
+    Task<Result> UpdateSubscriptionStateAsync(Guid organizationId, string? subscriptionStatus, string? subscriptionPlanName = null, DateTime? subscriptionExpiresAt = null);
     Task<Result> DeleteOrganization(Guid organizationId);
 }

@@ -51,10 +51,36 @@ public class OrganizationClientController : ControllerBase
     }
 
     [HttpGet("orgall")]
-    public async Task<IResult> GetAllClientsByOrganizationId()
+    public async Task<IResult> GetAllClientsByOrganizationId(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] bool missingEmailOnly = false,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDirection = null)
     {
         var organizationId = HttpContext.GetOrganizationId();
-        var result = await organizationClientService.GetAllClientsByOrganizationId(organizationId);
+        var hasFilters = missingEmailOnly
+            || !string.IsNullOrWhiteSpace(search)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection);
+
+        if (!pageSize.HasValue && string.IsNullOrWhiteSpace(cursor) && !hasFilters)
+        {
+            var legacyResult = await organizationClientService.GetAllClientsByOrganizationId(organizationId);
+            return legacyResult.IsSuccess
+                ? Results.Ok(legacyResult.Value)
+                : legacyResult.ToProblemDetails();
+        }
+
+        var result = await organizationClientService.GetClientsByOrganizationPagedAsync(
+            organizationId,
+            Math.Clamp(pageSize ?? 50, 1, 100),
+            cursor,
+            missingEmailOnly,
+            search,
+            sortBy,
+            sortDirection);
         return result.IsSuccess
             ? Results.Ok(result.Value)
             : result.ToProblemDetails();

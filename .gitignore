@@ -210,6 +210,9 @@ PublishScripts/
 csx/
 *.build.csdef
 
+# Firebase service account credentials
+JobFlow.API/job-flow-firebase-adminsdk.json
+
 # Microsoft Azure Emulator
 ecf/
 rcf/

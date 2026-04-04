@@ -438,6 +438,12 @@ builder.Services.Configure<StripeSettings>(options =>
     options.ReturnUrl = builder.Configuration["StripeSettings-ReturnUrl"] ?? "";
     options.RefreshUrl = builder.Configuration["StripeSettings-RefreshUrl"] ?? "";
     options.WebhookKey = builder.Configuration["StripeSettings-WebhookKey"] ?? "";
+    options.GoMonthlyPrice = builder.Configuration["StripeSettings-GoMonthlyPrice"] ?? "";
+    options.GoYearlyPrice = builder.Configuration["StripeSettings-GoYearlyPrice"] ?? "";
+    options.FlowMonthlyPrice = builder.Configuration["StripeSettings-FlowMonthlyPrice"] ?? "";
+    options.FlowYearlyPrice = builder.Configuration["StripeSettings-FlowYearlyPrice"] ?? "";
+    options.MaxMonthlyPrice = builder.Configuration["StripeSettings-MaxMonthlyPrice"] ?? "";
+    options.MaxYearlyPrice = builder.Configuration["StripeSettings-MaxYearlyPrice"] ?? "";
 });
 
 builder.Services.Configure<TwilioSettings>(options =>

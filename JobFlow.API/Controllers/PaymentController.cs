@@ -32,6 +32,8 @@ namespace JobFlow.API.Controllers;
 public class PaymentController : ControllerBase
 {
     private const string SquareStatePurpose = "SquareOAuthState";
+    private const int MaxPageSize = 250;
+    private static readonly TimeSpan FinancialSummaryCacheTtl = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan SquareStateLifetime = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan WebhookTimestampTolerance = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan WebhookReplayWindow = TimeSpan.FromHours(24);
@@ -42,6 +44,7 @@ public class PaymentController : ControllerBase
     private readonly IStripeWebhookService _stripeWebhookService;
     private readonly ISubscriptionRecordService _subscriptionRecordService;
     private readonly IInvoiceService _invoiceService;
+    private readonly IPaymentHistoryService _paymentHistoryService;
     private readonly IStripeSettings _stripeSettings;
     private readonly ISquareSettings _squareSettings;
     private readonly ISquareWebhookService _squareWebhookService;
@@ -61,6 +64,7 @@ public class PaymentController : ControllerBase
         IStripeWebhookService stripeWebhookService,
         ISquareWebhookService squareWebhookService,
         IInvoiceService invoiceService,
+        IPaymentHistoryService paymentHistoryService,
         IStripeSettings stripeSettings,
         ISquareSettings squareSettings,
         ISquareTokenEncryptionService squareTokenEncryption,
@@ -78,6 +82,7 @@ public class PaymentController : ControllerBase
         _stripeWebhookService = stripeWebhookService;
         _squareWebhookService = squareWebhookService;
         _invoiceService = invoiceService;
+        _paymentHistoryService = paymentHistoryService;
         _stripeSettings = stripeSettings;
         _squareSettings = squareSettings;
         _squareTokenEncryption = squareTokenEncryption;
@@ -93,6 +98,12 @@ public class PaymentController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Checkout([FromBody] PaymentSessionRequest request)
     {
+        if (User?.Identity?.IsAuthenticated != true
+            && !string.Equals(request.Mode, "subscription", StringComparison.OrdinalIgnoreCase))
+        {
+            return Unauthorized("Anonymous checkout is only allowed for subscription signup.");
+        }
+
         Guid orgId;
         if (User?.Identity?.IsAuthenticated == true)
         {
@@ -393,6 +404,34 @@ public class PaymentController : ControllerBase
         if (orgResult.IsFailure)
             return NotFound(orgResult.Error);
 
+        if (!request.InvoiceId.HasValue || request.InvoiceId.Value == Guid.Empty)
+            return BadRequest("Invoice id is required for refunds.");
+
+        var invoiceResult = await _invoiceService.GetInvoiceByIdAsync(request.InvoiceId.Value);
+        if (!invoiceResult.IsSuccess)
+            return NotFound("Invoice not found.");
+
+        var invoice = invoiceResult.Value;
+        if (invoice.OrganizationId != orgId)
+            return Unauthorized();
+
+        if (invoice.AmountPaid <= 0)
+            return BadRequest("Invoice has no paid amount available to refund.");
+
+        if (request.Amount <= 0)
+            return BadRequest("Refund amount must be greater than zero.");
+
+        if (request.Amount > invoice.AmountPaid)
+            return BadRequest($"Refund amount cannot exceed paid amount ({invoice.AmountPaid:0.##}).");
+
+        var expectedProviderPaymentId = invoice.ExternalPaymentId;
+
+        if (!string.IsNullOrWhiteSpace(expectedProviderPaymentId)
+            && !string.Equals(request.ProviderPaymentId?.Trim(), expectedProviderPaymentId.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Provider payment id does not match the selected invoice.");
+        }
+
         var processor = request.Provider == PaymentProvider.Square
             ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
             : _processorFactory.GetProcessor(request.Provider);
@@ -401,7 +440,8 @@ public class PaymentController : ControllerBase
 
         var result = await ops.RefundPaymentAsync(new PaymentRefundRequest
         {
-            ProviderPaymentId = request.ProviderPaymentId,
+            InvoiceId = request.InvoiceId,
+            ProviderPaymentId = request.ProviderPaymentId?.Trim() ?? string.Empty,
             Amount = request.Amount,
             Currency = request.Currency,
             Reason = request.Reason,
@@ -511,7 +551,7 @@ public class PaymentController : ControllerBase
 
     // POST: api/payments/subscription
     [HttpPost("subscription")]
-    [AllowAnonymous]
+    [Authorize(Policy = "OrganizationAdminOnly")]
     public async Task<IActionResult> CreateSubscription([FromBody] CreateSubscriptionRequest request)
     {
         if (request.PaymentProfileId == Guid.Empty)
@@ -537,7 +577,7 @@ public class PaymentController : ControllerBase
 
     // POST: api/payments/subscription/cancel
     [HttpPost("subscription/cancel")]
-    [AllowAnonymous]
+    [Authorize(Policy = "OrganizationAdminOnly")]
     public async Task<IActionResult> CancelSubscription([FromBody] CancelSubscriptionRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.ProviderSubscriptionId))
@@ -550,14 +590,248 @@ public class PaymentController : ControllerBase
         if (string.Equals(subscriptionResult.Value.Status, "canceled", StringComparison.OrdinalIgnoreCase))
             return Ok();
 
-        var canceledAt = request.CanceledAt == default ? DateTime.UtcNow : request.CanceledAt.ToUniversalTime();
+        var orgId = HttpContext.GetOrganizationId();
+        var orgResult = await _organizationService.GetOrganiztionById(orgId);
+        if (orgResult.IsFailure)
+            return NotFound(orgResult.Error);
+
+        var processor = orgResult.Value.PaymentProvider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, orgResult.Value.PaymentProvider)
+            : _processorFactory.GetProcessor(orgResult.Value.PaymentProvider);
+
+        if (processor is not ISubscriptionOperationsProcessor subOps)
+            return BadRequest("Processor does not support subscription cancellation.");
+
+        var providerResult = await subOps.CancelSubscriptionAsync(request.ProviderSubscriptionId);
+        if (!providerResult.Success)
+            return BadRequest(providerResult);
+
+        var canceledAt = providerResult.SubscriptionExpiresAtUtc
+                 ?? (request.CanceledAt == default ? DateTime.UtcNow : request.CanceledAt.ToUniversalTime());
 
         var result = await _subscriptionRecordService.CancelAsync(
             request.ProviderSubscriptionId,
             canceledAt
         );
 
+        if (result.IsSuccess)
+            await _organizationService.UpdateSubscriptionStateAsync(
+                orgId,
+                providerResult.SubscriptionStatus ?? "canceled",
+                providerResult.SubscriptionPlanName,
+                canceledAt);
+
         return result.IsSuccess ? Ok() : BadRequest(result.Error);
+    }
+
+    [HttpPost("subscription/change-plan")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    [EnableRateLimiting("payment-sensitive")]
+    public async Task<IActionResult> ChangeSubscriptionPlan([FromBody] ChangeSubscriptionPlanRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProviderSubscriptionId))
+            return BadRequest("Provider subscription ID is required.");
+
+        if (string.IsNullOrWhiteSpace(request.ProviderPriceId))
+            return BadRequest("Provider price ID is required.");
+
+        var orgId = HttpContext.GetOrganizationId();
+        var orgResult = await _organizationService.GetOrganiztionById(orgId);
+        if (orgResult.IsFailure)
+            return NotFound(orgResult.Error);
+
+        var processor = orgResult.Value.PaymentProvider == PaymentProvider.Square
+            ? await _processorFactory.GetProcessorForOrgAsync(orgId, orgResult.Value.PaymentProvider)
+            : _processorFactory.GetProcessor(orgResult.Value.PaymentProvider);
+
+        if (processor is not ISubscriptionOperationsProcessor subOps)
+            return BadRequest("Processor does not support subscription plan changes.");
+
+        var providerResult = await subOps.ChangeSubscriptionPlanAsync(
+            request.ProviderSubscriptionId,
+            request.ProviderPriceId);
+
+        if (!providerResult.Success)
+            return BadRequest(providerResult);
+
+        var subscriptionResult = await _subscriptionRecordService.GetByProviderIdAsync(request.ProviderSubscriptionId);
+        if (subscriptionResult.IsSuccess)
+        {
+            subscriptionResult.Value.ProviderPriceId = request.ProviderPriceId.Trim();
+            if (!string.IsNullOrWhiteSpace(providerResult.SubscriptionPlanName))
+                subscriptionResult.Value.PlanName = providerResult.SubscriptionPlanName;
+
+            if (!string.IsNullOrWhiteSpace(providerResult.SubscriptionStatus))
+                subscriptionResult.Value.Status = providerResult.SubscriptionStatus;
+
+            await _subscriptionRecordService.UpdateAsync(subscriptionResult.Value);
+            await _organizationService.UpdateSubscriptionStateAsync(
+                orgId,
+                subscriptionResult.Value.Status,
+                subscriptionResult.Value.PlanName,
+                providerResult.SubscriptionExpiresAtUtc);
+        }
+
+        return Ok(providerResult);
+    }
+
+    [HttpGet("history")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetPaymentHistory(
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100)
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var result = await _paymentHistoryService.GetPaymentEventsForEntityAsync(
+            orgId,
+            fromUtc,
+            toUtc,
+            Math.Clamp(pageSize, 1, MaxPageSize),
+            cursor,
+            disputesOnly: false);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("disputes")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetDisputes(
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100)
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var result = await _paymentHistoryService.GetPaymentEventsForEntityAsync(
+            orgId,
+            fromUtc,
+            toUtc,
+            Math.Clamp(pageSize, 1, MaxPageSize),
+            cursor,
+            disputesOnly: true);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("financial-summary")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetFinancialSummary()
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var cacheKey = $"payments:financial-summary:{orgId}:{now:yyyyMM}";
+
+        var cached = await _distributedCache.GetStringAsync(cacheKey, HttpContext.RequestAborted);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            var cachedSummary = JsonSerializer.Deserialize<FinancialSummaryDto>(cached);
+            if (cachedSummary is not null)
+                return Ok(cachedSummary);
+        }
+
+        var historyResult = await _paymentHistoryService.GetFinancialAggregatesAsync(orgId, monthStart);
+        if (historyResult.IsFailure)
+            return BadRequest(historyResult.Error);
+
+        var invoicesResult = await _invoiceService.GetInvoiceAggregatesByOrganizationAsync(orgId);
+        if (invoicesResult.IsFailure)
+            return BadRequest(invoicesResult.Error);
+
+        var summary = new FinancialSummaryDto
+        {
+            GrossCollected = historyResult.Value.GrossCollectedMinor / 100m,
+            Refunded = historyResult.Value.RefundedMinorAbsolute / 100m,
+            NetCollected = (historyResult.Value.GrossCollectedMinor - historyResult.Value.RefundedMinorAbsolute) / 100m,
+            MonthCollected = historyResult.Value.MonthCollectedMinor / 100m,
+            Outstanding = invoicesResult.Value.Outstanding,
+            DisputeCount = historyResult.Value.DisputeCount,
+            InvoiceCount = invoicesResult.Value.InvoiceCount
+        };
+
+        await _distributedCache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(summary),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = FinancialSummaryCacheTtl
+            },
+            HttpContext.RequestAborted);
+
+        return Ok(summary);
+    }
+
+    [HttpGet("subscription/current")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetCurrentSubscription()
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var orgResult = await _organizationService.GetOrganiztionById(orgId);
+        if (orgResult.IsFailure)
+            return NotFound(orgResult.Error);
+
+        var subscriptionResult = await _subscriptionRecordService.GetLatestForOrganizationAsync(orgId, orgResult.Value.PaymentProvider);
+        if (subscriptionResult.IsFailure)
+            return NotFound(subscriptionResult.Error);
+
+        return Ok(subscriptionResult.Value);
+    }
+
+    [HttpGet("subscription/plans")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetSubscriptionPlans()
+    {
+        var configuredPlans = new[]
+        {
+            new { PlanKey = "go", Cycle = "monthly", PriceId = _stripeSettings.GoMonthlyPrice },
+            new { PlanKey = "go", Cycle = "yearly", PriceId = _stripeSettings.GoYearlyPrice },
+            new { PlanKey = "flow", Cycle = "monthly", PriceId = _stripeSettings.FlowMonthlyPrice },
+            new { PlanKey = "flow", Cycle = "yearly", PriceId = _stripeSettings.FlowYearlyPrice },
+            new { PlanKey = "max", Cycle = "monthly", PriceId = _stripeSettings.MaxMonthlyPrice },
+            new { PlanKey = "max", Cycle = "yearly", PriceId = _stripeSettings.MaxYearlyPrice }
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x.PriceId))
+        .ToList();
+
+        if (configuredPlans.Count == 0 || string.IsNullOrWhiteSpace(_stripeSettings.ApiKey))
+            return Ok(Array.Empty<SubscriptionPlanPriceDto>());
+
+        try
+        {
+            var priceService = new PriceService();
+            var tasks = configuredPlans.Select(async configuredPlan =>
+            {
+                var stripePrice = await priceService.GetAsync(configuredPlan.PriceId.Trim());
+                var amount = stripePrice.UnitAmount.HasValue
+                    ? stripePrice.UnitAmount.Value / 100m
+                    : 0m;
+
+                return new SubscriptionPlanPriceDto
+                {
+                    PlanKey = configuredPlan.PlanKey,
+                    Cycle = configuredPlan.Cycle,
+                    ProviderPriceId = configuredPlan.PriceId.Trim(),
+                    Amount = amount,
+                    Currency = string.IsNullOrWhiteSpace(stripePrice.Currency) ? "usd" : stripePrice.Currency
+                };
+            });
+
+            var prices = await Task.WhenAll(tasks);
+            return Ok(prices);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to retrieve live Stripe subscription plan pricing.");
+            return Ok(Array.Empty<SubscriptionPlanPriceDto>());
+        }
     }
 
     private static string? NormalizeSubscriptionStatus(string? status)

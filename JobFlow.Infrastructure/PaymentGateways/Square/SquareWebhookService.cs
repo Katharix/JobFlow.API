@@ -99,6 +99,17 @@ public class SquareWebhookService : ISquareWebhookService
                 await HandleSubscriptionEventAsync(root, rawBody, eventType);
                 break;
 
+            case "dispute.created":
+            case "dispute.state.updated":
+                await HandleDisputeEventAsync(root, rawBody, eventType, organizationId);
+                break;
+
+            case "invoice.payment_made":
+            case "invoice.updated":
+            case "payout.sent":
+                await HandleLedgerEventAsync(root, rawBody, eventType, organizationId);
+                break;
+
             case "oauth.authorization.revoked":
                 await HandleOAuthRevokedAsync(merchantId);
                 break;
@@ -198,6 +209,12 @@ public class SquareWebhookService : ISquareWebhookService
         if (isCanceledStatus)
         {
             await _subscriptionRecordService.CancelAsync(providerSubscriptionId, DateTime.UtcNow);
+
+            if (await TryResolveOrganizationIdFromPaymentProfileAsync(providerCustomerId) is { } canceledOrgId)
+            {
+                await _organizationService.UpdateSubscriptionStateAsync(canceledOrgId, "canceled");
+            }
+
             await _paymentHistoryService.LogAsync(new PaymentHistory
             {
                 Id = Guid.NewGuid(),
@@ -226,6 +243,16 @@ public class SquareWebhookService : ISquareWebhookService
                 existingResult.Value.PlanName = planName;
 
             await _subscriptionRecordService.UpdateAsync(existingResult.Value);
+
+            if (await TryResolveOrganizationIdFromPaymentProfileAsync(providerCustomerId) is { } existingOrgId)
+            {
+                await _organizationService.UpdateSubscriptionStateAsync(existingOrgId, status, planName);
+                await _paymentProfileService.SetDelinquentByProviderCustomerAsync(
+                    PaymentProvider.Square,
+                    providerCustomerId,
+                    IsDelinquentStatus(status));
+            }
+
             return;
         }
 
@@ -263,6 +290,15 @@ public class SquareWebhookService : ISquareWebhookService
             status,
             planName
         );
+
+        if (paymentProfile.OwnerType == PaymentEntityType.Organization)
+        {
+            await _organizationService.UpdateSubscriptionStateAsync(paymentProfile.OwnerId, status, planName);
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(
+                PaymentProvider.Square,
+                providerCustomerId,
+                IsDelinquentStatus(status));
+        }
     }
 
     private async Task HandleRefundEventAsync(JsonElement root, string rawBody, string eventType, Guid? organizationId)
@@ -300,6 +336,107 @@ public class SquareWebhookService : ISquareWebhookService
 
         _logger.LogInformation("Square OAuth revoked for MerchantId={MerchantId}", merchantId);
         await _organizationService.MarkSquareDisconnectedAsync(merchantId);
+    }
+
+    private async Task HandleLedgerEventAsync(JsonElement root, string rawBody, string eventType, Guid? organizationId)
+    {
+        var amount = 0L;
+        var currency = "USD";
+        var status = "UNKNOWN";
+
+        if (TryGetNestedProperty(root, out var objectElement, "data", "object"))
+        {
+            if (TryGetNestedProperty(objectElement, out var amountElement, "payment", "amount_money", "amount")
+                && amountElement.ValueKind == JsonValueKind.Number)
+                amount = amountElement.GetInt64();
+
+            if (TryGetNestedProperty(objectElement, out var currencyElement, "payment", "amount_money", "currency")
+                && currencyElement.ValueKind == JsonValueKind.String)
+                currency = currencyElement.GetString() ?? "USD";
+
+            if (TryGetNestedProperty(objectElement, out var statusElement, "payment", "status")
+                && statusElement.ValueKind == JsonValueKind.String)
+                status = statusElement.GetString() ?? "UNKNOWN";
+        }
+
+        await _paymentHistoryService.LogAsync(new PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Square,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = organizationId ?? Guid.Empty,
+            AmountPaid = amount,
+            Currency = currency,
+            Status = status,
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = rawBody
+        });
+    }
+
+    private async Task HandleDisputeEventAsync(JsonElement root, string rawBody, string eventType, Guid? organizationId)
+    {
+        if (!TryGetNestedProperty(root, out var dispute, "data", "object", "dispute"))
+            return;
+
+        var status = TryGetString(dispute, "state") ?? "UNKNOWN";
+        var amount = 0L;
+        if (TryGetNestedProperty(dispute, out var amountElement, "amount_money", "amount")
+            && amountElement.ValueKind == JsonValueKind.Number)
+        {
+            amount = amountElement.GetInt64();
+        }
+
+        var currency = "USD";
+        if (TryGetNestedProperty(dispute, out var currencyElement, "amount_money", "currency")
+            && currencyElement.ValueKind == JsonValueKind.String)
+        {
+            currency = currencyElement.GetString() ?? "USD";
+        }
+
+        var customerId = TryGetString(dispute, "customer_id");
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(PaymentProvider.Square, customerId, true);
+        }
+
+        await _paymentHistoryService.LogAsync(new PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Square,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = organizationId ?? Guid.Empty,
+            AmountPaid = amount,
+            Currency = currency,
+            Status = status,
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = rawBody,
+            CustomerId = customerId
+        });
+    }
+
+    private async Task<Guid?> TryResolveOrganizationIdFromPaymentProfileAsync(string providerCustomerId)
+    {
+        if (string.IsNullOrWhiteSpace(providerCustomerId))
+            return null;
+
+        var profile = await _paymentProfiles.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Provider == PaymentProvider.Square && p.ProviderCustomerId == providerCustomerId);
+
+        if (profile?.OwnerType == PaymentEntityType.Organization)
+            return profile.OwnerId;
+
+        return null;
+    }
+
+    private static bool IsDelinquentStatus(string? status)
+    {
+        return string.Equals(status, "past_due", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "unpaid", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "incomplete", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "incomplete_expired", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsValidSignature(string rawBody, string signatureHeader, string callbackUrl)

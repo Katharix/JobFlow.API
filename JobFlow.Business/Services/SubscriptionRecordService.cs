@@ -2,6 +2,7 @@
 using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -78,6 +79,31 @@ public class SubscriptionRecordService : ISubscriptionRecordService
         return subscription is null
             ? Result.Failure<SubscriptionRecord>(SubscriptionErrors.NotFound)
             : Result.Success(subscription);
+    }
+
+    public async Task<Result<SubscriptionRecord>> GetLatestForOrganizationAsync(Guid organizationId, PaymentProvider? provider = null)
+    {
+        if (organizationId == Guid.Empty)
+            return Result.Failure<SubscriptionRecord>(SubscriptionErrors.NotFound);
+
+        var profileIdsQuery = paymentProfiles.Query()
+            .Where(p => p.OwnerId == organizationId && p.OwnerType == PaymentEntityType.Organization);
+
+        if (provider.HasValue)
+            profileIdsQuery = profileIdsQuery.Where(p => p.Provider == provider.Value);
+
+        var profileIds = await profileIdsQuery.Select(p => p.Id).ToListAsync();
+        if (profileIds.Count == 0)
+            return Result.Failure<SubscriptionRecord>(SubscriptionErrors.NotFound);
+
+        var latest = await subscriptions.Query()
+            .Where(s => profileIds.Contains(s.PaymentProfileId))
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefaultAsync();
+
+        return latest is null
+            ? Result.Failure<SubscriptionRecord>(SubscriptionErrors.NotFound)
+            : Result.Success(latest);
     }
 
     public async Task<Result> CancelAsync(string providerSubscriptionId, DateTime canceledAt)

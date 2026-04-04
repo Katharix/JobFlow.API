@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
 
 [ScopedService]
-public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor
+public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, ISubscriptionOperationsProcessor
 {
     private readonly ISquareSettings _settings;
     private readonly IHostEnvironment _hostEnvironment;
@@ -187,6 +187,33 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             Success = false,
             Message = "Positive adjustments require a new charge or deposit payment link."
         };
+    }
+
+    public async Task<PaymentOperationResult> CancelSubscriptionAsync(string providerSubscriptionId)
+    {
+        if (string.IsNullOrWhiteSpace(providerSubscriptionId))
+            throw new InvalidOperationException("Provider subscription id is required.");
+
+        using var client = CreateApiClient();
+        var response = await client.PostAsJsonAsync($"v2/subscriptions/{providerSubscriptionId.Trim()}/cancel", new { });
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        return new PaymentOperationResult
+        {
+            Success = response.IsSuccessStatusCode,
+            ProviderPaymentId = providerSubscriptionId,
+            Message = response.IsSuccessStatusCode ? "canceled" : responseBody
+        };
+    }
+
+    public Task<PaymentOperationResult> ChangeSubscriptionPlanAsync(string providerSubscriptionId, string providerPriceId)
+    {
+        return Task.FromResult(new PaymentOperationResult
+        {
+            Success = false,
+            ProviderPaymentId = providerSubscriptionId,
+            Message = "Square subscription plan change is not yet supported by this endpoint."
+        });
     }
 
     private async Task<PaymentSessionResult> CreateCheckoutIntentAsync(PaymentSessionRequest request)

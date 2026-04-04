@@ -11,7 +11,7 @@ using Stripe.Checkout;
 namespace JobFlow.Infrastructure.PaymentGateways.Stripe;
 
 [ScopedService]
-public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, IConnectedAccountProcessor
+public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, ISubscriptionOperationsProcessor, IConnectedAccountProcessor
 {
     private readonly IPaymentSettings _paymentSettings;
     private readonly IStripeSettings _stripeSettings;
@@ -174,6 +174,83 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             Success = false,
             Message = "Positive adjustments require creating a new charge or deposit."
         };
+    }
+
+    public async Task<PaymentOperationResult> CancelSubscriptionAsync(string providerSubscriptionId)
+    {
+        if (string.IsNullOrWhiteSpace(providerSubscriptionId))
+            throw new InvalidOperationException("Provider subscription id is required.");
+
+        var subscriptionService = new SubscriptionService();
+        var updated = await subscriptionService.UpdateAsync(providerSubscriptionId.Trim(), new SubscriptionUpdateOptions
+        {
+            CancelAtPeriodEnd = true
+        });
+
+        var planName = updated.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name")
+            ?? updated.Items?.Data?.FirstOrDefault()?.Price?.Nickname;
+        var periodEndUtc = ResolveSubscriptionExpiryUtc(updated);
+
+        return new PaymentOperationResult
+        {
+            Success = true,
+            ProviderPaymentId = updated.Id,
+            Message = updated.Status,
+            SubscriptionStatus = "canceled",
+            SubscriptionPlanName = planName,
+            ProviderPriceId = updated.Items?.Data?.FirstOrDefault()?.Price?.Id,
+            SubscriptionExpiresAtUtc = periodEndUtc
+        };
+    }
+
+    public async Task<PaymentOperationResult> ChangeSubscriptionPlanAsync(string providerSubscriptionId, string providerPriceId)
+    {
+        if (string.IsNullOrWhiteSpace(providerSubscriptionId))
+            throw new InvalidOperationException("Provider subscription id is required.");
+
+        if (string.IsNullOrWhiteSpace(providerPriceId))
+            throw new InvalidOperationException("Provider price id is required.");
+
+        var subscriptionService = new SubscriptionService();
+        var existing = await subscriptionService.GetAsync(providerSubscriptionId.Trim());
+        var itemId = existing.Items?.Data?.FirstOrDefault()?.Id;
+        if (string.IsNullOrWhiteSpace(itemId))
+            throw new InvalidOperationException("No subscription item found to update.");
+
+        var updated = await subscriptionService.UpdateAsync(providerSubscriptionId.Trim(), new SubscriptionUpdateOptions
+        {
+            ProrationBehavior = "create_prorations",
+            Items = new List<SubscriptionItemOptions>
+            {
+                new()
+                {
+                    Id = itemId,
+                    Price = providerPriceId.Trim()
+                }
+            }
+        });
+
+        return new PaymentOperationResult
+        {
+            Success = !string.IsNullOrWhiteSpace(updated.Id),
+            ProviderPaymentId = updated.Id,
+            Message = updated.Status,
+            SubscriptionStatus = updated.Status,
+            SubscriptionPlanName = updated.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name")
+                                   ?? updated.Items?.Data?.FirstOrDefault()?.Price?.Nickname,
+            ProviderPriceId = updated.Items?.Data?.FirstOrDefault()?.Price?.Id,
+            SubscriptionExpiresAtUtc = ResolveSubscriptionExpiryUtc(updated)
+        };
+    }
+
+    private static DateTime? ResolveSubscriptionExpiryUtc(Subscription subscription)
+    {
+        var periodEnd = subscription.Items?.Data?.FirstOrDefault()?.CurrentPeriodEnd
+                        ?? subscription.CancelAt
+                        ?? subscription.EndedAt
+                        ?? subscription.TrialEnd;
+
+        return periodEnd?.ToUniversalTime();
     }
 
     public async Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request)
