@@ -87,6 +87,14 @@ public class OrganizationService : IOrganizationService
                 .FirstOrDefaultAsync();
 
             dto.SubscriptionPlanName = latestSubscription?.PlanName;
+            dto.SubscriptionStatus = latestSubscription?.Status;
+            dto.SubscriptionExpiresAt = org.SubscriptionExpiresAt;
+        }
+        else
+        {
+            dto.SubscriptionPlanName = org.SubscriptionPlanName;
+            dto.SubscriptionStatus = org.SubscriptionStatus;
+            dto.SubscriptionExpiresAt = org.SubscriptionExpiresAt;
         }
 
         return Result.Success(dto);
@@ -129,6 +137,30 @@ public class OrganizationService : IOrganizationService
 
         org.IsSquareConnected = false;
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<Result> UpdateSubscriptionStateAsync(Guid organizationId, string? subscriptionStatus, string? subscriptionPlanName = null, DateTime? subscriptionExpiresAt = null)
+    {
+        if (organizationId == Guid.Empty)
+            return Result.Failure(OrganizationErrors.NullOrEmptyId);
+
+        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        if (organization == null)
+            return Result.Failure(OrganizationErrors.OrganizationNotFound);
+
+        if (!string.IsNullOrWhiteSpace(subscriptionStatus))
+            organization.SubscriptionStatus = subscriptionStatus.Trim().ToLowerInvariant();
+
+        if (!string.IsNullOrWhiteSpace(subscriptionPlanName))
+            organization.SubscriptionPlanName = subscriptionPlanName.Trim();
+
+        if (subscriptionExpiresAt.HasValue)
+            organization.SubscriptionExpiresAt = subscriptionExpiresAt.Value.ToUniversalTime();
+
+        _unitOfWork.RepositoryOf<Organization>().Update(organization);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
     }
 
     public async Task<Result<Organization>> UpsertOrganization(Organization model)

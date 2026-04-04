@@ -96,10 +96,44 @@ public class JobController : ControllerBase
     }
 
     [HttpGet("all")]
-    public async Task<IActionResult> GetJobs()
+    public async Task<IActionResult> GetJobs(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] string? statusKey = null,
+        [FromQuery] Guid? clientId = null,
+        [FromQuery] Guid? assigneeId = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDirection = null)
     {
         var organizationId = HttpContext.GetOrganizationId();
-        var result = await _jobService.GetJobsAsync(organizationId);
+
+        var hasFilters = !string.IsNullOrWhiteSpace(statusKey)
+            || clientId.HasValue
+            || assigneeId.HasValue
+            || !string.IsNullOrWhiteSpace(search)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection);
+
+        if (!pageSize.HasValue && string.IsNullOrWhiteSpace(cursor) && !hasFilters)
+        {
+            var legacyResult = await _jobService.GetJobsAsync(organizationId);
+            if (legacyResult.IsFailure)
+                return BadRequest(legacyResult.Error);
+
+            return Ok(legacyResult.Value);
+        }
+
+        var result = await _jobService.GetJobsPagedAsync(
+            organizationId,
+            Math.Clamp(pageSize ?? 50, 1, 100),
+            cursor,
+            statusKey,
+            clientId,
+            assigneeId,
+            search,
+            sortBy,
+            sortDirection);
 
         if (result.IsFailure)
             return BadRequest(result.Error);

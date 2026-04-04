@@ -40,7 +40,12 @@ public class OrganizationDto
     public bool? OnBoardingComplete { get; set; }
     public bool CanAcceptPayments { get; set; }
     public string? SubscriptionPlanName { get; set; }
+    public string? SubscriptionStatus { get; set; }
+    public DateTime? SubscriptionExpiresAt { get; set; }
     public string? IndustryKey { get; set; }
     public PaymentProvider PaymentProvider { get; set; }
     public string? StripeConnectAccountId { get; set; }
+    public bool IsStripeConnected { get; set; }
+    public string? SquareMerchantId { get; set; }
+    public bool IsSquareConnected { get; set; }
 }

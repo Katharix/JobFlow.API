@@ -7,6 +7,8 @@ using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace JobFlow.API.Controllers;
 
@@ -14,21 +16,33 @@ namespace JobFlow.API.Controllers;
 [Route("api/supporthub")]
 public class SupportHubController : ControllerBase
 {
+    private const int MaxPageSize = 250;
+    private static readonly TimeSpan FinancialSummaryCacheTtl = TimeSpan.FromSeconds(45);
+
     private readonly ISupportHubInviteService _inviteService;
     private readonly ISupportHubService _supportHubService;
     private readonly IUserService _userService;
     private readonly IOrganizationService _organizationService;
+    private readonly IPaymentHistoryService _paymentHistoryService;
+    private readonly IInvoiceService _invoiceService;
+    private readonly IDistributedCache _distributedCache;
 
     public SupportHubController(
         ISupportHubService supportHubService,
         ISupportHubInviteService inviteService,
         IUserService userService,
-        IOrganizationService organizationService)
+        IOrganizationService organizationService,
+        IPaymentHistoryService paymentHistoryService,
+        IInvoiceService invoiceService,
+        IDistributedCache distributedCache)
     {
         _supportHubService = supportHubService;
         _inviteService = inviteService;
         _userService = userService;
         _organizationService = organizationService;
+        _paymentHistoryService = paymentHistoryService;
+        _invoiceService = invoiceService;
+        _distributedCache = distributedCache;
     }
 
     [HttpPost("register")]
@@ -148,6 +162,107 @@ public class SupportHubController : ControllerBase
         var createdBy = HttpContext.GetFirebaseUid();
         var result = await _supportHubService.SeedDemoAsync(request, createdBy);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpGet("organizations/{organizationId:guid}/financial-summary")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> GetOrganizationFinancialSummary([FromRoute] Guid organizationId)
+    {
+        var orgResult = await _organizationService.GetOrganiztionById(organizationId);
+        if (orgResult.IsFailure)
+            return orgResult.ToProblemDetails();
+
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var cacheKey = $"supporthub:financial-summary:{organizationId}:{now:yyyyMM}";
+
+        var cached = await _distributedCache.GetStringAsync(cacheKey, HttpContext.RequestAborted);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            var cachedSummary = JsonSerializer.Deserialize<SupportHubFinancialSummaryDto>(cached);
+            if (cachedSummary is not null)
+                return Results.Ok(cachedSummary);
+        }
+
+        var historyResult = await _paymentHistoryService.GetFinancialAggregatesAsync(organizationId, monthStart);
+        if (historyResult.IsFailure)
+            return historyResult.ToProblemDetails();
+
+        var invoicesResult = await _invoiceService.GetInvoiceAggregatesByOrganizationAsync(organizationId);
+        if (invoicesResult.IsFailure)
+            return invoicesResult.ToProblemDetails();
+
+        var summary = new SupportHubFinancialSummaryDto
+        {
+            OrganizationId = organizationId,
+            OrganizationName = orgResult.Value.OrganizationName,
+            SubscriptionPlan = orgResult.Value.SubscriptionPlanName,
+            SubscriptionStatus = orgResult.Value.SubscriptionStatus,
+            PaymentProvider = orgResult.Value.PaymentProvider,
+            GrossCollected = historyResult.Value.GrossCollectedMinor / 100m,
+            Refunded = historyResult.Value.RefundedMinorAbsolute / 100m,
+            NetCollected = (historyResult.Value.GrossCollectedMinor - historyResult.Value.RefundedMinorAbsolute) / 100m,
+            Outstanding = invoicesResult.Value.Outstanding,
+            DisputeCount = historyResult.Value.DisputeCount,
+            InvoiceCount = invoicesResult.Value.InvoiceCount
+        };
+
+        await _distributedCache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(summary),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = FinancialSummaryCacheTtl
+            },
+            HttpContext.RequestAborted);
+
+        return Results.Ok(summary);
+    }
+
+    [HttpGet("organizations/{organizationId:guid}/disputes")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> GetOrganizationDisputes(
+        [FromRoute] Guid organizationId,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null)
+    {
+        var historyResult = await _paymentHistoryService.GetPaymentEventsForEntityAsync(
+            organizationId,
+            fromUtc,
+            toUtc,
+            Math.Clamp(pageSize, 1, MaxPageSize),
+            cursor,
+            disputesOnly: true);
+
+        if (historyResult.IsFailure)
+            return historyResult.ToProblemDetails();
+
+        return Results.Ok(historyResult.Value);
+    }
+
+    [HttpGet("organizations/{organizationId:guid}/payments")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> GetOrganizationPayments(
+        [FromRoute] Guid organizationId,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null)
+    {
+        var historyResult = await _paymentHistoryService.GetPaymentEventsForEntityAsync(
+            organizationId,
+            fromUtc,
+            toUtc,
+            Math.Clamp(pageSize, 1, MaxPageSize),
+            cursor,
+            disputesOnly: false);
+
+        if (historyResult.IsFailure)
+            return historyResult.ToProblemDetails();
+
+        return Results.Ok(historyResult.Value);
     }
 
     [HttpGet("invites")]

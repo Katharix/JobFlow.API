@@ -214,4 +214,22 @@ public class PaymentProfileService : IPaymentProfileService
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
+
+    public async Task<Result> SetDelinquentByProviderCustomerAsync(PaymentProvider provider, string providerCustomerId, bool isDelinquent)
+    {
+        if (string.IsNullOrWhiteSpace(providerCustomerId))
+            return Result.Failure(PaymentProfileErrors.ProviderCustomerIdMissing);
+
+        var profile = await paymentProfiles.Query()
+            .FirstOrDefaultAsync(p => p.Provider == provider && p.ProviderCustomerId == providerCustomerId.Trim());
+
+        if (profile == null)
+            return Result.Failure(PaymentProfileErrors.NotFound);
+
+        profile.IsDelinquent = isDelinquent;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success();
+    }
 }

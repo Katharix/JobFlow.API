@@ -13,5 +13,15 @@ public interface IJobService
     Task<Result<Job>> UpsertJobAsync(Job model, Guid organizationId);
     Task<Result> DeleteJobAsync(Guid id);
     Task<Result<IEnumerable<JobDto>>> GetJobsAsync(Guid organizationId);
+    Task<Result<CursorPagedResponseDto<JobDto>>> GetJobsPagedAsync(
+        Guid organizationId,
+        int pageSize,
+        string? cursor,
+        string? statusKey,
+        Guid? clientId,
+        Guid? assigneeId,
+        string? search,
+        string? sortBy,
+        string? sortDirection);
     Task<Result<Job>> UpdateJobStatusAsync(Guid organizationId, Guid jobId, JobLifecycleStatus status);
 }

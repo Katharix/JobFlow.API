@@ -26,6 +26,9 @@ public class Organization : Entity
     public DateTimeOffset? OnboardingTrackSelectedAt { get; set; }
     public DateTimeOffset? OnboardingPresetAppliedAt { get; set; }
     public string? IndustryKey { get; set; }
+    public string? SubscriptionStatus { get; set; }
+    public string? SubscriptionPlanName { get; set; }
+    public DateTime? SubscriptionExpiresAt { get; set; }
 
     public bool CanAcceptPayments =>
         (PaymentProvider == PaymentProvider.Stripe &&
@@ -38,9 +41,6 @@ public class Organization : Entity
     public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
-
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? SubscriptionPlanName { get; set; }
 
     public ICollection<OrganizationOnboardingStep> OnboardingSteps { get; set; } =
         new List<OrganizationOnboardingStep>();
