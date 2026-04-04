@@ -3,9 +3,10 @@ name: Print Versions
 on:
   workflow_dispatch:
   workflow_run:
-    types: [completed]
+    types: [requested, in_progress, completed]
     workflows:
       - CI
+      - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 
 concurrency:
   group: ${{ github.workflow }}
@@ -19,7 +20,7 @@ permissions:
 jobs:
   print-version:
     name: Print App Versions
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.name == 'CI' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.conclusion == 'success') || (github.event.workflow_run.name == 'Build and deploy ASP.Net Core app to Azure Web App - jobflow-api' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) }}
     runs-on: ubuntu-latest
     environment: Version Table
 
@@ -77,27 +78,47 @@ jobs:
             const stagingWf = findWorkflow('staging_jobflow-api.yml');
             const prodWf = findWorkflow('master_jobflow-api.yml');
 
-            const latestRunFor = async (workflowId) => {
+            const recentRunsFor = async (workflowId) => {
               if (!workflowId) return null;
               const response = await github.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
                 workflow_id: workflowId,
-                per_page: 10
+                per_page: 50
               });
-              return response.data.workflow_runs && response.data.workflow_runs.length > 0
-                ? response.data.workflow_runs[0]
-                : null;
+              return response.data.workflow_runs || [];
             };
 
-            const stagingRun = await latestRunFor(stagingWf && stagingWf.id);
-            const prodRun = await latestRunFor(prodWf && prodWf.id);
+            const isPendingApproval = (run) => run
+              && ['waiting', 'queued', 'in_progress', 'pending', 'requested'].includes(run.status);
+
+            const pickStagingRun = (runs, sha) => {
+              if (!runs || runs.length === 0) return null;
+              return runs.find((run) => sha && run.head_sha === sha) || runs[0];
+            };
+
+            const pickProdRun = (runs, sha) => {
+              if (!runs || runs.length === 0) return null;
+
+              return (
+                runs.find((run) => sha && run.head_sha === sha && isPendingApproval(run)) ||
+                runs.find((run) => sha && run.head_sha === sha) ||
+                runs.find((run) => isPendingApproval(run)) ||
+                runs[0]
+              );
+            };
+
+            const stagingRuns = await recentRunsFor(stagingWf && stagingWf.id);
+            const prodRuns = await recentRunsFor(prodWf && prodWf.id);
 
             const sourceSha =
               context.payload.workflow_run?.head_sha ||
               context.sha ||
-              stagingRun?.head_sha ||
-              prodRun?.head_sha;
+              stagingRuns[0]?.head_sha ||
+              prodRuns[0]?.head_sha;
+
+            const stagingRun = pickStagingRun(stagingRuns, sourceSha);
+            const prodRun = pickProdRun(prodRuns, sourceSha);
 
             let prCell = 'n/a';
             let ticketCell = 'n/a';
