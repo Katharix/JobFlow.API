@@ -33,12 +33,21 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
 
-            const toUtc = (iso) => {
+            const toCentralUs = (iso) => {
               if (!iso) return 'n/a';
-              return new Date(iso).toISOString().replace('T', ' ').replace('.000Z', ' UTC');
+              return new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              }).format(new Date(iso)).replace(',', '');
             };
 
-            const formatRunCell = (run) => {
+            const formatEnvCell = (run) => {
               if (!run) return 'n/a';
 
               const when = run.conclusion === 'success'
@@ -47,9 +56,33 @@ jobs:
 
               const state = run.conclusion === 'success'
                 ? 'Deployed'
-                : (run.status === 'waiting' ? 'Awaiting approval' : (run.status || run.conclusion || 'Unknown'));
+                : (run.status === 'waiting' ? 'Awaiting approval' : (run.conclusion || run.status || 'Unknown'));
 
-              return `[${state} - ${toUtc(when)}](${run.html_url})`;
+              return `[${state}](${run.html_url})<br/>${toCentralUs(when)}`;
+            };
+
+            const formatApprovalCell = (run) => {
+              if (!run) return 'n/a';
+
+              if (run.status === 'waiting') {
+                return `[Approve Deploy](${run.html_url})`;
+              }
+
+              if (run.conclusion === 'success') {
+                return `Approved`;
+              }
+
+              if (run.status === 'in_progress' || run.status === 'queued' || run.status === 'pending') {
+                return `[Pending Approval](${run.html_url})`;
+              }
+
+              return `[${run.conclusion || run.status || 'Unknown'}](${run.html_url})`;
+            };
+
+            const extractTicket = (text) => {
+              if (!text) return 'n/a';
+              const match = text.match(/\b(AB#\d+)\b/i);
+              return match ? match[1].toUpperCase() : 'n/a';
             };
 
             const workflows = await github.paginate(github.rest.actions.listRepoWorkflows, {
@@ -85,6 +118,7 @@ jobs:
               prodRun?.head_sha;
 
             let prCell = 'n/a';
+            let ticketCell = 'n/a';
             if (sourceSha) {
               const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
                 owner,
@@ -94,16 +128,37 @@ jobs:
 
               if (prs.data.length > 0) {
                 const pr = prs.data[0];
-                prCell = `[#${pr.number}](${pr.html_url})`;
+                prCell = `[#${pr.number}](${pr.html_url})<br/>${pr.title}`;
+                ticketCell = extractTicket(pr.title);
               }
             }
 
+            const buildTime = toCentralUs(
+              stagingRun?.run_started_at ||
+              stagingRun?.created_at ||
+              prodRun?.run_started_at ||
+              prodRun?.created_at
+            );
+
+            const versionCell = sourceSha
+              ? `[${sourceSha.slice(0, 8)}](https://github.com/${owner}/${repo}/commit/${sourceSha})`
+              : 'n/a';
+
             const table = [
-              '## API Deployment Table',
+              '# Version Table',
               '',
-              '| PR | Staging | Production |',
-              '| --- | --- | --- |',
-              `| ${prCell} | ${formatRunCell(stagingRun)} | ${formatRunCell(prodRun)} |`
+              '_All times are in Central US Time_',
+              '',
+              '<details open>',
+              '<summary>api</summary>',
+              '',
+              '### api',
+              '',
+              '| Version | PR | Ticket | Build Time | staging | approve deploy | production |',
+              '| --- | --- | --- | --- | --- | --- | --- |',
+              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatApprovalCell(prodRun)} | ${formatEnvCell(prodRun)} |`,
+              '',
+              '</details>'
             ].join('\n');
 
             core.setOutput('table', table);
