@@ -26,5 +26,7 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .IsRequired();
 
         builder.HasIndex(i => i.JobId);
+        builder.HasIndex(i => new { i.OrganizationId, i.CreatedAt });
+        builder.HasIndex(i => new { i.OrganizationId, i.Status });
     }
 }

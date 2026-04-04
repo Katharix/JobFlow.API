@@ -104,6 +104,14 @@ public class StripeWebhookService : IStripeWebhookService
                     break;
                 }
 
+            case StripeEvents.InvoicePaymentFailed:
+                {
+                    var invoice = Deserialize<Invoice>(stripeEvent);
+                    if (invoice != null)
+                        await HandleInvoicePaymentFailedAsync(invoice, stripeEvent.Type);
+                    break;
+                }
+
             case StripeEvents.ChargeRefunded:
                 {
                     var charge = Deserialize<Charge>(stripeEvent);
@@ -148,10 +156,28 @@ public class StripeWebhookService : IStripeWebhookService
                 {
                     var subscription = Deserialize<Subscription>(stripeEvent);
                     if (subscription != null)
+                    {
                         await _subscriptionRecordService.CancelAsync(
                             subscription.Id,
                             DateTime.UtcNow
                         );
+
+                        if (TryGetSubscriptionOwnerMetadata(subscription, out var ownerId, out var ownerType)
+                            && ownerType.Equals(PaymentEntityType.Organization.ToString(), StringComparison.OrdinalIgnoreCase)
+                            && Guid.TryParse(ownerId, out var orgId))
+                        {
+                            await _organizationService.UpdateSubscriptionStateAsync(orgId, "canceled", null, DateTime.UtcNow);
+                        }
+                    }
+                    break;
+                }
+
+            case StripeEvents.CustomerSubscriptionPaused:
+            case StripeEvents.CustomerSubscriptionResumed:
+                {
+                    var subscription = Deserialize<Subscription>(stripeEvent);
+                    if (subscription != null)
+                        await HandleSubscriptionUpdatedAsync(subscription);
                     break;
                 }
 
@@ -210,6 +236,45 @@ public class StripeWebhookService : IStripeWebhookService
                         await HandlePaymentMethodDetachedAsync(method);
                     break;
                 }
+
+            case StripeEvents.ChargeDisputeCreated:
+            case StripeEvents.ChargeDisputeUpdated:
+            case StripeEvents.ChargeDisputeClosed:
+                {
+                    var dispute = Deserialize<Dispute>(stripeEvent);
+                    if (dispute != null)
+                        await HandleDisputeAsync(dispute, stripeEvent.Type);
+                    break;
+                }
+
+            case StripeEvents.PayoutCreated:
+            case StripeEvents.PayoutPaid:
+            case StripeEvents.PayoutFailed:
+                {
+                    var payout = Deserialize<Payout>(stripeEvent);
+                    if (payout != null)
+                        await HandleLedgerEventAsync(
+                            stripeEvent.Type,
+                            payout.Id,
+                            payout.Amount,
+                            payout.Currency,
+                            payout.Status);
+                    break;
+                }
+
+            case StripeEvents.TransferCreated:
+            case StripeEvents.TransferFailed:
+                {
+                    var transfer = Deserialize<Transfer>(stripeEvent);
+                    if (transfer != null)
+                        await HandleLedgerEventAsync(
+                            stripeEvent.Type,
+                            transfer.Id,
+                            transfer.Amount,
+                            transfer.Currency,
+                            transfer.Reversed ? "reversed" : "created");
+                    break;
+                }
         }
     }
 
@@ -265,10 +330,47 @@ public class StripeWebhookService : IStripeWebhookService
             planName
         );
 
+        if (Enum.TryParse<PaymentEntityType>(ownerType, true, out var parsedOwnerType)
+            && parsedOwnerType == PaymentEntityType.Organization
+            && Guid.TryParse(ownerId, out var organizationId))
+        {
+            var periodEndUtc = ResolveSubscriptionExpiryUtc(subscription);
+            await _organizationService.UpdateSubscriptionStateAsync(organizationId, subscription.Status, planName, periodEndUtc);
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(
+                PaymentProvider.Stripe,
+                paymentCustomerId,
+                IsDelinquentStatus(subscription.Status));
+        }
+
         if (existingSubscription.IsFailure)
         {
             await TrySendOrganizationWelcomeAsync(ownerId, ownerType, subscription.Status, subscription.Id, StripeEvents.CheckoutSessionCompleted);
         }
+    }
+
+    private async Task HandleInvoicePaymentFailedAsync(Invoice invoice, string eventType)
+    {
+        var customerId = invoice.CustomerId;
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(PaymentProvider.Stripe, customerId, true);
+        }
+
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = Guid.Empty,
+            StripeInvoiceId = invoice.Id,
+            CustomerId = customerId,
+            AmountPaid = invoice.AmountDue,
+            Currency = invoice.Currency ?? "usd",
+            Status = invoice.Status ?? "payment_failed",
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
     }
 
     private async Task HandlePaymentIntentAsync(PaymentIntent intent)
@@ -413,14 +515,38 @@ public class StripeWebhookService : IStripeWebhookService
 
         subResult.Value.Status = subscription.Status;
         subResult.Value.ProviderPriceId = subscription.Items.Data.First().Price.Id;
+        subResult.Value.PlanName = subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name")
+                       ?? subscription.Items?.Data?.FirstOrDefault()?.Price?.Nickname
+                       ?? subResult.Value.PlanName;
 
         await _subscriptionRecordService.UpdateAsync(subResult.Value);
 
+        if (TryGetSubscriptionOwnerMetadata(subscription, out var ownerId, out var ownerType)
+            && ownerType.Equals(PaymentEntityType.Organization.ToString(), StringComparison.OrdinalIgnoreCase)
+            && Guid.TryParse(ownerId, out var organizationId))
+        {
+            await _organizationService.UpdateSubscriptionStateAsync(
+                organizationId,
+                subscription.Status,
+                subscription.Items?.Data?.FirstOrDefault()?.Price?.Metadata?.GetValueOrDefault("plan-name")
+                ?? subscription.Items?.Data?.FirstOrDefault()?.Price?.Nickname,
+                ResolveSubscriptionExpiryUtc(subscription)
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(subscription.CustomerId))
+        {
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(
+                PaymentProvider.Stripe,
+                subscription.CustomerId,
+                IsDelinquentStatus(subscription.Status));
+        }
+
         if (!IsSubscriptionCompleteStatus(previousStatus)
             && IsSubscriptionCompleteStatus(subscription.Status)
-            && TryGetSubscriptionOwnerMetadata(subscription, out var ownerId, out var ownerType))
+            && TryGetSubscriptionOwnerMetadata(subscription, out var welcomeOwnerId, out var welcomeOwnerType))
         {
-            await TrySendOrganizationWelcomeAsync(ownerId, ownerType, subscription.Status, subscription.Id, StripeEvents.CustomerSubscriptionUpdated);
+            await TrySendOrganizationWelcomeAsync(welcomeOwnerId, welcomeOwnerType, subscription.Status, subscription.Id, StripeEvents.CustomerSubscriptionUpdated);
         }
     }
 
@@ -466,6 +592,18 @@ public class StripeWebhookService : IStripeWebhookService
             subscription.Status,
             planName
         );
+
+        if (Enum.TryParse<PaymentEntityType>(ownerType, true, out var parsedOwnerType)
+            && parsedOwnerType == PaymentEntityType.Organization
+            && Guid.TryParse(ownerId, out var organizationId))
+        {
+            var periodEndUtc = ResolveSubscriptionExpiryUtc(subscription);
+            await _organizationService.UpdateSubscriptionStateAsync(organizationId, subscription.Status, planName, periodEndUtc);
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(
+                PaymentProvider.Stripe,
+                paymentCustomerId,
+                IsDelinquentStatus(subscription.Status));
+        }
 
         if (existingSubscription.IsFailure)
         {
@@ -515,6 +653,24 @@ public class StripeWebhookService : IStripeWebhookService
     {
         return string.Equals(status, "active", StringComparison.OrdinalIgnoreCase)
                || string.Equals(status, "trialing", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsDelinquentStatus(string? status)
+    {
+        return string.Equals(status, "past_due", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "unpaid", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "incomplete", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(status, "incomplete_expired", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DateTime? ResolveSubscriptionExpiryUtc(Subscription subscription)
+    {
+        var periodEnd = subscription.Items?.Data?.FirstOrDefault()?.CurrentPeriodEnd
+                        ?? subscription.CancelAt
+                        ?? subscription.EndedAt
+                        ?? subscription.TrialEnd;
+
+        return periodEnd?.ToUniversalTime();
     }
 
     private static bool TryGetSubscriptionOwnerMetadata(
@@ -567,6 +723,49 @@ public class StripeWebhookService : IStripeWebhookService
     private async Task HandlePaymentMethodDetachedAsync(PaymentMethod paymentMethod)
     {
         // Remove payment method from profile if needed
+    }
+
+    private async Task HandleDisputeAsync(Dispute dispute, string eventType)
+    {
+        var customerId = dispute.Charge?.CustomerId;
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            await _paymentProfileService.SetDelinquentByProviderCustomerAsync(PaymentProvider.Stripe, customerId, true);
+        }
+
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = Guid.Empty,
+            StripePaymentIntentId = dispute.PaymentIntent?.Id,
+            CustomerId = customerId,
+            AmountPaid = dispute.Amount,
+            Currency = dispute.Currency ?? "usd",
+            Status = dispute.Status,
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
+    }
+
+    private async Task HandleLedgerEventAsync(string eventType, string providerId, long amount, string currency, string status)
+    {
+        await _paymentHistoryService.LogAsync(new JobFlow.Domain.Models.PaymentHistory
+        {
+            Id = Guid.NewGuid(),
+            PaymentProvider = PaymentProvider.Stripe,
+            EntityType = PaymentEntityType.Organization,
+            EntityId = Guid.Empty,
+            StripePaymentIntentId = providerId,
+            AmountPaid = amount,
+            Currency = currency ?? "usd",
+            Status = status,
+            EventType = eventType,
+            PaidAt = DateTime.UtcNow,
+            RawEventJson = "{}"
+        });
     }
 
     private static T? Deserialize<T>(Event stripeEvent) where T : StripeEntity

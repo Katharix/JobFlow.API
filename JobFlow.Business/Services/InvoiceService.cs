@@ -1,10 +1,12 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using JobFlow.Business.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -90,6 +92,92 @@ public class InvoiceService : IInvoiceService
         return Result<IEnumerable<Invoice>>.Success(list.AsEnumerable());
     }
 
+    public async Task<Result<CursorPagedResponseDto<Invoice>>> GetInvoicesByOrganizationPagedAsync(
+        Guid organizationId,
+        int pageSize,
+        string? cursor,
+        string? statusFilter,
+        string? search,
+        string? sortBy,
+        string? sortDirection)
+    {
+        var size = Math.Clamp(pageSize, 1, 100);
+        var query = invoices.Query()
+            .Include(i => i.LineItems)
+            .Include(i => i.OrganizationClient)
+            .ThenInclude(c => c.Organization)
+            .Where(i => i.OrganizationId == organizationId);
+
+        if (!string.IsNullOrWhiteSpace(statusFilter)
+            && Enum.TryParse<InvoiceStatus>(statusFilter, true, out var parsedStatus))
+        {
+            query = query.Where(i => i.Status == parsedStatus);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(i =>
+                EF.Functions.Like(i.InvoiceNumber, $"%{term}%")
+                || EF.Functions.Like(i.OrganizationClient.FirstName, $"%{term}%")
+                || EF.Functions.Like(i.OrganizationClient.LastName, $"%{term}%")
+                || (i.OrganizationClient.EmailAddress != null && EF.Functions.Like(i.OrganizationClient.EmailAddress, $"%{term}%")));
+        }
+
+        var desc = !string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = (sortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "duedate" => desc ? query.OrderByDescending(i => i.DueDate).ThenByDescending(i => i.Id) : query.OrderBy(i => i.DueDate).ThenBy(i => i.Id),
+            "invoicedate" => desc ? query.OrderByDescending(i => i.InvoiceDate).ThenByDescending(i => i.Id) : query.OrderBy(i => i.InvoiceDate).ThenBy(i => i.Id),
+            "totalamount" => desc ? query.OrderByDescending(i => i.TotalAmount).ThenByDescending(i => i.Id) : query.OrderBy(i => i.TotalAmount).ThenBy(i => i.Id),
+            "status" => desc ? query.OrderByDescending(i => i.Status).ThenByDescending(i => i.Id) : query.OrderBy(i => i.Status).ThenBy(i => i.Id),
+            _ => desc ? query.OrderByDescending(i => i.CreatedAt).ThenByDescending(i => i.Id) : query.OrderBy(i => i.CreatedAt).ThenBy(i => i.Id)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
+        {
+            query = query.Where(i => i.CreatedAt < cursorCreatedAt || (i.CreatedAt == cursorCreatedAt && i.Id.CompareTo(cursorId) < 0));
+        }
+
+        var batch = await query
+            .Take(size + 1)
+            .ToListAsync();
+
+        var hasMore = batch.Count > size;
+        var items = hasMore ? batch.Take(size).ToList() : batch;
+
+        var nextCursor = hasMore && items.Count > 0
+            ? CursorToken.Build(items[^1].CreatedAt, items[^1].Id)
+            : null;
+
+        return Result<CursorPagedResponseDto<Invoice>>.Success(new CursorPagedResponseDto<Invoice>
+        {
+            Items = items,
+            NextCursor = nextCursor,
+            TotalCount = totalCount
+        });
+    }
+
+    public async Task<Result<InvoiceAggregateDto>> GetInvoiceAggregatesByOrganizationAsync(Guid organizationId)
+    {
+        var baseQuery = invoices.Query()
+            .AsNoTracking()
+            .Where(i => i.OrganizationId == organizationId);
+
+        var invoiceCount = await baseQuery.CountAsync();
+        var outstanding = await baseQuery
+            .Where(i => i.Status != InvoiceStatus.Paid)
+            .SumAsync(i => (decimal?)(i.TotalAmount - i.AmountPaid)) ?? 0m;
+
+        return Result<InvoiceAggregateDto>.Success(new InvoiceAggregateDto
+        {
+            InvoiceCount = invoiceCount,
+            Outstanding = outstanding
+        });
+    }
+
     public async Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model)
     {
         var exists = await invoices.Query().AnyAsync(i => i.Id == model.Id);
@@ -142,6 +230,7 @@ public class InvoiceService : IInvoiceService
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
+
 
     public async Task MarkInvoiceSentAsync(Guid invoiceId)
     {

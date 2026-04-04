@@ -26,4 +26,5 @@ public interface IPaymentProfileService
         string encryptedRefreshToken, DateTime tokenExpiresAtUtc);
 
     Task<Result> DisconnectOrganizationProviderAsync(Guid organizationId, PaymentProvider provider);
+    Task<Result> SetDelinquentByProviderCustomerAsync(PaymentProvider provider, string providerCustomerId, bool isDelinquent);
 }

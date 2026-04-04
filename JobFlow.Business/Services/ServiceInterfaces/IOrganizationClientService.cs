@@ -2,6 +2,8 @@
 
 namespace JobFlow.Business.Services.ServiceInterfaces;
 
+using JobFlow.Business.Models.DTOs;
+
 public interface IOrganizationClientService
 {
     Task<Result> DeleteClient(Guid clientId);
@@ -9,6 +11,14 @@ public interface IOrganizationClientService
     Task<Result<OrganizationClient>> GetClientById(Guid clientId);
     Task<Result<IEnumerable<OrganizationClient>>> GetAllClients();
     Task<Result<IEnumerable<OrganizationClient>>> GetAllClientsByOrganizationId(Guid organizationId);
+    Task<Result<CursorPagedResponseDto<OrganizationClient>>> GetClientsByOrganizationPagedAsync(
+        Guid organizationId,
+        int pageSize,
+        string? cursor,
+        bool missingEmailOnly,
+        string? search,
+        string? sortBy,
+        string? sortDirection);
     Task<Result<OrganizationClient>> GetOrganizationClientByEmailAsync(string emailAddress);
     Task<Result<IReadOnlyList<OrganizationClient>>> GetOrganizationClientsByEmailAsync(string emailAddress);
     Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model);

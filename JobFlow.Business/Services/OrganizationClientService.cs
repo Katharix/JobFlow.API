@@ -1,7 +1,9 @@
 ﻿using JobFlow.Business.DI;
 using JobFlow.Business.ModelErrors;
+using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
+using JobFlow.Business.Utilities;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using MapsterMapper;
@@ -76,6 +78,69 @@ public class OrganizationClientService : IOrganizationClientService
         var clients = await organizationClient.Query().Where(client => client.OrganizationId == organizationId)
             .ToListAsync();
         return Result.Success<IEnumerable<OrganizationClient>>(clients);
+    }
+
+    public async Task<Result<CursorPagedResponseDto<OrganizationClient>>> GetClientsByOrganizationPagedAsync(
+        Guid organizationId,
+        int pageSize,
+        string? cursor,
+        bool missingEmailOnly,
+        string? search,
+        string? sortBy,
+        string? sortDirection)
+    {
+        var size = Math.Clamp(pageSize, 1, 100);
+        var query = organizationClient.Query()
+            .AsNoTracking()
+            .Where(client => client.OrganizationId == organizationId);
+
+        if (missingEmailOnly)
+        {
+            query = query.Where(c => c.EmailAddress == null || c.EmailAddress.Trim() == string.Empty);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(c =>
+                EF.Functions.Like(c.FirstName, $"%{term}%")
+                || EF.Functions.Like(c.LastName, $"%{term}%")
+                || (c.EmailAddress != null && EF.Functions.Like(c.EmailAddress, $"%{term}%"))
+                || (c.PhoneNumber != null && EF.Functions.Like(c.PhoneNumber, $"%{term}%")));
+        }
+
+        var desc = !string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = (sortBy ?? string.Empty).ToLowerInvariant() switch
+        {
+            "firstname" => desc ? query.OrderByDescending(c => c.FirstName).ThenByDescending(c => c.Id) : query.OrderBy(c => c.FirstName).ThenBy(c => c.Id),
+            "lastname" => desc ? query.OrderByDescending(c => c.LastName).ThenByDescending(c => c.Id) : query.OrderBy(c => c.LastName).ThenBy(c => c.Id),
+            "email" => desc ? query.OrderByDescending(c => c.EmailAddress).ThenByDescending(c => c.Id) : query.OrderBy(c => c.EmailAddress).ThenBy(c => c.Id),
+            _ => desc ? query.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id) : query.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
+        {
+            query = query.Where(c => c.CreatedAt < cursorCreatedAt || (c.CreatedAt == cursorCreatedAt && c.Id.CompareTo(cursorId) < 0));
+        }
+
+        var batch = await query
+            .Take(size + 1)
+            .ToListAsync();
+
+        var hasMore = batch.Count > size;
+        var items = hasMore ? batch.Take(size).ToList() : batch;
+        var nextCursor = hasMore && items.Count > 0
+            ? CursorToken.Build(items[^1].CreatedAt, items[^1].Id)
+            : null;
+
+        return Result.Success(new CursorPagedResponseDto<OrganizationClient>
+        {
+            Items = items,
+            NextCursor = nextCursor,
+            TotalCount = totalCount
+        });
     }
 
     public async Task<Result<OrganizationClient>> GetClientById(Guid clientId)
@@ -191,4 +256,5 @@ public class OrganizationClientService : IOrganizationClientService
 
         return Result.Success($"{clientToRestore.ClientFullName()} was successfully restored.");
     }
+
 }
