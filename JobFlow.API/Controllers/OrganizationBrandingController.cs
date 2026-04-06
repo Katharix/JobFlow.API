@@ -2,6 +2,7 @@
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -17,6 +18,7 @@ public class OrganizationBrandingController : ControllerBase
         _brandingService = brandingService;
     }
 
+    [AllowAnonymous]
     [HttpGet("{organizationId}")]
     public async Task<IResult> GetBranding(Guid organizationId)
     {
