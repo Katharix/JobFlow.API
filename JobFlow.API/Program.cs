@@ -246,6 +246,11 @@ builder.Services
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o =>
+{
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 // ============================================================

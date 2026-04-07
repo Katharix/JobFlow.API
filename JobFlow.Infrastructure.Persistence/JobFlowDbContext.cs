@@ -34,6 +34,8 @@ public class JobFlowDbContext : DbContext
     public DbSet<ClientImportUploadSession> ClientImportUploadSessions { get; set; }
     public DbSet<ClientImportUploadRow> ClientImportUploadRows { get; set; }
     public DbSet<DataExportJob> DataExportJobs { get; set; }
+    public DbSet<HelpArticle> HelpArticles { get; set; }
+    public DbSet<ChangelogEntry> ChangelogEntries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
