@@ -246,6 +246,11 @@ builder.Services
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o =>
+{
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 builder.Services.AddValidatorsFromAssemblyContaining<OrganizationValidator>();
 
 // ============================================================
@@ -495,6 +500,9 @@ builder.Services.AddScoped<IFollowUpJobScheduler, FollowUpJobScheduler>();
 builder.Services.AddScoped<ClientImportCsvService>();
 builder.Services.AddScoped<ClientImportProcessor>();
 builder.Services.AddScoped<ClientImportUploadSessionService>();
+builder.Services.AddScoped<EmployeeImportCsvService>();
+builder.Services.AddScoped<EmployeeImportProcessor>();
+builder.Services.AddScoped<EmployeeImportUploadSessionService>();
 builder.Services.AddScoped<DataExportBuilderService>();
 builder.Services.AddScoped<DataExportJobProcessor>();
 builder.Services.AddJobFlowHttpClients();

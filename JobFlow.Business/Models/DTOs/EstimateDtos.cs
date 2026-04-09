@@ -4,6 +4,7 @@ namespace JobFlow.Business.Models.DTOs;
 
 public sealed record EstimateLineItemDto(
     Guid Id,
+    Guid? PriceBookItemId,
     string Name,
     string? Description,
     decimal Quantity,
@@ -32,6 +33,7 @@ public sealed record EstimateDto(
 );
 
 public sealed record CreateEstimateLineItemRequest(
+    Guid? PriceBookItemId,
     string Name,
     string? Description,
     decimal Quantity,

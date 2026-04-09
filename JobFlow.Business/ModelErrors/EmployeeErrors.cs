@@ -6,4 +6,7 @@ public static class EmployeeErrors
 
     public static readonly Error InvalidOrganization =
         Error.Validation("Employee.InvalidOrganization", "The specified organization does not exist.");
+
+    public static readonly Error InvalidRequest =
+        Error.Validation("Employee.InvalidRequest", "The request is invalid.");
 }

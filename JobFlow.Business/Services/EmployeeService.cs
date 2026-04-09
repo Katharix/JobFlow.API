@@ -120,4 +120,38 @@ public class EmployeeService : IEmployeeService
             await _employeeRepo.ExistsAsync(e => e.Email == email.Trim() && e.OrganizationId == organizationId);
         return Result.Success(employeeExist);
     }
+
+    public async Task<Result<List<EmployeeDto>>> BulkCreateAsync(Guid organizationId, List<CreateEmployeeRequest> requests)
+    {
+        if (requests.Count == 0)
+            return Result.Failure<List<EmployeeDto>>(EmployeeErrors.InvalidRequest);
+
+        var org = await _orgRepo.Query().Include(e => e.EmployeeRoles)
+            .FirstOrDefaultAsync(e => e.Id == organizationId);
+        if (org == null)
+            return Result.Failure<List<EmployeeDto>>(EmployeeErrors.InvalidOrganization);
+
+        var created = new List<Employee>();
+        foreach (var request in requests)
+        {
+            var employee = new Employee
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                UserId = request.UserId,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                RoleId = request.RoleId,
+                IsActive = true
+            };
+
+            await _employeeRepo.AddAsync(employee);
+            created.Add(employee);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return created.Select(e => e.ToDto()).ToList();
+    }
 }
