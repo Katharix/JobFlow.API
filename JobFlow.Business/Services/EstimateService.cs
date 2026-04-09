@@ -95,6 +95,7 @@ public class EstimateService : IEstimateService
         {
             estimate.LineItems.Add(new EstimateLineItem
             {
+                PriceBookItemId = li.PriceBookItemId,
                 Name = li.Name,
                 Description = li.Description,
                 Quantity = li.Quantity,
@@ -134,6 +135,7 @@ public class EstimateService : IEstimateService
         {
             estimate.LineItems.Add(new EstimateLineItem
             {
+                PriceBookItemId = li.PriceBookItemId,
                 Name = li.Name,
                 Description = li.Description,
                 Quantity = li.Quantity,
@@ -346,7 +348,7 @@ public class EstimateService : IEstimateService
             e.SentAt,
             e.PublicToken,
             ToOrganizationClientDto(e),
-            e.LineItems.Select(li => new EstimateLineItemDto(li.Id, li.Name, li.Description, li.Quantity, li.UnitPrice, li.Total)).ToList()
+            e.LineItems.Select(li => new EstimateLineItemDto(li.Id, li.PriceBookItemId, li.Name, li.Description, li.Quantity, li.UnitPrice, li.Total)).ToList()
         );
 
     private static EstimateDto ToDtoWithoutLineItems(Estimate e) =>

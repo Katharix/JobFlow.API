@@ -21,6 +21,7 @@ public static class InvoiceMappingExtensions
             LineItems = request.LineItems.Select(li => new InvoiceLineItem
             {
                 Id = Guid.NewGuid(),
+                PriceBookItemId = li.PriceBookItemId,
                 Description = li.Description,
                 Quantity = li.Quantity,
                 UnitPrice = li.UnitPrice
@@ -83,6 +84,7 @@ public static class InvoiceMappingExtensions
     {
         return new InvoiceLineItemDto
         {
+            PriceBookItemId = item.PriceBookItemId,
             Description = item.Description,
             Quantity = item.Quantity,
             UnitPrice = item.UnitPrice,

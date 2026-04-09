@@ -10,4 +10,5 @@ public interface IEmployeeService
     Task<Result<EmployeeDto>> GetByIdAsync(Guid employeeId);
     Task<Result<List<EmployeeDto>>> GetByOrganizationIdAsync(Guid organizationId);
     Task<Result<bool>> EmployeeExistByEmailAsync(Guid organizationId, string email);
+    Task<Result<List<EmployeeDto>>> BulkCreateAsync(Guid organizationId, List<CreateEmployeeRequest> requests);
 }

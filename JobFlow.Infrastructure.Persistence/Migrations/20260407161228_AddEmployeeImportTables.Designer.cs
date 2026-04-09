@@ -4,6 +4,7 @@ using JobFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    partial class JobFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260407161228_AddEmployeeImportTables")]
+    partial class AddEmployeeImportTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1544,9 +1547,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid?>("PriceBookItemId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
@@ -1565,8 +1565,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EstimateId");
-
-                    b.HasIndex("PriceBookItemId");
 
                     b.ToTable("EstimateLineItems", (string)null);
                 });
@@ -2155,9 +2153,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("PriceBookItemId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -2174,8 +2169,6 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
-
-                    b.HasIndex("PriceBookItemId");
 
                     b.ToTable("InvoiceLineItem", (string)null);
                 });
@@ -4053,13 +4046,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JobFlow.Domain.Models.PriceBookItem", "PriceBookItem")
-                        .WithMany()
-                        .HasForeignKey("PriceBookItemId");
-
                     b.Navigation("Estimate");
-
-                    b.Navigation("PriceBookItem");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.EstimateRevisionAttachment", b =>
@@ -4156,13 +4143,7 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JobFlow.Domain.Models.PriceBookItem", "PriceBookItem")
-                        .WithMany()
-                        .HasForeignKey("PriceBookItemId");
-
                     b.Navigation("Invoice");
-
-                    b.Navigation("PriceBookItem");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.Job", b =>

@@ -433,6 +433,7 @@ public class InvoiceService : IInvoiceService
             LineItems = estimate.LineItems.Select(li => new InvoiceLineItem
             {
                 Id = Guid.NewGuid(),
+                PriceBookItemId = li.PriceBookItemId,
                 Description = string.IsNullOrWhiteSpace(li.Description) ? li.Name : li.Description,
                 Quantity = (int)Math.Round(li.Quantity, MidpointRounding.AwayFromZero),
                 UnitPrice = li.UnitPrice
