@@ -33,6 +33,14 @@ public class PriceBookController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [HttpGet("organization")]
+    public async Task<IResult> GetAllByOrganization()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _service.GetAllAsync(organizationId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
     [HttpPost]
     public async Task<IResult> Create([FromBody] CreatePriceBookItemRequest dto)
     {
