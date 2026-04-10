@@ -4,6 +4,8 @@ public class OrganizationRegisterDto
 {
     public Guid? Id { get; set; }
     public string? OrganizationName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string? EmailAddress { get; set; }
     public string? FireBaseUid { get; set; }
     public Guid? OrganizationTypeId { get; set; }

@@ -20,6 +20,8 @@ public class OrganizationController : ControllerBase
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly IUserService _userService;
+    private readonly IEmployeeService _employeeService;
+    private readonly IEmployeeRoleService _employeeRoleService;
     private readonly ILogger<OrganizationController> _logger;
 
     public OrganizationController(
@@ -27,6 +29,8 @@ public class OrganizationController : ControllerBase
         IUserService userService,
         IPaymentProfileService paymentProfileService,
         IOrganizationBrandingService organizationBrandingService,
+        IEmployeeService employeeService,
+        IEmployeeRoleService employeeRoleService,
         ILogger<OrganizationController> logger
     )
     {
@@ -34,6 +38,8 @@ public class OrganizationController : ControllerBase
         _userService = userService;
         _paymentProfileService = paymentProfileService;
         _organizationBrandingService = organizationBrandingService;
+        _employeeService = employeeService;
+        _employeeRoleService = employeeRoleService;
         _logger = logger;
     }
 
@@ -54,6 +60,16 @@ public class OrganizationController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [HttpPut]
+    [Route("update")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IResult> UpdateOrganization([FromBody] UpdateOrganizationRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _organizationService.UpdateOrganizationAsync(organizationId, request);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
     [HttpPost]
     [Route("register")]
     public async Task<IResult> RegisterOrganization(OrganizationRegisterDto model)
@@ -71,6 +87,8 @@ public class OrganizationController : ControllerBase
 
             var user = new User
             {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
                 Email = model.EmailAddress,
                 OrganizationId = model.Id.Value,
                 FirebaseUid = model.FireBaseUid
@@ -79,14 +97,33 @@ public class OrganizationController : ControllerBase
             var userResult = await _userService.UpsertUser(user);
             if (userResult.IsFailure) return userResult.ToProblemDetails();
 
-            var roleAssignmentResult = await _userService.AssignRole(userResult.Value.Id, model.UserRole);
-            if (roleAssignmentResult.IsFailure) return roleAssignmentResult.ToProblemDetails();
+            // Assign both OrganizationAdmin and OrganizationEmployee roles
+            var adminRoleResult = await _userService.AssignRole(userResult.Value.Id, UserRoles.OrganizationAdmin);
+            if (adminRoleResult.IsFailure) return adminRoleResult.ToProblemDetails();
 
+            var employeeRoleResult = await _userService.AssignRole(userResult.Value.Id, UserRoles.OrganizationEmployee);
+            if (employeeRoleResult.IsFailure) return employeeRoleResult.ToProblemDetails();
+
+            // Set Firebase custom claims and displayName
             await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(model.FireBaseUid,
                 new Dictionary<string, object>
                 {
-                    { "role", model.UserRole }
+                    { "role", UserRoles.OrganizationAdmin }
                 });
+
+            var displayName = $"{model.FirstName} {model.LastName}".Trim();
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
+                {
+                    Uid = model.FireBaseUid,
+                    DisplayName = displayName
+                });
+            }
+
+            // Auto-create an Employee record linked to the new user
+            await CreateOwnerEmployeeAsync(model, userResult.Value);
+
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
         }
@@ -244,5 +281,51 @@ public class OrganizationController : ControllerBase
         }
 
         return Results.Ok();
+    }
+
+    private async Task CreateOwnerEmployeeAsync(OrganizationRegisterDto model, User user)
+    {
+        try
+        {
+            var orgId = model.Id!.Value;
+
+            // Ensure at least one employee role exists; create a default "Owner" role if none
+            var rolesResult = await _employeeRoleService.GetRolesByOrganizationAsync(orgId);
+            Guid employeeRoleId;
+            if (rolesResult.IsSuccess && rolesResult.Value.Any())
+            {
+                employeeRoleId = rolesResult.Value.First().Id;
+            }
+            else
+            {
+                var ownerRole = new EmployeeRole
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Owner",
+                    Description = "Organization owner",
+                    OrganizationId = orgId
+                };
+                var roleResult = await _employeeRoleService.UpsertAsync(ownerRole);
+                employeeRoleId = roleResult.IsSuccess ? roleResult.Value.Id : ownerRole.Id;
+            }
+
+            var employeeRequest = new CreateEmployeeRequest
+            {
+                OrganizationId = orgId,
+                UserId = user.Id,
+                FirstName = model.FirstName ?? string.Empty,
+                LastName = model.LastName ?? string.Empty,
+                Email = model.EmailAddress,
+                RoleId = employeeRoleId
+            };
+
+            await _employeeService.CreateAsync(employeeRequest);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to auto-create employee record during registration. OrgId={OrganizationId}, UserId={UserId}",
+                model.Id, user.Id);
+        }
     }
 }

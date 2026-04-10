@@ -181,6 +181,41 @@ public class OrganizationService : IOrganizationService
         return Result.Success(model);
     }
 
+    public async Task<Result<OrganizationDto>> UpdateOrganizationAsync(Guid organizationId, UpdateOrganizationRequest request)
+    {
+        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        if (organization == null)
+            return Result.Failure<OrganizationDto>(OrganizationErrors.OrganizationNotFound);
+
+        if (request.OrganizationName != null)
+            organization.OrganizationName = request.OrganizationName.Trim();
+        if (request.OrganizationTypeId != null)
+            organization.OrganizationTypeId = request.OrganizationTypeId.Value;
+        if (request.ContactFirstName != null)
+            organization.ContactFirstName = request.ContactFirstName.Trim();
+        if (request.ContactLastName != null)
+            organization.ContactLastName = request.ContactLastName.Trim();
+        if (request.EmailAddress != null)
+            organization.EmailAddress = request.EmailAddress.Trim();
+        if (request.PhoneNumber != null)
+            organization.PhoneNumber = request.PhoneNumber.Trim();
+        if (request.Address1 != null)
+            organization.Address1 = request.Address1.Trim();
+        if (request.Address2 != null)
+            organization.Address2 = request.Address2;
+        if (request.City != null)
+            organization.City = request.City.Trim();
+        if (request.State != null)
+            organization.State = request.State.Trim();
+        if (request.ZipCode != null)
+            organization.ZipCode = request.ZipCode.Trim();
+
+        _unitOfWork.RepositoryOf<Organization>().Update(organization);
+        await _unitOfWork.SaveChangesAsync();
+
+        return await GetOrganizationDtoById(organizationId);
+    }
+
     public async Task<Result<Organization>> UpdateIndustryAsync(Guid organizationId, string? industryKey)
     {
         var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);

@@ -5,6 +5,8 @@ namespace JobFlow.Domain.Models;
 public class Organization : Entity
 {
     public Guid OrganizationTypeId { get; set; }
+    public string? ContactFirstName { get; set; }
+    public string? ContactLastName { get; set; }
     public string? ZipCode { get; set; }
     public string? OrganizationName { get; set; }
     public string? Address1 { get; set; }

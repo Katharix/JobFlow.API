@@ -145,6 +145,10 @@ public class UserService : IUserService
         if (user == null)
             return Result.Failure<UserProfileDto>(UserErrors.UserNotFound);
 
+        if (request.FirstName != null)
+            user.FirstName = request.FirstName;
+        if (request.LastName != null)
+            user.LastName = request.LastName;
         if (request.Email != null)
             user.Email = request.Email;
         if (request.PhoneNumber != null)
@@ -163,6 +167,8 @@ public class UserService : IUserService
         return new UserProfileDto
         {
             Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             PreferredLanguage = user.PreferredLanguage
