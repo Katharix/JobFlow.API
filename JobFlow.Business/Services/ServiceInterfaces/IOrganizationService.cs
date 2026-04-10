@@ -9,6 +9,7 @@ public interface IOrganizationService
     Task<Result<OrganizationDto>> GetOrganizationDtoById(Guid orgId);
     Task<Result<IEnumerable<Organization>>> GetAllOrganizations();
     Task<Result<Organization>> UpsertOrganization(Organization model);
+    Task<Result<OrganizationDto>> UpdateOrganizationAsync(Guid organizationId, UpdateOrganizationRequest request);
     Task<Result<Organization>> UpdateIndustryAsync(Guid organizationId, string? industryKey);
     Task MarkStripeConnectedAsync(string stripeAccountId);
     Task<Result<Organization>> GetBySquareMerchantIdAsync(string squareMerchantId);
