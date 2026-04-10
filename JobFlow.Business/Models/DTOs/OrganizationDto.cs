@@ -28,6 +28,8 @@ public class OrganizationDto
 {
     public Guid? Id { get; set; }
     public string? OrganizationName { get; set; }
+    public string? ContactFirstName { get; set; }
+    public string? ContactLastName { get; set; }
     public string? Email { get; set; }
     public string? EmailAddress { get; set; }
     public string? Address1 { get; set; }
@@ -43,6 +45,7 @@ public class OrganizationDto
     public string? SubscriptionStatus { get; set; }
     public DateTime? SubscriptionExpiresAt { get; set; }
     public string? IndustryKey { get; set; }
+    public Guid OrganizationTypeId { get; set; }
     public PaymentProvider PaymentProvider { get; set; }
     public string? StripeConnectAccountId { get; set; }
     public bool IsStripeConnected { get; set; }
