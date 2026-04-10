@@ -27,6 +27,7 @@ public class AssignmentService : IAssignmentService
     private readonly INotificationService _notificationService;
     private readonly IJobService _jobService;
     private readonly ILogger<AssignmentService> _logger;
+    private readonly IOrganizationRealtimeNotifier? _realtimeNotifier;
 
     public AssignmentService(
         IUnitOfWork unitOfWork,
@@ -36,7 +37,8 @@ public class AssignmentService : IAssignmentService
         IScheduleSettingsService scheduleSettings,
         INotificationService notificationService,
         IJobService jobService,
-        ILogger<AssignmentService> logger)
+        ILogger<AssignmentService> logger,
+        IOrganizationRealtimeNotifier? realtimeNotifier = null)
     {
         _unitOfWork = unitOfWork;
         _assignments = unitOfWork.RepositoryOf<Assignment>();
@@ -51,6 +53,7 @@ public class AssignmentService : IAssignmentService
         _notificationService = notificationService;
         _jobService = jobService;
         _logger = logger;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<AssignmentDto>> CreateAssignmentAsync(
@@ -86,6 +89,22 @@ public class AssignmentService : IAssignmentService
 
         _assignments.Add(assignment);
         await _unitOfWork.SaveChangesAsync();
+
+        if (_realtimeNotifier != null)
+            await _realtimeNotifier.NotifyAssignmentChangedAsync(
+                organizationId, jobId, assignment.Id);
+
+        // Auto-transition job to Booked when first assignment is scheduled
+        if (job.LifecycleStatus is JobLifecycleStatus.Draft or JobLifecycleStatus.Approved)
+        {
+            job.LifecycleStatus = JobLifecycleStatus.Booked;
+            _jobs.Update(job);
+            await _unitOfWork.SaveChangesAsync();
+
+            if (_realtimeNotifier != null)
+                await _realtimeNotifier.NotifyJobStatusChangedAsync(
+                    organizationId, jobId, job.Title ?? string.Empty, JobLifecycleStatus.Booked);
+        }
 
         await _onboardingService.MarkStepCompleteAsync(
             organizationId,
@@ -148,6 +167,10 @@ public class AssignmentService : IAssignmentService
         _assignments.Update(assignment);
         await _unitOfWork.SaveChangesAsync();
 
+        if (_realtimeNotifier != null)
+            await _realtimeNotifier.NotifyAssignmentChangedAsync(
+                organizationId, assignment.JobId, assignmentId);
+
         if (scheduleSettings.Value.AutoNotifyReschedule && ScheduleChanged(originalStart, originalEnd, assignment))
         {
             await TryNotifyRescheduleAsync(assignment, originalStart, originalEnd);
@@ -179,6 +202,10 @@ public class AssignmentService : IAssignmentService
 
         _assignments.Update(assignment);
         await _unitOfWork.SaveChangesAsync();
+
+        if (_realtimeNotifier != null)
+            await _realtimeNotifier.NotifyAssignmentChangedAsync(
+                organizationId, assignment.JobId, assignmentId);
 
         // When assignment is completed, check if all assignments for the job are done
         if (dto.Status == AssignmentStatus.Completed)

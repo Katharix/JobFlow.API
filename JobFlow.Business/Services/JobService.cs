@@ -23,6 +23,7 @@ public class JobService : IJobService
     private readonly IInvoiceService _invoiceService;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IOrganizationRealtimeNotifier? _realtimeNotifier;
 
     public JobService(
         ILogger<JobService> logger,
@@ -30,7 +31,8 @@ public class JobService : IJobService
         IOnboardingService onboardingService,
         IInvoicingSettingsService invoicingSettings,
         IInvoiceService invoiceService,
-        IMapper mapper)
+        IMapper mapper,
+        IOrganizationRealtimeNotifier? realtimeNotifier = null)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
@@ -39,6 +41,29 @@ public class JobService : IJobService
         _invoicingSettings = invoicingSettings;
         _invoiceService = invoiceService;
         _mapper = mapper;
+        _realtimeNotifier = realtimeNotifier;
+    }
+
+    /// <summary>
+    /// Heals jobs that have assignments but are still Draft/Approved by transitioning them to Booked.
+    /// </summary>
+    private async Task HealStaleJobStatusesAsync(Guid organizationId)
+    {
+        var staleJobs = await jobs.Query()
+            .Where(j => j.OrganizationClient.OrganizationId == organizationId
+                && (j.LifecycleStatus == JobLifecycleStatus.Draft || j.LifecycleStatus == JobLifecycleStatus.Approved)
+                && j.Assignments.Any())
+            .ToListAsync();
+
+        if (staleJobs.Count == 0) return;
+
+        foreach (var job in staleJobs)
+        {
+            job.LifecycleStatus = JobLifecycleStatus.Booked;
+            jobs.Update(job);
+        }
+
+        await unitOfWork.SaveChangesAsync();
     }
 
     public async Task<Result<Job>> GetJobByIdAsync(Guid id, Guid organizationId)
@@ -104,6 +129,8 @@ public class JobService : IJobService
 
     public async Task<Result<IEnumerable<JobDto>>> GetJobsAsync(Guid organizationId)
     {
+        await HealStaleJobStatusesAsync(organizationId);
+
         var returnedJobs = await jobs.Query()
             .Include(j => j.OrganizationClient)
             .Include(e => e.Assignments)
@@ -172,6 +199,8 @@ public class JobService : IJobService
         string? sortBy,
         string? sortDirection)
     {
+        await HealStaleJobStatusesAsync(organizationId);
+
         var size = Math.Clamp(pageSize, 1, 100);
         var query = jobs.Query()
             .AsNoTracking()
@@ -353,6 +382,12 @@ public class JobService : IJobService
         job.LifecycleStatus = status;
         jobs.Update(job);
         await unitOfWork.SaveChangesAsync();
+
+        if (_realtimeNotifier != null)
+        {
+            await _realtimeNotifier.NotifyJobStatusChangedAsync(
+                organizationId, jobId, job.Title ?? string.Empty, status);
+        }
 
         if (status == JobLifecycleStatus.Completed)
         {
