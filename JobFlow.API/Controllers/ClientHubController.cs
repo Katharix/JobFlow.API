@@ -327,6 +327,12 @@ public class ClientHubController : ControllerBase
         var orgClientId = HttpContext.GetUserId();
 
         var result = await _estimates.AcceptAsync(id, organizationId, orgClientId);
+        if (result.IsSuccess)
+        {
+            await _hubContext.Clients
+                .Group($"org:{organizationId}:dashboard")
+                .SendAsync("EstimateStatusChanged", new { EstimateId = id, Status = "Accepted" });
+        }
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
@@ -337,6 +343,12 @@ public class ClientHubController : ControllerBase
         var orgClientId = HttpContext.GetUserId();
 
         var result = await _estimates.DeclineAsync(id, organizationId, orgClientId);
+        if (result.IsSuccess)
+        {
+            await _hubContext.Clients
+                .Group($"org:{organizationId}:dashboard")
+                .SendAsync("EstimateStatusChanged", new { EstimateId = id, Status = "Declined" });
+        }
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
