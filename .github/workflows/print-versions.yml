@@ -75,9 +75,27 @@ jobs:
                 ? (run.updated_at || run.run_started_at || run.created_at)
                 : (run.run_started_at || run.created_at || run.updated_at);
 
-              const state = run.conclusion === 'success'
-                ? 'Deployed'
-                : (run.status === 'waiting' ? 'Approve Deploy' : (run.conclusion || run.status || 'Unknown'));
+              let icon = '';
+              let state = '';
+              if (run.conclusion === 'success') {
+                icon = '🟢';
+                state = 'Deployed';
+              } else if (run.status === 'waiting') {
+                icon = '🟡';
+                state = 'Approve Deploy';
+              } else if (run.conclusion === 'cancelled') {
+                icon = '⚪';
+                state = 'Cancelled';
+              } else if (run.conclusion === 'failure') {
+                icon = '🔴';
+                state = 'Failed';
+              } else if (['in_progress', 'queued', 'pending', 'requested'].includes(run.status)) {
+                icon = '🔵';
+                state = 'In Progress';
+              } else {
+                icon = '⚪';
+                state = run.conclusion || run.status || 'Unknown';
+              }
 
               let url = run.html_url;
               if (run.status === 'waiting' && deployReviewUrl
@@ -85,7 +103,7 @@ jobs:
                 url = deployReviewUrl;
               }
 
-              return `[${state}](${url})<br/>${toCentralUs(when)}`;
+              return `${icon}<br/>[${state}](${url})<br/>${toCentralUs(when)}`;
             };
 
             const extractTicket = (text) => {
