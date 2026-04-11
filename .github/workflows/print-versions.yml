@@ -164,6 +164,22 @@ jobs:
             const stagingRun = pickStagingRun(stagingRuns, sourceSha);
             const prodRun = pickProdRun(prodRuns, sourceSha);
 
+            const formatProdCell = (prodRun, stagingRun) => {
+              const stagingDeployed = stagingRun && stagingRun.conclusion === 'success';
+              const prodDeployed = prodRun && prodRun.conclusion === 'success';
+              const prodWaiting = prodRun && prodRun.status === 'waiting';
+
+              if (stagingDeployed && !prodDeployed && !prodWaiting) {
+                const url = deployReviewUrl || (prodRun ? prodRun.html_url : `https://github.com/${owner}/${repo}/actions`);
+                const when = prodRun
+                  ? toCentralUs(prodRun.run_started_at || prodRun.created_at || prodRun.updated_at)
+                  : '';
+                const timeLine = when ? `<br/>${when}` : '';
+                return `\u{1F7E1}<br/>[Approve Deploy](${url})${timeLine}`;
+              }
+              return formatEnvCell(prodRun);
+            };
+
             let prCell = 'n/a';
             let ticketCell = 'n/a';
             if (sourceSha) {
@@ -203,7 +219,7 @@ jobs:
               '',
               '| Version | PR | Ticket | Build Time | staging | production |',
               '| --- | --- | --- | --- | --- | --- |',
-              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatEnvCell(prodRun)} |`,
+              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatProdCell(prodRun, stagingRun)} |`,
               '',
               '</details>'
             ].join('\n');
