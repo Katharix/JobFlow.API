@@ -31,6 +31,11 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildClientEstimateSent(OrganizationClient client, Estimate estimate);
     NotificationMessage BuildClientEstimateFollowUp(OrganizationClient client, Estimate estimate, string message);
     NotificationMessage BuildOrganizationEstimateRevisionRequested(Organization organization, OrganizationClient client, Estimate estimate, string revisionMessage);
+    NotificationMessage BuildOrganizationEstimateAccepted(Organization organization, OrganizationClient client, Estimate estimate);
+    NotificationMessage BuildOrganizationEstimateDeclined(Organization organization, OrganizationClient client, Estimate estimate);
+    NotificationMessage BuildOrganizationInvoicePaymentReceived(Organization organization, OrganizationClient client, Invoice invoice, decimal amountPaid);
+    NotificationMessage BuildOrganizationClientChatMessage(Organization organization, OrganizationClient client, string messagePreview);
+    NotificationMessage BuildOrganizationClientJobUpdate(Organization organization, OrganizationClient client, Job job, string updateMessage);
 
     NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink);
 }

@@ -31,20 +31,20 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
 
         // ── Organization Type GUIDs (from OrganizationTypeConfiguration) ──
         var generalContracting = Guid.Parse("bf489aa6-db19-42df-82bc-c116bd967e7e");
-        var painting            = Guid.Parse("393a5b3e-323e-4b76-aa86-0d4683ddcd49");
-        var plumbing            = Guid.Parse("e01750b0-0d01-4e25-abf7-6efa23509035");
-        var landscaping         = Guid.Parse("fbc6accf-0fb1-4908-b449-14f13b826f24");
-        var electrical          = Guid.Parse("9362c957-0f41-4c20-9085-c01e449fdda2");
-        var carpentry           = Guid.Parse("8f0d3e93-425b-4a53-b4d2-4c5eb97e490f");
-        var hvac                = Guid.Parse("37fc17e8-0a25-4119-9a71-7d160bb9c7b4");
-        var treeRemoval         = Guid.Parse("f64f078f-ecfb-4f3e-8640-236219fcf01e");
-        var pestControl         = Guid.Parse("bf3b9512-8a9c-4a73-9f88-cb914c1573cd");
-        var cleaning            = Guid.Parse("1921d982-22f8-4ed5-b4e3-fca82c5767eb");
-        var junkRemoval         = Guid.Parse("408d2185-53b9-493d-8713-938114de90f5");
-        var carDetailing        = Guid.Parse("33341b2d-957f-4efb-94f7-3a015ae1a718");
-        var itNetwork           = Guid.Parse("30530a32-a151-436d-a050-613eac4c22d5");
-        var handyman            = Guid.Parse("0F32E14A-5F70-45AF-A647-04E59AD52E58");
-        var flooring            = Guid.Parse("09786EAB-D69F-45BF-BCEC-5F368BD60BE7");
+        var painting = Guid.Parse("393a5b3e-323e-4b76-aa86-0d4683ddcd49");
+        var plumbing = Guid.Parse("e01750b0-0d01-4e25-abf7-6efa23509035");
+        var landscaping = Guid.Parse("fbc6accf-0fb1-4908-b449-14f13b826f24");
+        var electrical = Guid.Parse("9362c957-0f41-4c20-9085-c01e449fdda2");
+        var carpentry = Guid.Parse("8f0d3e93-425b-4a53-b4d2-4c5eb97e490f");
+        var hvac = Guid.Parse("37fc17e8-0a25-4119-9a71-7d160bb9c7b4");
+        var treeRemoval = Guid.Parse("f64f078f-ecfb-4f3e-8640-236219fcf01e");
+        var pestControl = Guid.Parse("bf3b9512-8a9c-4a73-9f88-cb914c1573cd");
+        var cleaning = Guid.Parse("1921d982-22f8-4ed5-b4e3-fca82c5767eb");
+        var junkRemoval = Guid.Parse("408d2185-53b9-493d-8713-938114de90f5");
+        var carDetailing = Guid.Parse("33341b2d-957f-4efb-94f7-3a015ae1a718");
+        var itNetwork = Guid.Parse("30530a32-a151-436d-a050-613eac4c22d5");
+        var handyman = Guid.Parse("0F32E14A-5F70-45AF-A647-04E59AD52E58");
+        var flooring = Guid.Parse("09786EAB-D69F-45BF-BCEC-5F368BD60BE7");
 
         builder.HasData(
             // ── General Contracting ───────────────────────
@@ -55,7 +55,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Full or partial home remodel project.",
                 OrganizationTypeId = generalContracting,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -64,7 +66,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "New outdoor living space construction.",
                 OrganizationTypeId = generalContracting,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Painting ─────────────────────────────────
@@ -75,7 +79,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Paint walls, ceilings, and trim for interior rooms.",
                 OrganizationTypeId = painting,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -84,7 +90,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Prep and paint home exterior surfaces.",
                 OrganizationTypeId = painting,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Plumbing ─────────────────────────────────
@@ -95,7 +103,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Diagnose and fix leaks, clogs, or faults.",
                 OrganizationTypeId = plumbing,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -104,7 +114,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Remove old unit and install replacement.",
                 OrganizationTypeId = plumbing,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Landscaping and Gardening ─────────────────
@@ -115,7 +127,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Mow, edge, blow, and treat lawn.",
                 OrganizationTypeId = landscaping,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -124,7 +138,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Design beds, select plants, and install.",
                 OrganizationTypeId = landscaping,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Electrical Services ───────────────────────
@@ -135,7 +151,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Troubleshoot and fix wiring or fixture issues.",
                 OrganizationTypeId = electrical,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -144,7 +162,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Upgrade electrical panel for capacity or safety.",
                 OrganizationTypeId = electrical,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Carpentry and Woodworking ─────────────────
@@ -155,7 +175,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Measure, build, and install custom shelves.",
                 OrganizationTypeId = carpentry,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -164,7 +186,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Install baseboards, crown molding, and casings.",
                 OrganizationTypeId = carpentry,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── HVAC Services ─────────────────────────────
@@ -175,7 +199,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Seasonal heating/cooling system tune-up.",
                 OrganizationTypeId = hvac,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -184,7 +210,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Remove old unit and install new AC system.",
                 OrganizationTypeId = hvac,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Tree Removal ──────────────────────────────
@@ -195,7 +223,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Fell, section, and haul away tree.",
                 OrganizationTypeId = treeRemoval,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -204,7 +234,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Prune branches for health and clearance.",
                 OrganizationTypeId = treeRemoval,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Pest Control ──────────────────────────────
@@ -215,7 +247,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Interior and exterior spray for common pests.",
                 OrganizationTypeId = pestControl,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -224,7 +258,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Full property inspection and treatment plan.",
                 OrganizationTypeId = pestControl,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Cleaning Services ─────────────────────────
@@ -235,7 +271,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Standard whole-house cleaning visit.",
                 OrganizationTypeId = cleaning,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -244,7 +282,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Thorough clean for tenant turnover.",
                 OrganizationTypeId = cleaning,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Junk Removal ──────────────────────────────
@@ -255,7 +295,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Remove all unwanted items from property.",
                 OrganizationTypeId = junkRemoval,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -264,7 +306,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Clear and haul garage contents.",
                 OrganizationTypeId = junkRemoval,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Car Detailing ─────────────────────────────
@@ -275,7 +319,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Complete interior and exterior detail.",
                 OrganizationTypeId = carDetailing,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -284,7 +330,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Deep clean seats, dash, carpet, and glass.",
                 OrganizationTypeId = carDetailing,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── IT & Network Installation ─────────────────
@@ -295,7 +343,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Install and configure router, switches, and cabling.",
                 OrganizationTypeId = itNetwork,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -304,7 +354,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Set up desktops, laptops, and peripherals.",
                 OrganizationTypeId = itNetwork,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Handyman ──────────────────────────────────
@@ -315,7 +367,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Fix miscellaneous issues around the home.",
                 OrganizationTypeId = handyman,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -324,7 +378,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Mount and connect lights, fans, or hardware.",
                 OrganizationTypeId = handyman,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.InPerson,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
 
             // ── Flooring ──────────────────────────────────
@@ -335,7 +391,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Measure, prep subfloor, and install hardwood.",
                 OrganizationTypeId = flooring,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             },
             new JobTemplate
             {
@@ -344,7 +402,9 @@ internal class JobTemplateConfiguration : IEntityTypeConfiguration<JobTemplate>
                 Description = "Lay tile with proper spacing and grout.",
                 OrganizationTypeId = flooring,
                 DefaultInvoicingWorkflow = InvoicingWorkflow.SendInvoice,
-                IsSystem = true, CreatedAt = createdAt, IsActive = true
+                IsSystem = true,
+                CreatedAt = createdAt,
+                IsActive = true
             }
         );
     }
