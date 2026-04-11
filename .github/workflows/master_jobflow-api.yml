@@ -150,7 +150,7 @@ jobs:
           echo "value=$RELEASE_REF" >> "$GITHUB_OUTPUT"
 
       - name: Record production deployed version
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           DEPLOYED_VERSION: ${{ steps.prod-version.outputs.value }}
         with:

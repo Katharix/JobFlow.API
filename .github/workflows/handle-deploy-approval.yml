@@ -16,7 +16,7 @@ jobs:
       actions: write
 
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.DEPLOY_APPROVAL_TOKEN }}
           script: |
