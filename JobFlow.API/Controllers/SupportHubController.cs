@@ -26,6 +26,7 @@ public class SupportHubController : ControllerBase
     private readonly IPaymentHistoryService _paymentHistoryService;
     private readonly IInvoiceService _invoiceService;
     private readonly IDistributedCache _distributedCache;
+    private readonly IAuditLogService _auditLogService;
 
     public SupportHubController(
         ISupportHubService supportHubService,
@@ -34,7 +35,8 @@ public class SupportHubController : ControllerBase
         IOrganizationService organizationService,
         IPaymentHistoryService paymentHistoryService,
         IInvoiceService invoiceService,
-        IDistributedCache distributedCache)
+        IDistributedCache distributedCache,
+        IAuditLogService auditLogService)
     {
         _supportHubService = supportHubService;
         _inviteService = inviteService;
@@ -43,6 +45,7 @@ public class SupportHubController : ControllerBase
         _paymentHistoryService = paymentHistoryService;
         _invoiceService = invoiceService;
         _distributedCache = distributedCache;
+        _auditLogService = auditLogService;
     }
 
     [HttpPost("register")]
@@ -312,5 +315,118 @@ public class SupportHubController : ControllerBase
         }
 
         return Results.Ok(result.Value);
+    }
+
+    [HttpGet("audit-logs")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> GetAuditLogs(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        [FromQuery] string? category = null,
+        [FromQuery] bool? success = null)
+    {
+        var result = await _auditLogService.GetAuditLogsAsync(
+            fromUtc,
+            toUtc,
+            category,
+            success,
+            Math.Clamp(pageSize, 1, MaxPageSize),
+            cursor);
+
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
+    [HttpGet("staff")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> GetStaff()
+    {
+        var usersResult = await _userService.GetAllUsers();
+        if (usersResult.IsFailure)
+            return Results.Ok(Array.Empty<object>());
+
+        var katharixRoles = new[] { UserRoles.KatharixAdmin, UserRoles.KatharixEmployee };
+        var staff = usersResult.Value
+            .Where(u => u.UserRoles.Any(ur => katharixRoles.Contains(ur.Role.Name)))
+            .Select(u => new
+            {
+                u.Id,
+                u.Email,
+                u.FirstName,
+                u.LastName,
+                u.FirebaseUid,
+                Role = u.UserRoles
+                    .Where(ur => katharixRoles.Contains(ur.Role.Name))
+                    .Select(ur => ur.Role.Name)
+                    .FirstOrDefault() ?? "KatharixEmployee",
+                u.CreatedAt,
+                u.IsActive
+            })
+            .OrderBy(u => u.Email)
+            .ToList();
+
+        return Results.Ok(staff);
+    }
+
+    [HttpPut("staff/{id:guid}/role")]
+    [Authorize(Roles = UserRoles.KatharixAdmin)]
+    public async Task<IResult> UpdateStaffRole(Guid id, [FromBody] UpdateStaffRoleRequest request)
+    {
+        if (request.Role is not (UserRoles.KatharixAdmin or UserRoles.KatharixEmployee))
+            return Results.BadRequest("Invalid role.");
+
+        var userResult = await _userService.GetUserById(id);
+        if (userResult.IsFailure)
+            return userResult.ToProblemDetails();
+
+        var user = userResult.Value;
+
+        // Remove existing Katharix roles and assign the new one
+        var katharixRoles = new[] { UserRoles.KatharixAdmin, UserRoles.KatharixEmployee };
+        var existingKatharixRoles = user.UserRoles
+            .Where(ur => katharixRoles.Contains(ur.Role.Name))
+            .ToList();
+
+        // Only proceed if the role is actually changing
+        if (existingKatharixRoles.Any(ur => ur.Role.Name == request.Role))
+            return Results.Ok();
+
+        // Assign new role (AssignRole handles duplicates gracefully)
+        await _userService.AssignRole(id, request.Role);
+
+        // Update Firebase claims
+        if (!string.IsNullOrWhiteSpace(user.FirebaseUid))
+        {
+            await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(
+                user.FirebaseUid,
+                new Dictionary<string, object> { { "role", request.Role } });
+        }
+
+        return Results.Ok();
+    }
+
+    [HttpPut("staff/{id:guid}/deactivate")]
+    [Authorize(Roles = UserRoles.KatharixAdmin)]
+    public async Task<IResult> DeactivateStaff(Guid id)
+    {
+        var userResult = await _userService.GetUserById(id);
+        if (userResult.IsFailure)
+            return userResult.ToProblemDetails();
+
+        var user = userResult.Value;
+        user.IsActive = false;
+        user.DeactivatedAtUtc = DateTime.UtcNow;
+        await _userService.UpsertUser(user);
+
+        // Revoke Firebase claims
+        if (!string.IsNullOrWhiteSpace(user.FirebaseUid))
+        {
+            await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(
+                user.FirebaseUid,
+                new Dictionary<string, object>());
+        }
+
+        return Results.Ok();
     }
 }

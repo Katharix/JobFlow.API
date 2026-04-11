@@ -3,7 +3,7 @@ namespace JobFlow.Business.Models.DTOs;
 public class AuditLogWriteRequest
 {
     public Guid? OrganizationId { get; set; }
-    public Guid? UserId { get; set; }
+    public string? UserId { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public string ResourceType { get; set; } = string.Empty;

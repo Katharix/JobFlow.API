@@ -15,16 +15,19 @@ public partial class NotificationService : INotificationService
     private readonly IBrevoService _emailService;
     private readonly ILogger<NotificationService> _logger;
     private readonly ITwilioService _smsService;
+    private readonly IShortLinkService _shortLinkService;
 
     public NotificationService(
         IBrevoService emailService,
         ITwilioService smsService,
         INotificationMessageBuilder builder,
+        IShortLinkService shortLinkService,
         ILogger<NotificationService> logger)
     {
         _emailService = emailService;
         _smsService = smsService;
         _builder = builder;
+        _shortLinkService = shortLinkService;
         _logger = logger;
     }
 
@@ -203,6 +206,23 @@ public partial class NotificationService : INotificationService
     /// </summary>
     private async Task SendNotificationAsync(NotificationMessage message)
     {
+        // Shorten links for email and SMS
+        var shortLink = message.Link;
+        if (!string.IsNullOrWhiteSpace(message.Link))
+        {
+            try
+            {
+                shortLink = await _shortLinkService.CreateAsync(message.Link);
+                // Replace inline URL in body with short link
+                if (!string.IsNullOrWhiteSpace(message.Body))
+                    message.Body = message.Body.Replace(message.Link, shortLink);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Short link creation failed, using original URL");
+            }
+        }
+
         try
         {
             await _emailService.SendContactEmailAsync(new ContactFormRequest
@@ -212,7 +232,7 @@ public partial class NotificationService : INotificationService
                 Subject = message.Subject,
                 Message = message.Body,
                 TemplateId = (int)(message.TemplateId ?? 0),
-                Link = message.Link
+                Link = shortLink
             });
         }
         catch (Exception ex)
@@ -225,7 +245,7 @@ public partial class NotificationService : INotificationService
             await _smsService.SendTextMessage(new TwilioModel
             {
                 RecipientPhoneNumber = message.Phone,
-                Message = message.Sms + message.Link
+                Message = message.Sms + shortLink
             });
         }
         catch (Exception ex)
