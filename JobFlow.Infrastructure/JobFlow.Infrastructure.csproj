@@ -28,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Azure.Identity" Version="1.21.0" />
         <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
         <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
     </ItemGroup>
