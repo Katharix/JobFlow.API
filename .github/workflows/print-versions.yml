@@ -16,6 +16,7 @@ permissions:
   contents: read
   actions: read
   pull-requests: read
+  issues: read
 
 jobs:
   print-version:
@@ -48,6 +49,25 @@ jobs:
               }).format(new Date(iso)).replace(',', '');
             };
 
+            // Find open deploy-review issue for linking
+            let deployReviewUrl = null;
+            let deployReviewRunId = null;
+            try {
+              const reviewIssues = await github.rest.issues.listForRepo({
+                owner, repo,
+                labels: 'deploy-review',
+                state: 'open',
+                per_page: 1
+              });
+              if (reviewIssues.data.length > 0) {
+                deployReviewUrl = reviewIssues.data[0].html_url;
+                const match = reviewIssues.data[0].body?.match(/<!-- run_id:(\d+) -->/);
+                if (match) deployReviewRunId = parseInt(match[1]);
+              }
+            } catch (e) {
+              // No deploy-review issues found
+            }
+
             const formatEnvCell = (run) => {
               if (!run) return 'n/a';
 
@@ -59,7 +79,13 @@ jobs:
                 ? 'Deployed'
                 : (run.status === 'waiting' ? 'Approve Deploy' : (run.conclusion || run.status || 'Unknown'));
 
-              return `[${state}](${run.html_url})<br/>${toCentralUs(when)}`;
+              let url = run.html_url;
+              if (run.status === 'waiting' && deployReviewUrl
+                  && (!deployReviewRunId || deployReviewRunId === run.id)) {
+                url = deployReviewUrl;
+              }
+
+              return `[${state}](${url})<br/>${toCentralUs(when)}`;
             };
 
             const extractTicket = (text) => {

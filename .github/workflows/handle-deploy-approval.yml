@@ -1,0 +1,128 @@
+name: Handle Deploy Approval
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  process-approval:
+    name: Process Deploy Approval
+    if: |
+      github.event.issue.state == 'open' &&
+      contains(join(github.event.issue.labels.*.name, ','), 'deploy-review')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      actions: write
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.DEPLOY_APPROVAL_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const comment = context.payload.comment.body.trim().toLowerCase();
+            const issueNumber = context.payload.issue.number;
+            const commenter = context.payload.comment.user.login;
+
+            const approveKeywords = ['approved', 'lgtm', 'ship it'];
+            const denyKeywords = ['denied', 'needs changes'];
+
+            const isApproval = approveKeywords.some(w => comment.includes(w));
+            const isDenial = denyKeywords.some(w => comment.includes(w));
+
+            if (!isApproval && !isDenial) {
+              core.info('Comment does not contain approval or denial keywords. Skipping.');
+              return;
+            }
+
+            // Extract run ID from issue body
+            const runIdMatch = context.payload.issue.body.match(/<!-- run_id:(\d+) -->/);
+            if (!runIdMatch) {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: '⚠️ Could not find the workflow run ID in this issue.'
+              });
+              return;
+            }
+
+            const runId = parseInt(runIdMatch[1]);
+
+            // Get pending deployments
+            let pending;
+            try {
+              pending = await github.rest.actions.getPendingDeploymentsForRun({
+                owner, repo,
+                run_id: runId
+              });
+            } catch (e) {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: `⚠️ Failed to fetch pending deployments: ${e.message}`
+              });
+              return;
+            }
+
+            if (!pending.data || pending.data.length === 0) {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: '⚠️ No pending deployments found for this run. It may have already been processed.'
+              });
+              await github.rest.issues.update({
+                owner, repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+              return;
+            }
+
+            const environmentIds = pending.data.map(d => d.environment.id);
+
+            try {
+              await github.rest.actions.reviewPendingDeploymentsForRun({
+                owner, repo,
+                run_id: runId,
+                environment_ids: environmentIds,
+                state: isApproval ? 'approved' : 'rejected',
+                comment: `${isApproval ? 'Approved' : 'Rejected'} by @${commenter} via issue #${issueNumber}`
+              });
+            } catch (e) {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: `⚠️ Failed to ${isApproval ? 'approve' : 'reject'} deployment: ${e.message}\n\nEnsure the \`DEPLOY_APPROVAL_TOKEN\` secret belongs to an authorized environment reviewer.`
+              });
+              return;
+            }
+
+            // On denial, cancel the workflow run so it stops completely
+            if (isDenial) {
+              try {
+                await github.rest.actions.cancelWorkflowRun({
+                  owner, repo,
+                  run_id: runId
+                });
+              } catch (e) {
+                core.warning(`Could not cancel workflow run: ${e.message}`);
+              }
+            }
+
+            const emoji = isApproval ? '✅' : '❌';
+            const action = isApproval ? 'approved' : 'rejected';
+
+            await github.rest.issues.createComment({
+              owner, repo,
+              issue_number: issueNumber,
+              body: `${emoji} Deployment **${action}** by @${commenter}`
+            });
+
+            await github.rest.issues.update({
+              owner, repo,
+              issue_number: issueNumber,
+              state: 'closed',
+              state_reason: isApproval ? 'completed' : 'not_planned'
+            });
