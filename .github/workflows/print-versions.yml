@@ -123,7 +123,7 @@ jobs:
             const prodWf = findWorkflow('master_jobflow-api.yml');
 
             const recentRunsFor = async (workflowId) => {
-              if (!workflowId) return null;
+              if (!workflowId) return [];
               const response = await github.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
@@ -133,36 +133,16 @@ jobs:
               return response.data.workflow_runs || [];
             };
 
-            const isPendingApproval = (run) => run
-              && ['waiting', 'queued', 'in_progress', 'pending', 'requested'].includes(run.status);
-
-            const pickStagingRun = (runs, sha) => {
-              if (!runs || runs.length === 0) return null;
-              return runs.find((run) => sha && run.head_sha === sha) || runs[0];
-            };
-
-            const pickProdRun = (runs, sha) => {
-              if (!runs || runs.length === 0) return null;
-
-              return (
-                runs.find((run) => sha && run.head_sha === sha && isPendingApproval(run)) ||
-                runs.find((run) => sha && run.head_sha === sha) ||
-                runs.find((run) => isPendingApproval(run)) ||
-                runs[0]
-              );
-            };
-
             const stagingRuns = await recentRunsFor(stagingWf && stagingWf.id);
             const prodRuns = await recentRunsFor(prodWf && prodWf.id);
 
-            const sourceSha =
-              context.payload.workflow_run?.head_sha ||
-              context.sha ||
-              stagingRuns[0]?.head_sha ||
-              prodRuns[0]?.head_sha;
-
-            const stagingRun = pickStagingRun(stagingRuns, sourceSha);
-            const prodRun = pickProdRun(prodRuns, sourceSha);
+            // Build a map of prod runs by SHA for quick lookup
+            const prodRunBySha = {};
+            for (const run of prodRuns) {
+              if (!prodRunBySha[run.head_sha]) {
+                prodRunBySha[run.head_sha] = run;
+              }
+            }
 
             const formatProdCell = (prodRun, stagingRun) => {
               const stagingDeployed = stagingRun && stagingRun.conclusion === 'success';
@@ -180,32 +160,42 @@ jobs:
               return formatEnvCell(prodRun);
             };
 
-            let prCell = 'n/a';
-            let ticketCell = 'n/a';
-            if (sourceSha) {
-              const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner,
-                repo,
-                commit_sha: sourceSha
-              });
-
-              if (prs.data.length > 0) {
-                const pr = prs.data[0];
-                prCell = `[#${pr.number}](${pr.html_url})<br/>${pr.title}`;
-                ticketCell = extractTicket(pr.title);
+            // Dedupe staging runs by SHA, keep latest per SHA
+            const seenShas = new Set();
+            const uniqueStagingRuns = [];
+            for (const run of stagingRuns) {
+              if (!seenShas.has(run.head_sha)) {
+                seenShas.add(run.head_sha);
+                uniqueStagingRuns.push(run);
               }
             }
 
-            const buildTime = toCentralUs(
-              stagingRun?.run_started_at ||
-              stagingRun?.created_at ||
-              prodRun?.run_started_at ||
-              prodRun?.created_at
-            );
+            const MAX_ROWS = 10;
+            const rows = [];
 
-            const versionCell = sourceSha
-              ? `[${sourceSha.slice(0, 8)}](https://github.com/${owner}/${repo}/commit/${sourceSha})`
-              : 'n/a';
+            for (const staging of uniqueStagingRuns.slice(0, MAX_ROWS)) {
+              const sha = staging.head_sha;
+              const prod = prodRunBySha[sha] || null;
+
+              let prCell = 'n/a';
+              let ticketCell = 'n/a';
+              try {
+                const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner, repo,
+                  commit_sha: sha
+                });
+                if (prs.data.length > 0) {
+                  const pr = prs.data[0];
+                  prCell = `[#${pr.number}](${pr.html_url})<br/>${pr.title}`;
+                  ticketCell = extractTicket(pr.title);
+                }
+              } catch (e) { /* skip */ }
+
+              const buildTime = toCentralUs(staging.run_started_at || staging.created_at);
+              const versionCell = `[${sha.slice(0, 8)}](https://github.com/${owner}/${repo}/commit/${sha})`;
+
+              rows.push(`| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(staging)} | ${formatProdCell(prod, staging)} |`);
+            }
 
             const table = [
               '# Version Table',
@@ -219,7 +209,7 @@ jobs:
               '',
               '| Version | PR | Ticket | Build Time | staging | production |',
               '| --- | --- | --- | --- | --- | --- |',
-              `| ${versionCell} | ${prCell} | ${ticketCell} | ${buildTime} | ${formatEnvCell(stagingRun)} | ${formatProdCell(prodRun, stagingRun)} |`,
+              ...rows,
               '',
               '</details>'
             ].join('\n');
