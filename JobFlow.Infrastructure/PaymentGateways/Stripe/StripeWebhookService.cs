@@ -419,6 +419,10 @@ public class StripeWebhookService : IStripeWebhookService
             invoice.OrganizationClient.OrganizationId,
             OnboardingStepKeys.ReceivePayment
         );
+
+        await _notificationService.SendClientPaymentReceivedNotificationAsync(invoice.OrganizationClient, invoice);
+        await _notificationService.SendOrganizationInvoicePaymentReceivedNotificationAsync(
+            invoice.OrganizationClient.Organization, invoice.OrganizationClient, invoice, intent.AmountReceived / 100m);
     }
 
 

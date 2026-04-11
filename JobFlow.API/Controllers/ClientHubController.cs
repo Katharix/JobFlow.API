@@ -30,6 +30,7 @@ public class ClientHubController : ControllerBase
     private readonly IHubContext<NotifierHub> _hubContext;
     private readonly IHubContext<ChatHub> _chatHubContext;
     private readonly IHubContext<ClientChatHub> _clientChatHubContext;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ClientHubController(
@@ -43,6 +44,7 @@ public class ClientHubController : ControllerBase
         IHubContext<NotifierHub> hubContext,
         IHubContext<ChatHub> chatHubContext,
         IHubContext<ClientChatHub> clientChatHubContext,
+        INotificationService notificationService,
         IUnitOfWork unitOfWork)
     {
         _logger = logger;
@@ -55,6 +57,7 @@ public class ClientHubController : ControllerBase
         _hubContext = hubContext;
         _chatHubContext = chatHubContext;
         _clientChatHubContext = clientChatHubContext;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -232,6 +235,26 @@ public class ClientHubController : ControllerBase
         await _chatHubContext.Clients.Group(conversation.Id.ToString()).SendAsync("ReceiveMessage", dto);
         await _clientChatHubContext.Clients.Group(conversation.Id.ToString()).SendAsync("ReceiveMessage", dto);
 
+        var org = await _unitOfWork.RepositoryOf<Organization>()
+            .Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+
+        if (org is not null)
+        {
+            var preview = (message.Content?.Length > 120 ? message.Content[..120] + "..." : message.Content) ?? "";
+            await _notificationService.SendOrganizationClientChatMessageNotificationAsync(org, clientResult.Value, preview);
+        }
+
+        await _hubContext.Clients.Group($"org:{organizationId}:dashboard")
+            .SendAsync("ClientChatMessage", new
+            {
+                clientId = orgClientId,
+                clientName = clientResult.Value.ClientFullName().Trim(),
+                messagePreview = (message.Content?.Length > 120 ? message.Content[..120] + "..." : message.Content) ?? "",
+                sentAt = message.SentAt.ToString("O")
+            });
+
         return Results.Ok(dto);
     }
 
@@ -332,6 +355,8 @@ public class ClientHubController : ControllerBase
             await _hubContext.Clients
                 .Group($"org:{organizationId}:dashboard")
                 .SendAsync("EstimateStatusChanged", new { EstimateId = id, Status = "Accepted" });
+
+            await SendEstimateStatusNotificationAsync(id, organizationId, orgClientId, accepted: true);
         }
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
@@ -348,6 +373,8 @@ public class ClientHubController : ControllerBase
             await _hubContext.Clients
                 .Group($"org:{organizationId}:dashboard")
                 .SendAsync("EstimateStatusChanged", new { EstimateId = id, Status = "Declined" });
+
+            await SendEstimateStatusNotificationAsync(id, organizationId, orgClientId, accepted: false);
         }
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
@@ -676,6 +703,34 @@ public class ClientHubController : ControllerBase
             uploads);
 
         var result = await _jobUpdates.CreateAsync(jobId, organizationId, createRequest);
+
+        if (result.IsSuccess)
+        {
+            var client = await _unitOfWork.RepositoryOf<OrganizationClient>()
+                .Query()
+                .Include(c => c.Organization)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == orgClientId);
+
+            if (client?.Organization is not null)
+            {
+                var updateMsg = request.Message?.Length > 120 ? request.Message[..120] + "..." : request.Message ?? "";
+                await _notificationService.SendOrganizationClientJobUpdateNotificationAsync(
+                    client.Organization, client, jobResult.Value, updateMsg);
+
+                await _hubContext.Clients.Group($"org:{organizationId}:dashboard")
+                    .SendAsync("ClientJobUpdate", new
+                    {
+                        jobId = jobId,
+                        jobTitle = jobResult.Value.Title,
+                        clientId = orgClientId,
+                        clientName = client.ClientFullName().Trim(),
+                        message = updateMsg,
+                        occurredAt = DateTimeOffset.UtcNow.ToString("O")
+                    });
+            }
+        }
+
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
@@ -773,6 +828,36 @@ public class ClientHubController : ControllerBase
             .ToListAsync();
 
         return userIds;
+    }
+
+    private async Task SendEstimateStatusNotificationAsync(Guid estimateId, Guid organizationId, Guid orgClientId, bool accepted)
+    {
+        try
+        {
+            var estimate = await _unitOfWork.RepositoryOf<Estimate>()
+                .Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == estimateId);
+
+            var client = await _unitOfWork.RepositoryOf<OrganizationClient>()
+                .Query()
+                .Include(c => c.Organization)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == orgClientId);
+
+            if (estimate is not null && client?.Organization is not null)
+            {
+                if (accepted)
+                    await _notificationService.SendOrganizationEstimateAcceptedNotificationAsync(client.Organization, client, estimate);
+                else
+                    await _notificationService.SendOrganizationEstimateDeclinedNotificationAsync(client.Organization, client, estimate);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send estimate {Status} notification for EstimateId={EstimateId}",
+                accepted ? "accepted" : "declined", estimateId);
+        }
     }
 
     private static ChatMessageDto MapClientHubMessage(Message message, OrganizationClient client)
