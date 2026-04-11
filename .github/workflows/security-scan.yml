@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
       - feature/**
   schedule:
     - cron: '0 6 * * 1'
@@ -27,4 +27,10 @@ jobs:
       - name: Restore API project
         run: dotnet restore JobFlow.API/JobFlow.API.csproj
       - name: Fail on vulnerable packages
-        run: dotnet list JobFlow.API/JobFlow.API.csproj package --vulnerable --include-transitive
+        run: |
+          OUTPUT=$(dotnet list JobFlow.API/JobFlow.API.csproj package --vulnerable --include-transitive 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -qi 'has the following vulnerable packages'; then
+            echo "::error::Vulnerable packages detected"
+            exit 1
+          fi
