@@ -28,6 +28,11 @@ public interface INotificationService
     Task SendClientEstimateSentNotificationAsync(OrganizationClient client, Estimate estimate);
     Task SendClientEstimateFollowUpNotificationAsync(OrganizationClient client, Estimate estimate, string message);
     Task SendOrganizationEstimateRevisionRequestedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate, string revisionMessage);
+    Task SendOrganizationEstimateAcceptedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate);
+    Task SendOrganizationEstimateDeclinedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate);
+    Task SendOrganizationInvoicePaymentReceivedNotificationAsync(Organization organization, OrganizationClient client, Invoice invoice, decimal amountPaid);
+    Task SendOrganizationClientChatMessageNotificationAsync(Organization organization, OrganizationClient client, string messagePreview);
+    Task SendOrganizationClientJobUpdateNotificationAsync(Organization organization, OrganizationClient client, Job job, string updateMessage);
     Task SendOrganizationClientPortalMagicLinkAsync(OrganizationClient client, string magicLink);
 
     // Employee notifications

@@ -151,6 +151,53 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendOrganizationEstimateAcceptedNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate)
+    {
+        var message = _builder.BuildOrganizationEstimateAccepted(organization, client, estimate);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendOrganizationEstimateDeclinedNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate)
+    {
+        var message = _builder.BuildOrganizationEstimateDeclined(organization, client, estimate);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendOrganizationInvoicePaymentReceivedNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Invoice invoice,
+        decimal amountPaid)
+    {
+        var message = _builder.BuildOrganizationInvoicePaymentReceived(organization, client, invoice, amountPaid);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendOrganizationClientChatMessageNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        string messagePreview)
+    {
+        var message = _builder.BuildOrganizationClientChatMessage(organization, client, messagePreview);
+        await SendNotificationAsync(message);
+    }
+
+    public async Task SendOrganizationClientJobUpdateNotificationAsync(
+        Organization organization,
+        OrganizationClient client,
+        Job job,
+        string updateMessage)
+    {
+        var message = _builder.BuildOrganizationClientJobUpdate(organization, client, job, updateMessage);
+        await SendNotificationAsync(message);
+    }
+
     /// <summary>
     ///     Shared helper for sending email and SMS.
     /// </summary>

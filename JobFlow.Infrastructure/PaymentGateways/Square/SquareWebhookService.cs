@@ -27,6 +27,7 @@ public class SquareWebhookService : ISquareWebhookService
     private readonly IOnboardingService _onboardingService;
     private readonly IPaymentHistoryService _paymentHistoryService;
     private readonly IOrganizationService _organizationService;
+    private readonly INotificationService _notificationService;
     private readonly IRepository<CustomerPaymentProfile> _paymentProfiles;
     private readonly ISquareSettings _squareSettings;
     private readonly ILogger<SquareWebhookService> _logger;
@@ -38,6 +39,7 @@ public class SquareWebhookService : ISquareWebhookService
         IOnboardingService onboardingService,
         IPaymentHistoryService paymentHistoryService,
         IOrganizationService organizationService,
+        INotificationService notificationService,
         IUnitOfWork unitOfWork,
         ISquareSettings squareSettings,
         ILogger<SquareWebhookService> logger)
@@ -48,6 +50,7 @@ public class SquareWebhookService : ISquareWebhookService
         _onboardingService = onboardingService;
         _paymentHistoryService = paymentHistoryService;
         _organizationService = organizationService;
+        _notificationService = notificationService;
         _paymentProfiles = unitOfWork.RepositoryOf<CustomerPaymentProfile>();
         _squareSettings = squareSettings;
         _logger = logger;
@@ -144,6 +147,11 @@ public class SquareWebhookService : ISquareWebhookService
                     await _onboardingService.MarkStepCompleteAsync(
                         paidResult.Value.OrganizationClient.OrganizationId,
                         OnboardingStepKeys.ReceivePayment);
+
+                    var paidInvoice = paidResult.Value;
+                    await _notificationService.SendClientPaymentReceivedNotificationAsync(paidInvoice.OrganizationClient, paidInvoice);
+                    await _notificationService.SendOrganizationInvoicePaymentReceivedNotificationAsync(
+                        paidInvoice.OrganizationClient.Organization, paidInvoice.OrganizationClient, paidInvoice, amountCents / 100m);
                 }
             }
         }

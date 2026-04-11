@@ -351,6 +351,8 @@ public class PaymentController : ControllerBase
             organization.StripeConnectAccountId = request.AccountId;
             organization.IsStripeConnected = true;
             var updated = await _organizationService.UpsertOrganization(organization);
+            if (updated.IsSuccess)
+                await _onboardingService.MarkStepCompleteAsync(orgId, OnboardingStepKeys.ConnectStripe);
             return updated.IsSuccess ? Ok(new { linked = true }) : BadRequest(updated.Error);
         }
 

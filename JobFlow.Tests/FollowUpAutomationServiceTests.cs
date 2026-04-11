@@ -274,6 +274,11 @@ public class FollowUpAutomationServiceTests
         public Task SendClientEstimateSentNotificationAsync(OrganizationClient client, Estimate estimate) => Task.CompletedTask;
         public Task SendClientEstimateFollowUpNotificationAsync(OrganizationClient client, Estimate estimate, string message) => Task.CompletedTask;
         public Task SendOrganizationEstimateRevisionRequestedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate, string revisionMessage) => Task.CompletedTask;
+        public Task SendOrganizationEstimateAcceptedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate) => Task.CompletedTask;
+        public Task SendOrganizationEstimateDeclinedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate) => Task.CompletedTask;
+        public Task SendOrganizationInvoicePaymentReceivedNotificationAsync(Organization organization, OrganizationClient client, Invoice invoice, decimal amountPaid) => Task.CompletedTask;
+        public Task SendOrganizationClientChatMessageNotificationAsync(Organization organization, OrganizationClient client, string messagePreview) => Task.CompletedTask;
+        public Task SendOrganizationClientJobUpdateNotificationAsync(Organization organization, OrganizationClient client, Job job, string updateMessage) => Task.CompletedTask;
         public Task SendOrganizationClientPortalMagicLinkAsync(OrganizationClient client, string magicLink) => Task.CompletedTask;
         public Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite) => Task.CompletedTask;
     }

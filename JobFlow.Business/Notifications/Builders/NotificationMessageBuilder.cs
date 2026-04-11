@@ -287,6 +287,107 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildOrganizationEstimateAccepted(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Estimate Accepted: {estimate.EstimateNumber}",
+            Body = $"""
+                    Great news! Client {client.ClientFullName()} accepted estimate {estimate.EstimateNumber}.
+                    """,
+            Sms = $"Estimate {estimate.EstimateNumber} accepted by {client.ClientFullName()}.",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationEstimateDeclined(
+        Organization organization,
+        OrganizationClient client,
+        Estimate estimate)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Estimate Declined: {estimate.EstimateNumber}",
+            Body = $"""
+                    Client {client.ClientFullName()} declined estimate {estimate.EstimateNumber}.
+                    """,
+            Sms = $"Estimate {estimate.EstimateNumber} declined by {client.ClientFullName()}.",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationInvoicePaymentReceived(
+        Organization organization,
+        OrganizationClient client,
+        Invoice invoice,
+        decimal amountPaid)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Payment Received: Invoice #{invoice.InvoiceNumber}",
+            Body = $"""
+                    Client {client.ClientFullName()} paid {amountPaid:C} on invoice #{invoice.InvoiceNumber}.
+                    """,
+            Sms = $"Payment of {amountPaid:C} received for invoice #{invoice.InvoiceNumber}.",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationClientChatMessage(
+        Organization organization,
+        OrganizationClient client,
+        string messagePreview)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"New Message from {client.ClientFullName()}",
+            Body = $"""
+                    {client.ClientFullName()} sent you a message:
+
+                    "{messagePreview}"
+                    """,
+            Sms = $"New message from {client.ClientFullName()}: {messagePreview}",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
+    public NotificationMessage BuildOrganizationClientJobUpdate(
+        Organization organization,
+        OrganizationClient client,
+        Job job,
+        string updateMessage)
+    {
+        return new NotificationMessage
+        {
+            Name = organization.OrganizationName,
+            Email = organization.EmailAddress,
+            Phone = organization.PhoneNumber,
+            Subject = $"Job Update from {client.ClientFullName()}: {job.Title}",
+            Body = $"""
+                    {client.ClientFullName()} posted an update on job "{job.Title}":
+
+                    "{updateMessage}"
+                    """,
+            Sms = $"Job update from {client.ClientFullName()} on \"{job.Title}\": {updateMessage}",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
     public NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink)
     {
         return new NotificationMessage
