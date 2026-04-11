@@ -105,10 +105,10 @@ public class OrganizationClientPortalService : IOrganizationClientPortalService
             .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
 
         if (session is null)
-            return Result.Failure<OrganizationClient>(Error.Failure("OrganizationClientPortal", "Invalid or expired link."));
+            return Result.Failure<OrganizationClient>(Error.Validation("OrganizationClientPortal", "Invalid or expired link."));
 
         if (session.RedeemedAt.HasValue || session.ExpiresAt <= DateTimeOffset.UtcNow)
-            return Result.Failure<OrganizationClient>(Error.Failure("OrganizationClientPortal", "Invalid or expired link."));
+            return Result.Failure<OrganizationClient>(Error.Validation("OrganizationClientPortal", "Invalid or expired link."));
 
         session.RedeemedAt = DateTimeOffset.UtcNow;
         _sessions.Update(session);

@@ -63,7 +63,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = "Welcome to JobFlow!",
@@ -76,7 +76,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"{client.Organization.OrganizationName} scheduled an appointment for you.",
@@ -89,7 +89,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = "Appointment Scheduled",
@@ -112,7 +112,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
 
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Appointment Updated: {job.Title}",
@@ -125,7 +125,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Invoice Created: #{invoice.Id}",
@@ -140,7 +140,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Payment Reminder: Invoice #{invoice.InvoiceNumber}",
@@ -155,7 +155,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Payment Received: #{invoice.Id}",
@@ -170,7 +170,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         {
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Subject = $"Your worker is on the way for {job.Title}",
             Body =
                 $"Hello {client.ClientFullName()},\n\nYour JobFlow worker is about {etaMinutes} minutes away for your job: {job.Title}.",
@@ -185,7 +185,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         {
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Subject = $"Your worker has arrived for {job.Title}",
             Body =
                 $"Hello {client.ClientFullName()},\n\nYour JobFlow worker has arrived at your location for job: {job.Title}.",
@@ -200,7 +200,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         return new NotificationMessage
         {
             Email = invite.Email,
-            Name = invite.FullName,
+            Name = invite.FirstName,
             Phone = invite.PhoneNumber,
             Subject = $"You're invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}",
             Body = $"""
@@ -225,7 +225,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
 
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Estimate Ready: {estimate.EstimateNumber}",
@@ -247,7 +247,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
 
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Quick Follow-Up: {estimate.EstimateNumber}",
@@ -392,7 +392,7 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     {
         return new NotificationMessage
         {
-            Name = client.ClientFullName(),
+            Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
             Subject = $"Your {client.Organization?.OrganizationName ?? "JobFlow"} Client Portal Link",

@@ -36,7 +36,8 @@ public class AuditLoggingMiddleware
         var request = new AuditLogWriteRequest
         {
             OrganizationId = TryGetGuidClaim(context, "organizationId"),
-            UserId = TryGetGuidClaim(context, ClaimTypes.NameIdentifier),
+            UserId = context.User.FindFirst("user_id")?.Value
+                  ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
             Category = ResolveCategory(path, status),
             Action = method,
             ResourceType = ResolveResourceType(path),
@@ -45,7 +46,8 @@ public class AuditLoggingMiddleware
             Method = method,
             StatusCode = status,
             Success = status is >= 200 and < 400,
-            IpAddress = context.Connection.RemoteIpAddress?.ToString(),
+            IpAddress = context.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
+                     ?? context.Connection.RemoteIpAddress?.ToString(),
             UserAgent = context.Request.Headers.UserAgent.ToString(),
             DetailsJson = BuildDetails(path, status)
         };
