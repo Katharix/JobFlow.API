@@ -54,3 +54,5 @@ public record SupportHubInviteRedeemRequest(string Code);
 public record SupportHubInviteValidationDto(
     SupportHubInviteDto? Invite,
     string? Error);
+
+public record UpdateStaffRoleRequest(string Role);

@@ -1,7 +1,8 @@
-namespace JobFlow.Domain.Models;
+namespace JobFlow.Business.Models.DTOs;
 
-public class AuditLog : Entity
+public class AuditLogDto
 {
+    public Guid Id { get; set; }
     public Guid? OrganizationId { get; set; }
     public string? UserId { get; set; }
     public string Category { get; set; } = string.Empty;
@@ -13,6 +14,6 @@ public class AuditLog : Entity
     public int StatusCode { get; set; }
     public bool Success { get; set; }
     public string? IpAddress { get; set; }
-    public string? UserAgent { get; set; }
     public string? DetailsJson { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

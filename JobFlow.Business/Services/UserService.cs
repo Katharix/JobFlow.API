@@ -23,7 +23,9 @@ public class UserService : IUserService
 
     public async Task<Result<IEnumerable<User>>> GetAllUsers()
     {
-        var userList = unitOfWork.RepositoryOf<User>().Query();
+        var userList = unitOfWork.RepositoryOf<User>().Query()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role);
 
         if (!userList.Any())
             return Result.Failure<IEnumerable<User>>(UserErrors.UserNotFound);
@@ -33,7 +35,10 @@ public class UserService : IUserService
 
     public async Task<Result<User>> GetUserById(Guid userId)
     {
-        var user = await unitOfWork.RepositoryOf<User>().Query().FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await unitOfWork.RepositoryOf<User>().Query()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
             return Result.Failure<User>(UserErrors.UserNotFound);
