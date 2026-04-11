@@ -2,9 +2,9 @@ name: Create Deploy Review
 
 on:
   workflow_run:
-    types: [requested]
+    types: [completed]
     workflows:
-      - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
+      - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api-staging
 
 permissions:
   contents: read
@@ -14,6 +14,7 @@ permissions:
 jobs:
   create-review-issue:
     name: Create Deploy Review Issue
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -23,8 +24,7 @@ jobs:
             const { owner, repo } = context.repo;
             const run = context.payload.workflow_run;
             const sha = run.head_sha;
-            const runId = run.id;
-            const tag = run.head_branch || sha.slice(0, 8);
+            const branch = run.head_branch || 'master';
 
             // Gather PR and commit info
             let prTitle = '';
@@ -79,7 +79,10 @@ jobs:
               : '- No commit details available';
 
             const body = [
-              '### Review this version for deployment to production',
+              '### Staging deployed successfully — approve to deploy to production',
+              '',
+              `**Staging SHA:** ${commitLink}`,
+              `**Branch:** \`${branch}\``,
               '',
               headerLine,
               '',
@@ -87,14 +90,11 @@ jobs:
               '',
               '---',
               '',
-              `**Approvers:** Repository environment reviewers`,
-              `**Required Approvals:** 1`,
-              '',
-              'Comment with one of the following to approve: `approved`, `LGTM`, `ship it`',
-              'Comment with one of the following to deny: `denied`, `needs changes`',
+              'Comment **`approve`**, **`LGTM`**, or **`ship it`** to deploy the most recent `release-*` tag to production.',
+              'Comment **`deny`** or **`needs changes`** to reject.',
               '',
               '---',
-              `<!-- run_id:${runId} -->`
+              `<!-- staging_sha:${sha} -->`
             ].join('\n');
 
             // Ensure label exists
@@ -111,7 +111,7 @@ jobs:
 
             await github.rest.issues.create({
               owner, repo,
-              title: `Deploy ${tag} to production`,
+              title: `✅ Staging deployed — approve ${sha.slice(0, 7)} for production`,
               body,
               labels: ['deploy-review']
             });
