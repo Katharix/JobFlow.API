@@ -6,6 +6,7 @@ on:
     types: [requested, in_progress, completed]
     workflows:
       - CI
+      - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api-staging
       - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 
 concurrency:
@@ -21,7 +22,6 @@ permissions:
 jobs:
   print-version:
     name: Print App Versions
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.name == 'CI' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' && github.event.workflow_run.conclusion == 'success') || (github.event.workflow_run.name == 'Build and deploy ASP.Net Core app to Azure Web App - jobflow-api' && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) }}
     runs-on: ubuntu-latest
     environment: Version Table
 
@@ -51,7 +51,6 @@ jobs:
 
             // Find open deploy-review issue for linking
             let deployReviewUrl = null;
-            let deployReviewRunId = null;
             try {
               const reviewIssues = await github.rest.issues.listForRepo({
                 owner, repo,
@@ -61,8 +60,6 @@ jobs:
               });
               if (reviewIssues.data.length > 0) {
                 deployReviewUrl = reviewIssues.data[0].html_url;
-                const match = reviewIssues.data[0].body?.match(/<!-- run_id:(\d+) -->/);
-                if (match) deployReviewRunId = parseInt(match[1]);
               }
             } catch (e) {
               // No deploy-review issues found
@@ -98,8 +95,7 @@ jobs:
               }
 
               let url = run.html_url;
-              if (run.status === 'waiting' && deployReviewUrl
-                  && (!deployReviewRunId || deployReviewRunId === run.id)) {
+              if (run.status === 'waiting' && deployReviewUrl) {
                 url = deployReviewUrl;
               }
 

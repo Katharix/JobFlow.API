@@ -25,8 +25,8 @@ jobs:
             const issueNumber = context.payload.issue.number;
             const commenter = context.payload.comment.user.login;
 
-            const approveKeywords = ['approved', 'lgtm', 'ship it'];
-            const denyKeywords = ['denied', 'needs changes'];
+            const approveKeywords = ['approve', 'approved', 'lgtm', 'ship it'];
+            const denyKeywords = ['deny', 'denied', 'needs changes'];
 
             const isApproval = approveKeywords.some(w => comment.includes(w));
             const isDenial = denyKeywords.some(w => comment.includes(w));
@@ -36,89 +36,66 @@ jobs:
               return;
             }
 
-            // Extract run ID from issue body
-            const runIdMatch = context.payload.issue.body.match(/<!-- run_id:(\d+) -->/);
-            if (!runIdMatch) {
-              await github.rest.issues.createComment({
+            if (isApproval) {
+              // Find the most recent release-* tag
+              const tags = await github.rest.repos.listTags({
                 owner, repo,
-                issue_number: issueNumber,
-                body: '⚠️ Could not find the workflow run ID in this issue.'
+                per_page: 100
               });
-              return;
-            }
 
-            const runId = parseInt(runIdMatch[1]);
-
-            // Get pending deployments
-            let pending;
-            try {
-              pending = await github.rest.actions.getPendingDeploymentsForRun({
-                owner, repo,
-                run_id: runId
-              });
-            } catch (e) {
-              await github.rest.issues.createComment({
-                owner, repo,
-                issue_number: issueNumber,
-                body: `⚠️ Failed to fetch pending deployments: ${e.message}`
-              });
-              return;
-            }
-
-            if (!pending.data || pending.data.length === 0) {
-              await github.rest.issues.createComment({
-                owner, repo,
-                issue_number: issueNumber,
-                body: '⚠️ No pending deployments found for this run. It may have already been processed.'
-              });
-              await github.rest.issues.update({
-                owner, repo,
-                issue_number: issueNumber,
-                state: 'closed',
-                state_reason: 'not_planned'
-              });
-              return;
-            }
-
-            const environmentIds = pending.data.map(d => d.environment.id);
-
-            try {
-              await github.rest.actions.reviewPendingDeploymentsForRun({
-                owner, repo,
-                run_id: runId,
-                environment_ids: environmentIds,
-                state: isApproval ? 'approved' : 'rejected',
-                comment: `${isApproval ? 'Approved' : 'Rejected'} by @${commenter} via issue #${issueNumber}`
-              });
-            } catch (e) {
-              await github.rest.issues.createComment({
-                owner, repo,
-                issue_number: issueNumber,
-                body: `⚠️ Failed to ${isApproval ? 'approve' : 'reject'} deployment: ${e.message}\n\nEnsure the \`DEPLOY_APPROVAL_TOKEN\` secret belongs to an authorized environment reviewer.`
-              });
-              return;
-            }
-
-            // On denial, cancel the workflow run so it stops completely
-            if (isDenial) {
-              try {
-                await github.rest.actions.cancelWorkflowRun({
+              const releaseTag = tags.data.find(t => t.name.startsWith('release-'));
+              if (!releaseTag) {
+                await github.rest.issues.createComment({
                   owner, repo,
-                  run_id: runId
+                  issue_number: issueNumber,
+                  body: '⚠️ No `release-*` tag found in this repo. Create a release tag before approving.'
+                });
+                return;
+              }
+
+              // Find the prod workflow
+              const workflows = await github.rest.actions.listRepoWorkflows({ owner, repo });
+              const prodWorkflow = workflows.data.workflows.find(w =>
+                w.path === '.github/workflows/master_jobflow-api.yml'
+              );
+
+              if (!prodWorkflow) {
+                await github.rest.issues.createComment({
+                  owner, repo,
+                  issue_number: issueNumber,
+                  body: '⚠️ Could not find the production deployment workflow.'
+                });
+                return;
+              }
+
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner, repo,
+                  workflow_id: prodWorkflow.id,
+                  ref: 'master',
+                  inputs: { release_tag: releaseTag.name }
                 });
               } catch (e) {
-                core.warning(`Could not cancel workflow run: ${e.message}`);
+                await github.rest.issues.createComment({
+                  owner, repo,
+                  issue_number: issueNumber,
+                  body: `⚠️ Failed to trigger production deployment: ${e.message}`
+                });
+                return;
               }
+
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: `✅ Deployment **approved** by @${commenter}\n\n🚀 Deploying tag \`${releaseTag.name}\` to production...`
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: issueNumber,
+                body: `❌ Deployment **rejected** by @${commenter}`
+              });
             }
-
-            const emoji = isApproval ? '✅' : '❌';
-            const action = isApproval ? 'approved' : 'rejected';
-
-            await github.rest.issues.createComment({
-              owner, repo,
-              issue_number: issueNumber,
-              body: `${emoji} Deployment **${action}** by @${commenter}`
-            });
 
             await github.rest.issues.update({
               owner, repo,
