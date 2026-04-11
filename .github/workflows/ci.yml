@@ -8,6 +8,13 @@ on:
       - dev
       - feature/**
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dotnet-format:
     name: dotnet format
@@ -78,5 +85,5 @@ jobs:
         run: dotnet restore ./JobFlow.API/JobFlow.API.csproj
 
       - name: Test
-        run: dotnet test ./JobFlow.API/JobFlow.API.csproj -c Release --no-build
+        run: dotnet test ./JobFlow.API/JobFlow.API.csproj -c Release
 

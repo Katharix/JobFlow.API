@@ -1,0 +1,117 @@
+name: Create Deploy Review
+
+on:
+  workflow_run:
+    types: [requested]
+    workflows:
+      - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  create-review-issue:
+    name: Create Deploy Review Issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const run = context.payload.workflow_run;
+            const sha = run.head_sha;
+            const runId = run.id;
+            const tag = run.head_branch || sha.slice(0, 8);
+
+            // Gather PR and commit info
+            let prTitle = '';
+            let prNumber = '';
+            let prUrl = '';
+            let commitMessages = [];
+
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner, repo,
+              commit_sha: sha
+            });
+
+            if (prs.data.length > 0) {
+              const pr = prs.data[0];
+              prTitle = pr.title;
+              prNumber = pr.number;
+              prUrl = pr.html_url;
+
+              const prCommits = await github.rest.pulls.listCommits({
+                owner, repo,
+                pull_number: pr.number
+              });
+
+              commitMessages = prCommits.data
+                .map(c => c.commit.message.split('\n')[0])
+                .filter(m => m);
+            }
+
+            // Close existing open deploy-review issues
+            const existing = await github.rest.issues.listForRepo({
+              owner, repo,
+              labels: 'deploy-review',
+              state: 'open'
+            });
+
+            for (const issue of existing.data) {
+              await github.rest.issues.update({
+                owner, repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+            }
+
+            // Build issue body
+            const commitLink = `[${sha.slice(0, 7)}](https://github.com/${owner}/${repo}/commit/${sha})`;
+            const prRef = prNumber ? `([#${prNumber}](${prUrl}))` : '';
+            const headerLine = `${commitLink}: ${prTitle} ${prRef}`.trim();
+
+            const bullets = commitMessages.length > 0
+              ? commitMessages.map(m => `- ${m}`).join('\n')
+              : '- No commit details available';
+
+            const body = [
+              '### Review this version for deployment to production',
+              '',
+              headerLine,
+              '',
+              bullets,
+              '',
+              '---',
+              '',
+              `**Approvers:** Repository environment reviewers`,
+              `**Required Approvals:** 1`,
+              '',
+              'Comment with one of the following to approve: `approved`, `LGTM`, `ship it`',
+              'Comment with one of the following to deny: `denied`, `needs changes`',
+              '',
+              '---',
+              `<!-- run_id:${runId} -->`
+            ].join('\n');
+
+            // Ensure label exists
+            try {
+              await github.rest.issues.createLabel({
+                owner, repo,
+                name: 'deploy-review',
+                color: '0E8A16',
+                description: 'Production deployment review'
+              });
+            } catch (e) {
+              // Label already exists
+            }
+
+            await github.rest.issues.create({
+              owner, repo,
+              title: `Deploy ${tag} to production`,
+              body,
+              labels: ['deploy-review']
+            });
