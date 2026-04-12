@@ -67,6 +67,27 @@ public sealed class ClientImportUploadSessionService
         return sessionId;
     }
 
+    public async Task<ClientImportUploadMetadata?> ValidateSessionAsync(Guid sessionId, Guid organizationId, CancellationToken cancellationToken)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var session = await dbContext.Set<ClientImportUploadSession>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == sessionId && x.OrganizationId == organizationId, cancellationToken);
+
+        if (session is null || session.ExpiresAtUtc < now || !string.Equals(session.Status, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return new ClientImportUploadMetadata(
+            session.Id,
+            session.OrganizationId,
+            session.SourceSystem,
+            session.TotalRows);
+    }
+
     public async Task<ClientImportUploadData?> GetActiveSessionAsync(Guid sessionId, Guid organizationId, CancellationToken cancellationToken)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -81,15 +102,18 @@ public sealed class ClientImportUploadSessionService
             return null;
         }
 
-        var rows = await dbContext.Set<ClientImportUploadRow>()
+        var rawRows = await dbContext.Set<ClientImportUploadRow>()
             .AsNoTracking()
             .Where(x => x.ClientImportUploadSessionId == sessionId)
             .OrderBy(x => x.RowNumber)
-            .Select(x => new ClientImportUploadRowData(
-                x.RowNumber,
-                JsonSerializer.Deserialize<Dictionary<string, string?>>(x.RowDataJson, JsonOptions)
-                ?? new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)))
+            .Select(x => new { x.RowNumber, x.RowDataJson })
             .ToListAsync(cancellationToken);
+
+        var rows = rawRows.Select(x => new ClientImportUploadRowData(
+            x.RowNumber,
+            JsonSerializer.Deserialize<Dictionary<string, string?>>(x.RowDataJson, JsonOptions)
+            ?? new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)))
+            .ToList();
 
         return new ClientImportUploadData(
             session.Id,
@@ -118,6 +142,12 @@ public sealed class ClientImportUploadSessionService
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
+
+public sealed record ClientImportUploadMetadata(
+    Guid SessionId,
+    Guid OrganizationId,
+    string SourceSystem,
+    int TotalRows);
 
 public sealed record ClientImportUploadData(
     Guid SessionId,
