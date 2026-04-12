@@ -9,4 +9,5 @@ public interface ISquareSettings
     string? RedirectUrl { get; set; }
     string? WebhookSignatureKey { get; set; }
     string? WebhookNotificationUrl { get; set; }
+    bool UseSandbox { get; set; }
 }

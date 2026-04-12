@@ -11,4 +11,5 @@ public class SquareSettings : ISquareSettings
     public string? RedirectUrl { get; set; }
     public string? WebhookSignatureKey { get; set; }
     public string? WebhookNotificationUrl { get; set; }
+    public bool UseSandbox { get; set; }
 }
