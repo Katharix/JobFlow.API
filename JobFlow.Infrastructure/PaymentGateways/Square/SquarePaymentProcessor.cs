@@ -92,6 +92,14 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             Description = request.ProductName
         };
 
+        if (!string.IsNullOrWhiteSpace(request.SuccessUrl))
+        {
+            paymentLinkRequest.CheckoutOptions = new CheckoutOptions
+            {
+                RedirectUrl = request.SuccessUrl
+            };
+        }
+
         if (request.InvoiceId.HasValue)
         {
             paymentLinkRequest.PaymentNote = $"invoiceId={request.InvoiceId.Value}";

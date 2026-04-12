@@ -182,6 +182,12 @@ public class PaymentController : ControllerBase
             {
                 provider = invoice.PaymentProvider;
             }
+
+            if (provider == PaymentProvider.Square && string.IsNullOrWhiteSpace(request.SuccessUrl))
+            {
+                var feBase = (_frontEndSettings.BaseUrl ?? "http://localhost:4200").TrimEnd('/');
+                request.SuccessUrl = $"{feBase}/client-hub/invoices/{invoice.Id}";
+            }
         }
 
         IPaymentProcessor processor;
