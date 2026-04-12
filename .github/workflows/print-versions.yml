@@ -3,7 +3,7 @@ name: Print Versions
 on:
   workflow_dispatch:
   workflow_run:
-    types: [requested, in_progress, completed]
+    types: [completed]
     workflows:
       - CI
       - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api-staging
