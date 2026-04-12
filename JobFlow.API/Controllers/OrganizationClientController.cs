@@ -225,8 +225,8 @@ public class OrganizationClientController : ControllerBase
             return Results.BadRequest("Invalid upload token format.");
 
         var organizationId = HttpContext.GetOrganizationId();
-        var uploadSession = await _uploadSessionService.GetActiveSessionAsync(uploadSessionId, organizationId, CancellationToken.None);
-        if (uploadSession is null)
+        var sessionMeta = await _uploadSessionService.ValidateSessionAsync(uploadSessionId, organizationId, CancellationToken.None);
+        if (sessionMeta is null)
             return Results.BadRequest("Import session expired or invalid. Please upload your CSV again.");
 
         if (request.ColumnMappings.Count == 0)
@@ -242,7 +242,7 @@ public class OrganizationClientController : ControllerBase
             OrganizationId = organizationId,
             SourceSystem = sourceSystem,
             Status = "queued",
-            TotalRows = uploadSession.TotalRows,
+            TotalRows = sessionMeta.TotalRows,
             ProcessedRows = 0,
             SucceededRows = 0,
             FailedRows = 0,
