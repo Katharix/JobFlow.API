@@ -10,6 +10,12 @@ public static class CursorToken
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
     }
 
+    public static string BuildOffset(int offset)
+    {
+        var raw = $"off|{offset}";
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+    }
+
     public static bool TryRead(string? cursor, out DateTime timestampUtc, out Guid id)
     {
         timestampUtc = default;
@@ -21,6 +27,11 @@ public static class CursorToken
         try
         {
             var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
+
+            // Skip offset-style cursors
+            if (decoded.StartsWith("off|"))
+                return false;
+
             var split = decoded.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             if (split.Length != 2)
                 return false;
@@ -33,6 +44,27 @@ public static class CursorToken
 
             timestampUtc = new DateTime(ticks, DateTimeKind.Utc);
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static bool TryReadOffset(string? cursor, out int offset)
+    {
+        offset = 0;
+
+        if (string.IsNullOrWhiteSpace(cursor))
+            return false;
+
+        try
+        {
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
+            if (!decoded.StartsWith("off|"))
+                return false;
+
+            return int.TryParse(decoded.AsSpan(4), out offset) && offset >= 0;
         }
         catch
         {

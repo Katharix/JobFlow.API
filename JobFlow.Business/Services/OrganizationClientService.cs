@@ -125,19 +125,21 @@ public class OrganizationClientService : IOrganizationClientService
         var withEmailCount = await baseQuery.CountAsync(c => c.EmailAddress != null && c.EmailAddress.Trim() != string.Empty);
         var withPhoneCount = await baseQuery.CountAsync(c => c.PhoneNumber != null && c.PhoneNumber.Trim() != string.Empty);
 
-        if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
+        var offset = 0;
+        if (CursorToken.TryReadOffset(cursor, out var parsedOffset))
         {
-            query = query.Where(c => c.CreatedAt < cursorCreatedAt || (c.CreatedAt == cursorCreatedAt && c.Id.CompareTo(cursorId) < 0));
+            offset = parsedOffset;
         }
 
         var batch = await query
+            .Skip(offset)
             .Take(size + 1)
             .ToListAsync();
 
         var hasMore = batch.Count > size;
         var items = hasMore ? batch.Take(size).ToList() : batch;
-        var nextCursor = hasMore && items.Count > 0
-            ? CursorToken.Build(items[^1].CreatedAt, items[^1].Id)
+        var nextCursor = hasMore
+            ? CursorToken.BuildOffset(offset + size)
             : null;
 
         return Result.Success(new CursorPagedResponseDto<OrganizationClient>
