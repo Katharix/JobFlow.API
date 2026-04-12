@@ -111,22 +111,6 @@ public class EstimateRevisionService : IEstimateRevisionService
 
         await _unitOfWork.SaveChangesAsync();
 
-        var organization = await _organizations.Query()
-            .FirstOrDefaultAsync(x => x.Id == organizationId);
-        if (organization is null)
-            return Result.Failure<EstimateRevisionRequestDto>(EstimateRevisionErrors.OrganizationNotFound);
-
-        var client = await _clients.Query()
-            .FirstOrDefaultAsync(x => x.Id == organizationClientId && x.OrganizationId == organizationId);
-        if (client is null)
-            return Result.Failure<EstimateRevisionRequestDto>(EstimateRevisionErrors.ClientNotFound);
-
-        await _notificationService.SendOrganizationEstimateRevisionRequestedNotificationAsync(
-            organization,
-            client,
-            estimate,
-            revisionRequest.RequestMessage);
-
         return Result.Success(ToDto(revisionRequest));
     }
 

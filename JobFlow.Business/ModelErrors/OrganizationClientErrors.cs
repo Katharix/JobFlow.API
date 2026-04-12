@@ -25,4 +25,10 @@ public static class OrganizationClientErrors
         return Error.Failure(
             "Clients", $"Failed to update {clientName}");
     }
+
+    public static Error DuplicateEmail(string email)
+    {
+        return Error.Conflict(
+            "Clients", $"A client with the email '{email}' already exists in this organization.");
+    }
 }

@@ -122,9 +122,21 @@ public class OrganizationClientController : ControllerBase
 
     [HttpPost]
     [Route("upsert/multi")]
-    public async Task<IResult> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList)
+    public async Task<IResult> UpsertMultipleClients(
+        [FromBody] IEnumerable<OrganizationClientDto> modelList)
     {
-        var result = await organizationClientService.UpsertMultipleClients(modelList);
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Results.BadRequest("OrganizationId is required.");
+
+        var entities = modelList.Select(dto =>
+        {
+            dto.Organization = null;
+            dto.OrganizationId = organizationId;
+            return _mapper.Map<OrganizationClient>(dto);
+        });
+
+        var result = await organizationClientService.UpsertMultipleClients(entities);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
