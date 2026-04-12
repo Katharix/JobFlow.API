@@ -14,5 +14,9 @@ internal class OrganizationClientConfiguration : IEntityTypeConfiguration<Organi
             .WithMany()
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(e => new { e.OrganizationId, e.EmailAddress })
+            .IsUnique()
+            .HasFilter("[EmailAddress] IS NOT NULL AND [IsActive] = 1");
     }
 }

@@ -187,6 +187,18 @@ public class OrganizationClientService : IOrganizationClientService
 
     public async Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model)
     {
+        if (!string.IsNullOrWhiteSpace(model.EmailAddress))
+        {
+            var duplicate = await organizationClient.Query()
+                .AnyAsync(c => c.OrganizationId == model.OrganizationId
+                    && c.EmailAddress != null
+                    && c.EmailAddress.ToLower() == model.EmailAddress.ToLower()
+                    && c.Id != model.Id);
+
+            if (duplicate)
+                return Result.Failure<OrganizationClient>(OrganizationClientErrors.DuplicateEmail(model.EmailAddress));
+        }
+
         var exists = await organizationClient.Query()
             .AnyAsync(c => c.Id == model.Id);
 
@@ -226,17 +238,50 @@ public class OrganizationClientService : IOrganizationClientService
     public async Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(
         IEnumerable<OrganizationClient> modelList)
     {
-        var modelsToInsert = modelList.Where(client => client.Id == Guid.Empty);
-        var modelsToUpdate = modelList.Where(client => client.Id != Guid.Empty);
+        var models = modelList.ToList();
+        var modelsToInsert = models.Where(client => client.Id == Guid.Empty).ToList();
+        var modelsToUpdate = models.Where(client => client.Id != Guid.Empty).ToList();
 
-        if (!modelList.Any())
+        if (models.Count == 0)
             return Result.Failure<IEnumerable<OrganizationClient>>(OrganizationClientErrors.FailedToCreateClient);
 
-        if (modelsToInsert.Any()) organizationClient.AddRange(modelsToInsert);
-        if (modelsToUpdate.Any()) organizationClient.UpdateRange(modelsToUpdate);
+        // Check for duplicate emails within the batch itself
+        var batchEmails = models
+            .Where(c => !string.IsNullOrWhiteSpace(c.EmailAddress))
+            .GroupBy(c => c.EmailAddress!.ToLower())
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (batchEmails != null)
+            return Result.Failure<IEnumerable<OrganizationClient>>(
+                OrganizationClientErrors.DuplicateEmail(batchEmails.Key));
+
+        // Check for duplicate emails against existing clients in the organization
+        var emails = models
+            .Where(c => !string.IsNullOrWhiteSpace(c.EmailAddress))
+            .Select(c => c.EmailAddress!.ToLower())
+            .ToList();
+
+        if (emails.Count > 0)
+        {
+            var ids = models.Where(c => c.Id != Guid.Empty).Select(c => c.Id).ToList();
+            var existingDuplicate = await organizationClient.Query()
+                .Where(c => c.OrganizationId == models[0].OrganizationId
+                    && c.EmailAddress != null
+                    && emails.Contains(c.EmailAddress.ToLower())
+                    && !ids.Contains(c.Id))
+                .Select(c => c.EmailAddress)
+                .FirstOrDefaultAsync();
+
+            if (existingDuplicate != null)
+                return Result.Failure<IEnumerable<OrganizationClient>>(
+                    OrganizationClientErrors.DuplicateEmail(existingDuplicate));
+        }
+
+        if (modelsToInsert.Count > 0) organizationClient.AddRange(modelsToInsert);
+        if (modelsToUpdate.Count > 0) organizationClient.UpdateRange(modelsToUpdate);
 
         await unitOfWork.SaveChangesAsync();
-        return Result.Success<IEnumerable<OrganizationClient>>(modelList);
+        return Result.Success<IEnumerable<OrganizationClient>>(models.AsEnumerable());
     }
 
     public async Task<Result> RestoreClient(Guid clientId, Guid organizationId)

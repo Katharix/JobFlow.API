@@ -507,6 +507,7 @@ builder.Services.AddScoped<EmployeeImportProcessor>();
 builder.Services.AddScoped<EmployeeImportUploadSessionService>();
 builder.Services.AddScoped<DataExportBuilderService>();
 builder.Services.AddScoped<DataExportJobProcessor>();
+builder.Services.AddScoped<IEstimateRevisionNotificationJob, EstimateRevisionNotificationJob>();
 builder.Services.AddJobFlowHttpClients();
 builder.Services.AddAttributedServices(typeof(IJobFlowHttpClientFactory).Assembly, typeof(IUserService).Assembly);
 
