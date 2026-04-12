@@ -90,9 +90,11 @@ public class OrganizationClientService : IOrganizationClientService
         string? sortDirection)
     {
         var size = Math.Clamp(pageSize, 1, 100);
-        var query = organizationClient.Query()
+        var baseQuery = organizationClient.Query()
             .AsNoTracking()
             .Where(client => client.OrganizationId == organizationId);
+
+        var query = baseQuery;
 
         if (missingEmailOnly)
         {
@@ -120,6 +122,9 @@ public class OrganizationClientService : IOrganizationClientService
 
         var totalCount = await query.CountAsync();
 
+        var withEmailCount = await baseQuery.CountAsync(c => c.EmailAddress != null && c.EmailAddress.Trim() != string.Empty);
+        var withPhoneCount = await baseQuery.CountAsync(c => c.PhoneNumber != null && c.PhoneNumber.Trim() != string.Empty);
+
         if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
         {
             query = query.Where(c => c.CreatedAt < cursorCreatedAt || (c.CreatedAt == cursorCreatedAt && c.Id.CompareTo(cursorId) < 0));
@@ -139,7 +144,9 @@ public class OrganizationClientService : IOrganizationClientService
         {
             Items = items,
             NextCursor = nextCursor,
-            TotalCount = totalCount
+            TotalCount = totalCount,
+            WithEmailCount = withEmailCount,
+            WithPhoneCount = withPhoneCount
         });
     }
 
