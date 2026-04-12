@@ -8,6 +8,8 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using Hangfire;
+using JobFlow.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -415,15 +417,26 @@ public class ClientHubController : ControllerBase
         if (!result.IsSuccess)
             return result.ToProblemDetails();
 
-        await _hubContext.Clients.Group($"org:{organizationId}:dashboard")
-            .SendAsync("EstimateRevisionRequested", new
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                estimateId = id,
-                revisionRequestId = result.Value.Id,
-                revisionNumber = result.Value.RevisionNumber,
-                requestedAt = result.Value.RequestedAt,
-                message = result.Value.RequestMessage
-            });
+                await _hubContext.Clients.Group($"org:{organizationId}:dashboard")
+                    .SendAsync("EstimateRevisionRequested", new
+                    {
+                        estimateId = id,
+                        revisionRequestId = result.Value.Id,
+                        revisionNumber = result.Value.RevisionNumber,
+                        requestedAt = result.Value.RequestedAt,
+                        message = result.Value.RequestMessage
+                    });
+            }
+            catch { /* SignalR broadcast is best-effort */ }
+        });
+
+        BackgroundJob.Enqueue<IEstimateRevisionNotificationJob>(
+            job => job.SendRevisionRequestedNotificationAsync(
+                organizationId, orgClientId, id, result.Value.RequestMessage));
 
         return Results.Ok(result.Value);
     }
