@@ -984,7 +984,7 @@ public class PaymentController : ControllerBase
             || string.IsNullOrWhiteSpace(_squareSettings.RedirectUrl))
             return Redirect($"{uiBase}?provider=square&success=false&error={Uri.EscapeDataString("Square OAuth is not configured.")}");
 
-        var connectBaseUrl = _hostEnvironment.IsDevelopment()
+        var connectBaseUrl = _squareSettings.UseSandbox
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
 
@@ -1077,7 +1077,7 @@ public class PaymentController : ControllerBase
             "1",
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = SquareStateLifetime });
 
-        var connectBaseUrl = _hostEnvironment.IsDevelopment()
+        var connectBaseUrl = _squareSettings.UseSandbox
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
 

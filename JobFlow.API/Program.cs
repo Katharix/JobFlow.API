@@ -482,6 +482,7 @@ builder.Services.Configure<SquareSettings>(options =>
     options.RedirectUrl = squareSection["RedirectUrl"] ?? builder.Configuration["SquareSettings-RedirectUrl"];
     options.WebhookSignatureKey = squareSection["WebhookSignatureKey"] ?? builder.Configuration["SquareSettings-WebhookSignatureKey"];
     options.WebhookNotificationUrl = squareSection["WebhookNotificationUrl"] ?? builder.Configuration["SquareSettings-WebhookNotificationUrl"];
+    options.UseSandbox = bool.TryParse(squareSection["UseSandbox"] ?? builder.Configuration["SquareSettings-UseSandbox"], out var useSandbox) && useSandbox;
 });
 
 builder.Services.AddSingleton<ITwilioSettings>(sp => sp.GetRequiredService<IOptions<TwilioSettings>>().Value);

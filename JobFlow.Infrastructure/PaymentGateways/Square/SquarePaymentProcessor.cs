@@ -5,7 +5,6 @@ using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using System.Net.Http.Json;
 using Square;
 using Square.Checkout.PaymentLinks;
-using Microsoft.Extensions.Hosting;
 
 
 namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
@@ -14,20 +13,18 @@ namespace JobFlow.Infrastructure.PaymentGateways.SquarePayment;
 public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProcessor, ISubscriptionOperationsProcessor
 {
     private readonly ISquareSettings _settings;
-    private readonly IHostEnvironment _hostEnvironment;
     private readonly string _baseUrl;
 
     // Per-org token override (set by the factory when resolving for a specific org)
     private string? _orgAccessToken;
     private string? _orgLocationId;
 
-    public SquarePaymentProcessor(ISquareSettings settings, IHostEnvironment hostEnvironment)
+    public SquarePaymentProcessor(ISquareSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         _settings = settings;
-        _hostEnvironment = hostEnvironment;
 
-        _baseUrl = hostEnvironment.IsDevelopment()
+        _baseUrl = settings.UseSandbox
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
     }
