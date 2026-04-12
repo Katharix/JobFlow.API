@@ -4,7 +4,6 @@ using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace JobFlow.Infrastructure.PaymentGateways.Square;
@@ -22,20 +21,17 @@ public class SquareTokenRefreshService : ISquareTokenRefreshService
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly ISquareTokenEncryptionService _encryption;
     private readonly ISquareSettings _settings;
-    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<SquareTokenRefreshService> _logger;
 
     public SquareTokenRefreshService(
         IPaymentProfileService paymentProfileService,
         ISquareTokenEncryptionService encryption,
         ISquareSettings settings,
-        IHostEnvironment hostEnvironment,
         ILogger<SquareTokenRefreshService> logger)
     {
         _paymentProfileService = paymentProfileService;
         _encryption = encryption;
         _settings = settings;
-        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -71,7 +67,7 @@ public class SquareTokenRefreshService : ISquareTokenRefreshService
 
         var refreshToken = _encryption.Decrypt(profile.EncryptedRefreshToken);
 
-        var connectBaseUrl = _hostEnvironment.IsDevelopment()
+        var connectBaseUrl = _settings.UseSandbox
             ? "https://connect.squareupsandbox.com"
             : "https://connect.squareup.com";
 
