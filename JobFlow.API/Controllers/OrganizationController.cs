@@ -45,6 +45,7 @@ public class OrganizationController : ControllerBase
 
     [HttpGet]
     [Route("all")]
+    [Authorize]
     public async Task<IResult> GetAllOrganizations()
     {
         var result = await _organizationService.GetAllOrganizations();

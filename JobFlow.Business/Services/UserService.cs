@@ -23,11 +23,12 @@ public class UserService : IUserService
 
     public async Task<Result<IEnumerable<User>>> GetAllUsers()
     {
-        var userList = unitOfWork.RepositoryOf<User>().Query()
+        var userList = await unitOfWork.RepositoryOf<User>().Query()
             .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role);
+            .ThenInclude(ur => ur.Role)
+            .ToListAsync();
 
-        if (!userList.Any())
+        if (userList.Count == 0)
             return Result.Failure<IEnumerable<User>>(UserErrors.UserNotFound);
 
         return Result.Success<IEnumerable<User>>(userList);
@@ -59,7 +60,7 @@ public class UserService : IUserService
 
     public async Task<Result> DeleteUser(Guid userId)
     {
-        var userToDelete = unitOfWork.RepositoryOf<User>().Query().FirstOrDefault(u => u.Id == userId);
+        var userToDelete = await unitOfWork.RepositoryOf<User>().Query().FirstOrDefaultAsync(u => u.Id == userId);
 
         if (userToDelete == null)
             return Result.Failure(UserErrors.UserNotFound);
@@ -77,10 +78,10 @@ public class UserService : IUserService
 
     public async Task<Result> AssignRole(Guid userId, string role)
     {
-        var identityRole = unitOfWork.RepositoryOf<SystemRole>().Query().FirstOrDefault(e => e.Name == role);
+        var identityRole = await unitOfWork.RepositoryOf<SystemRole>().Query().FirstOrDefaultAsync(e => e.Name == role);
         if (identityRole == null) return Result.Failure(Error.NullValue);
-        var identityUserRoles = unitOfWork.RepositoryOf<UserRole>().Query()
-            .FirstOrDefault(e => e.RoleId == identityRole.Id && e.UserId == userId);
+        var identityUserRoles = await unitOfWork.RepositoryOf<UserRole>().Query()
+            .FirstOrDefaultAsync(e => e.RoleId == identityRole.Id && e.UserId == userId);
         if (identityUserRoles != null) return Result.Failure(UserErrors.UserRoleExist);
         var userRoleToAdd = new UserRole
         {

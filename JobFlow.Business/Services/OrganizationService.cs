@@ -37,7 +37,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result> DeleteOrganization(Guid organizationId)
     {
-        var organizationToDelete = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        var organizationToDelete = await _organizations.FirstOrDefaultAsync(org => org.Id == organizationId);
         if (organizationToDelete == null) return Result.Failure(OrganizationErrors.OrganizationNotFound);
         _unitOfWork.RepositoryOf<Organization>().Remove(organizationToDelete);
         await _unitOfWork.SaveChangesAsync();
@@ -47,16 +47,16 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result<IEnumerable<Organization>>> GetAllOrganizations()
     {
-        var organizations = _organizations.AsEnumerable();
+        var organizations = await _organizations.ToListAsync();
 
-        if (!organizations.Any())
+        if (organizations.Count == 0)
             return Result.Failure<IEnumerable<Organization>>(OrganizationErrors.OrganizationNotFound);
-        return Result.Success(organizations);
+        return Result.Success<IEnumerable<Organization>>(organizations);
     }
 
     public async Task<Result<Organization>> GetOrganiztionById(Guid orgId)
     {
-        var organization = _organizations.FirstOrDefault(org => org.Id == orgId);
+        var organization = await _organizations.FirstOrDefaultAsync(org => org.Id == orgId);
 
         if (organization == null) return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
         return Result.Success(organization);
@@ -144,7 +144,7 @@ public class OrganizationService : IOrganizationService
         if (organizationId == Guid.Empty)
             return Result.Failure(OrganizationErrors.NullOrEmptyId);
 
-        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        var organization = await _organizations.FirstOrDefaultAsync(org => org.Id == organizationId);
         if (organization == null)
             return Result.Failure(OrganizationErrors.OrganizationNotFound);
 
@@ -172,7 +172,7 @@ public class OrganizationService : IOrganizationService
         }
         else
         {
-            var organization = _organizations.FirstOrDefault(org => org.Id == model.Id);
+            var organization = await _organizations.FirstOrDefaultAsync(org => org.Id == model.Id);
             if (organization == null) return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);
             _unitOfWork.RepositoryOf<Organization>().Update(model);
             await _unitOfWork.SaveChangesAsync();
@@ -183,7 +183,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result<OrganizationDto>> UpdateOrganizationAsync(Guid organizationId, UpdateOrganizationRequest request)
     {
-        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        var organization = await _organizations.FirstOrDefaultAsync(org => org.Id == organizationId);
         if (organization == null)
             return Result.Failure<OrganizationDto>(OrganizationErrors.OrganizationNotFound);
 
@@ -218,7 +218,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<Result<Organization>> UpdateIndustryAsync(Guid organizationId, string? industryKey)
     {
-        var organization = _organizations.FirstOrDefault(org => org.Id == organizationId);
+        var organization = await _organizations.FirstOrDefaultAsync(org => org.Id == organizationId);
         if (organization == null)
         {
             return Result.Failure<Organization>(OrganizationErrors.OrganizationNotFound);

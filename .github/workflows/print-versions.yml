@@ -5,7 +5,6 @@ on:
   workflow_run:
     types: [completed]
     workflows:
-      - CI
       - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api-staging
       - Build and deploy ASP.Net Core app to Azure Web App - jobflow-api
 

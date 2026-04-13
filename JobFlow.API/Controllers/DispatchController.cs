@@ -1,6 +1,7 @@
 using JobFlow.API.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -26,6 +27,7 @@ public class DispatchController : ControllerBase
         _jobService = jobService;
     }
 
+    [Authorize]
     [HttpGet("board")]
     public async Task<IActionResult> GetBoard([FromQuery] DateTime start, [FromQuery] DateTime end)
     {
