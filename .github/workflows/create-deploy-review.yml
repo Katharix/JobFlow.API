@@ -109,9 +109,15 @@ jobs:
               // Label already exists
             }
 
-            await github.rest.issues.create({
+            const issue = await github.rest.issues.create({
               owner, repo,
               title: `✅ Staging deployed — approve ${sha.slice(0, 7)} for production`,
               body,
               labels: ['deploy-review']
             });
+
+            core.summary
+              .addHeading('Deploy Review Created', 2)
+              .addRaw(`👉 <a href="${issue.data.html_url}"><strong>Open issue #${issue.data.number} to approve or deny</strong></a>`)
+              .addBreak()
+              .write();

@@ -35,6 +35,7 @@ public class UsersController : ControllerBase
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IResult> CreateOrUpdate([FromBody] User model)
     {
@@ -50,6 +51,7 @@ public class UsersController : ControllerBase
         return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
     }
 
+    [Authorize]
     [HttpPost("{id}/assign-role")]
     public async Task<IResult> AssignRole(Guid id, [FromQuery] string role)
     {

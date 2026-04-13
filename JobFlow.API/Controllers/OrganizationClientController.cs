@@ -9,6 +9,7 @@ using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
 using Hangfire;
 using MapsterMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using JobFlow.Infrastructure.Persistence;
@@ -44,6 +45,7 @@ public class OrganizationClientController : ControllerBase
 
     [HttpGet]
     [Route("all")]
+    [Authorize]
     public async Task<IResult> GetAllClients()
     {
         var result = await organizationClientService.GetAllClients();
