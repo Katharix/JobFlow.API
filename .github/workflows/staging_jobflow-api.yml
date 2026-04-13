@@ -3,7 +3,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - jobflow-api-staging
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 permissions:

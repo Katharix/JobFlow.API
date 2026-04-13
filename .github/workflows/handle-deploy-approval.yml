@@ -72,7 +72,7 @@ jobs:
                 await github.rest.actions.createWorkflowDispatch({
                   owner, repo,
                   workflow_id: prodWorkflow.id,
-                  ref: 'master',
+                  ref: 'main',
                   inputs: { release_tag: releaseTag.name }
                 });
               } catch (e) {

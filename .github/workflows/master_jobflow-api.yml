@@ -77,10 +77,10 @@ jobs:
             exit 1
           fi
 
-          git fetch --no-tags origin master:refs/remotes/origin/master
+          git fetch --no-tags origin main:refs/remotes/origin/main
 
-          if ! git merge-base --is-ancestor "$TAG_SHA" origin/master; then
-            echo "Release tag $RELEASE_REF ($TAG_SHA) is not on master. Blocking production deploy."
+          if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
+            echo "Release tag $RELEASE_REF ($TAG_SHA) is not on main. Blocking production deploy."
             exit 1
           fi
 
