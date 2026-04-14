@@ -46,15 +46,38 @@ public class InvoiceController : ControllerBase
     public async Task<IActionResult> Get(Guid id)
     {
         var result = await invoiceService.GetInvoiceByIdAsync(id);
+        if (!result.IsSuccess)
+            return NotFound(result.Error);
+
+        var organizationId = HttpContext.GetOrganizationId();
+        if (result.Value.OrganizationId != organizationId)
+            return NotFound();
+
         var value = _mapper.Map<InvoiceDto>(result.Value);
-        return result.IsSuccess ? Ok(value) : NotFound(result.Error);
+        return Ok(value);
+    }
+
+    [HttpGet("organization/summary")]
+    public async Task<IActionResult> GetSummary()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var result = await invoiceService.GetInvoiceAggregatesByOrganizationAsync(organizationId);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
     [HttpGet("client/{clientId}")]
     public async Task<IActionResult> GetByClient(Guid clientId)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await invoiceService.GetInvoicesByClientAsync(clientId);
-        return Ok(result.Value.ToDto());
+        if (!result.IsSuccess)
+            return NotFound(result.Error);
+
+        var filtered = result.Value.Where(i => i.OrganizationId == organizationId).ToList();
+        return Ok(filtered.ToDto());
     }
 
     [HttpGet("organization")]
@@ -108,6 +131,8 @@ public class InvoiceController : ControllerBase
         var invoiceNumber = await numberGenerator.GenerateAsync(organizationId);
 
         var jobInfo = await this._jobService.GetJobByIdAsync(request.JobId, organizationId);
+        if (!jobInfo.IsSuccess)
+            return BadRequest(jobInfo.Error);
 
         request.OrganizationClientId = jobInfo.Value.OrganizationClientId;
         var invoice = request.ToInvoice(invoiceNumber);
@@ -140,9 +165,12 @@ public class InvoiceController : ControllerBase
     [HttpPost("{id:guid}/send")]
     public async Task<IActionResult> SendInvoice(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await invoiceService.GetInvoiceByIdAsync(id);
         if (!result.IsSuccess)
             return NotFound(result.Error);
+        if (result.Value.OrganizationId != organizationId)
+            return NotFound();
 
         await invoiceService.SendInvoiceToClientAsync(result.Value.Id);
 
@@ -152,14 +180,14 @@ public class InvoiceController : ControllerBase
     [HttpPost("{id:guid}/remind")]
     public async Task<IActionResult> SendInvoiceReminder(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await invoiceService.GetInvoiceByIdAsync(id);
         if (!result.IsSuccess)
             return NotFound(result.Error);
 
         var invoice = result.Value;
-
-        if (invoice.OrganizationClient is null)
-            return BadRequest("Invoice client is missing.");
+        if (invoice.OrganizationId != organizationId)
+            return NotFound();
 
         if (invoice.OrganizationClient is null)
             return BadRequest("Invoice client is missing.");
@@ -196,7 +224,13 @@ public class InvoiceController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        // Optional: delete line items too
+        var organizationId = HttpContext.GetOrganizationId();
+        var existing = await invoiceService.GetInvoiceByIdAsync(id);
+        if (!existing.IsSuccess)
+            return NotFound(existing.Error);
+        if (existing.Value.OrganizationId != organizationId)
+            return NotFound();
+
         await lineItemService.DeleteByInvoiceIdAsync(id);
         var result = await invoiceService.DeleteInvoiceAsync(id);
         return result.IsSuccess ? Ok() : NotFound(result.Error);
@@ -205,13 +239,15 @@ public class InvoiceController : ControllerBase
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> GeneratePdf(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await invoiceService.GetInvoiceByIdAsync(id);
         if (!result.IsSuccess)
             return NotFound(result.Error);
+        if (result.Value.OrganizationId != organizationId)
+            return NotFound();
         //46455c4d-58c0-49ef-b18a-84704dbd50aa
         var pdf = await pdfGenerator.GenerateInvoicePdfAsync(result.Value);
         var invoice = result.Value;
-        await invoiceService.SendInvoiceToClientAsync(invoice.Id);
         var pdfName = $"{invoice.OrganizationClient.Organization.OrganizationName}-Invoice-{invoice.InvoiceNumber}.pdf";
         return File(pdf, "application/pdf", $"{pdfName}");
     }

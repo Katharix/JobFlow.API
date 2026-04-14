@@ -36,4 +36,8 @@ public interface IInvoiceService
         decimal depositAmount,
         PaymentProvider provider,
         string externalPaymentId);
+
+    Task<Result<Invoice>> RecordRefundAsync(
+        Guid invoiceId,
+        decimal refundAmount);
 }

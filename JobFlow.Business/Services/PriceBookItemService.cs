@@ -64,16 +64,8 @@ public class PriceBookItemService : IPriceBookItemService
 
     public async Task<Result<PriceBookItem>> CreateAsync(PriceBookItem item)
     {
-        try
-        {
-            await _uow.RepositoryOf<PriceBookItem>().AddAsync(item);
-            await _uow.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            var message = ex.Message;
-            throw;
-        }
+        await _uow.RepositoryOf<PriceBookItem>().AddAsync(item);
+        await _uow.SaveChangesAsync();
 
         return item;
     }

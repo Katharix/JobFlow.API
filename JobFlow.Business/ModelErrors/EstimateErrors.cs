@@ -19,4 +19,7 @@ public static class EstimateErrors
 
     public static readonly Error CannotRespondInCurrentStatus =
         Error.Conflict("Estimate.CannotRespondInCurrentStatus", "Only sent estimates can be accepted or declined.");
+
+    public static readonly Error CannotEditInCurrentStatus =
+        Error.Conflict("Estimate.CannotEditInCurrentStatus", "Estimates that have been sent, accepted, or declined cannot be edited.");
 }
