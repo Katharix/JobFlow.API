@@ -145,10 +145,9 @@ public class SupportHubInviteService : ISupportHubInviteService
     {
         const string alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
         Span<char> chars = stackalloc char[8];
-        var random = new Random();
         for (var i = 0; i < chars.Length; i += 1)
         {
-            chars[i] = alphabet[random.Next(alphabet.Length)];
+            chars[i] = alphabet[System.Security.Cryptography.RandomNumberGenerator.GetInt32(alphabet.Length)];
         }
 
         return new string(chars);

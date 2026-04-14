@@ -246,9 +246,18 @@ public class JobService : IJobService
 
         var totalCount = await query.CountAsync();
 
-        if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
+        var sortKey = (sortBy ?? string.Empty).ToLowerInvariant();
+        var useKeysetCursor = sortKey is "" or "createdat";
+
+        if (useKeysetCursor && CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
         {
-            query = query.Where(j => j.CreatedAt < cursorCreatedAt || (j.CreatedAt == cursorCreatedAt && j.Id.CompareTo(cursorId) < 0));
+            query = desc
+                ? query.Where(j => j.CreatedAt < cursorCreatedAt || (j.CreatedAt == cursorCreatedAt && j.Id.CompareTo(cursorId) < 0))
+                : query.Where(j => j.CreatedAt > cursorCreatedAt || (j.CreatedAt == cursorCreatedAt && j.Id.CompareTo(cursorId) > 0));
+        }
+        else if (!useKeysetCursor && CursorToken.TryReadOffset(cursor, out var offset))
+        {
+            query = query.Skip(offset);
         }
 
         var batch = await query
@@ -304,9 +313,20 @@ public class JobService : IJobService
             }
         }).ToList();
 
-        var nextCursor = hasMore && items.Count > 0
-            ? CursorToken.Build(items[^1].CreatedAt, items[^1].Id)
-            : null;
+        string? nextCursor;
+        if (!hasMore || items.Count == 0)
+        {
+            nextCursor = null;
+        }
+        else if (useKeysetCursor)
+        {
+            nextCursor = CursorToken.Build(items[^1].CreatedAt, items[^1].Id);
+        }
+        else
+        {
+            var currentOffset = CursorToken.TryReadOffset(cursor, out var prevOff) ? prevOff : 0;
+            nextCursor = CursorToken.BuildOffset(currentOffset + items.Count);
+        }
 
         return Result.Success(new CursorPagedResponseDto<JobDto>
         {
@@ -354,10 +374,11 @@ public class JobService : IJobService
         return Result.Success(model);
     }
 
-    public async Task<Result> DeleteJobAsync(Guid id)
+    public async Task<Result> DeleteJobAsync(Guid id, Guid organizationId)
     {
         var job = await jobs.Query()
-            .FirstOrDefaultAsync(j => j.Id == id);
+            .Include(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(j => j.Id == id && j.OrganizationClient.OrganizationId == organizationId);
 
         if (job == null)
             return Result.Failure(JobErrors.NotFound);

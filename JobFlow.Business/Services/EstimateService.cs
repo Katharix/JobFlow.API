@@ -19,6 +19,7 @@ public class EstimateService : IEstimateService
     private readonly IOrganizationClientPortalService clientPortalService;
     private readonly IFollowUpAutomationService? _followUpAutomation;
     private readonly IJobService _jobService;
+    private readonly IEstimateNumberGenerator _numberGenerator;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
@@ -29,6 +30,7 @@ public class EstimateService : IEstimateService
         IPdfGenerator pdfGenerator,
         IOrganizationClientPortalService clientPortalService,
         IJobService jobService,
+        IEstimateNumberGenerator numberGenerator,
         IFollowUpAutomationService? followUpAutomation = null)
     {
         this.unitOfWork = unitOfWork;
@@ -36,6 +38,7 @@ public class EstimateService : IEstimateService
         this.pdfGenerator = pdfGenerator;
         this.clientPortalService = clientPortalService;
         _jobService = jobService;
+        _numberGenerator = numberGenerator;
         _followUpAutomation = followUpAutomation;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
@@ -80,7 +83,7 @@ public class EstimateService : IEstimateService
         {
             OrganizationId = request.OrganizationId,
             OrganizationClientId = request.OrganizationClientId,
-            EstimateNumber = await GenerateEstimateNumberAsync(request.OrganizationId),
+            EstimateNumber = await _numberGenerator.GenerateAsync(request.OrganizationId),
             Title = request.Title,
             Description = request.Description,
             Notes = request.Notes,
@@ -124,6 +127,9 @@ public class EstimateService : IEstimateService
 
         if (estimate == null)
             return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        if (estimate.Status is EstimateStatus.Sent or EstimateStatus.Accepted or EstimateStatus.Declined)
+            return Result.Failure<EstimateDto>(EstimateErrors.CannotEditInCurrentStatus);
 
         estimate.Title = request.Title;
         estimate.Description = request.Description;
@@ -315,13 +321,7 @@ public class EstimateService : IEstimateService
         await _jobService.UpsertJobAsync(job, estimate.OrganizationId);
     }
 
-    private async Task<string> GenerateEstimateNumberAsync(Guid organizationId)
-    {
-        var prefix = $"EST-{DateTime.UtcNow:yyyyMMdd}-";
-        var count = await estimates.Query()
-            .CountAsync(x => x.OrganizationId == organizationId && x.EstimateNumber.StartsWith(prefix));
-        return $"{prefix}{count + 1:0000}";
-    }
+
 
     private static string GeneratePublicToken()
     {

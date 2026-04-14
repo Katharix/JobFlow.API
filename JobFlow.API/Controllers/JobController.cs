@@ -88,7 +88,8 @@ public class JobController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteJob(Guid id)
     {
-        var result = await _jobService.DeleteJobAsync(id);
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _jobService.DeleteJobAsync(id, organizationId);
         if (result.IsFailure)
             return BadRequest(result.Error);
 

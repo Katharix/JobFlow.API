@@ -458,6 +458,11 @@ public class PaymentController : ControllerBase
                 : null
         });
 
+        if (result.Success)
+        {
+            await _invoiceService.RecordRefundAsync(request.InvoiceId.Value, request.Amount);
+        }
+
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

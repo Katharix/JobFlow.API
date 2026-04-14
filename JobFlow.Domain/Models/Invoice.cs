@@ -14,6 +14,7 @@ public class Invoice : Entity
     public DateTime DueDate { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal AmountPaid { get; set; }
+    public decimal AmountRefunded { get; set; }
     public decimal BalanceDue => TotalAmount - AmountPaid;
     public InvoiceStatus Status { get; set; }
 

@@ -133,7 +133,7 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             throw new InvalidOperationException("Provider payment id is required.");
 
         var refundService = new RefundService();
-        var refund = await refundService.CreateAsync(new RefundCreateOptions
+        var options = new RefundCreateOptions
         {
             PaymentIntent = request.ProviderPaymentId,
             Amount = request.Amount.ToCents(),
@@ -143,7 +143,15 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
                 "fraudulent" => "fraudulent",
                 _ => "requested_by_customer"
             }
-        });
+        };
+
+        RequestOptions? requestOptions = null;
+        if (!string.IsNullOrWhiteSpace(request.ConnectedAccountId))
+        {
+            requestOptions = new RequestOptions { StripeAccount = request.ConnectedAccountId };
+        }
+
+        var refund = await refundService.CreateAsync(options, requestOptions);
 
         return new PaymentOperationResult
         {

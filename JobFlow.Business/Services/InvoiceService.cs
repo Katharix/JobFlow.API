@@ -136,9 +136,18 @@ public class InvoiceService : IInvoiceService
 
         var totalCount = await query.CountAsync();
 
-        if (CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
+        var sortKey = (sortBy ?? string.Empty).ToLowerInvariant();
+        var useKeysetCursor = sortKey is "" or "createdat";
+
+        if (useKeysetCursor && CursorToken.TryRead(cursor, out var cursorCreatedAt, out var cursorId))
         {
-            query = query.Where(i => i.CreatedAt < cursorCreatedAt || (i.CreatedAt == cursorCreatedAt && i.Id.CompareTo(cursorId) < 0));
+            query = desc
+                ? query.Where(i => i.CreatedAt < cursorCreatedAt || (i.CreatedAt == cursorCreatedAt && i.Id.CompareTo(cursorId) < 0))
+                : query.Where(i => i.CreatedAt > cursorCreatedAt || (i.CreatedAt == cursorCreatedAt && i.Id.CompareTo(cursorId) > 0));
+        }
+        else if (!useKeysetCursor && CursorToken.TryReadOffset(cursor, out var offset))
+        {
+            query = query.Skip(offset);
         }
 
         var batch = await query
@@ -148,9 +157,20 @@ public class InvoiceService : IInvoiceService
         var hasMore = batch.Count > size;
         var items = hasMore ? batch.Take(size).ToList() : batch;
 
-        var nextCursor = hasMore && items.Count > 0
-            ? CursorToken.Build(items[^1].CreatedAt, items[^1].Id)
-            : null;
+        string? nextCursor;
+        if (!hasMore || items.Count == 0)
+        {
+            nextCursor = null;
+        }
+        else if (useKeysetCursor)
+        {
+            nextCursor = CursorToken.Build(items[^1].CreatedAt, items[^1].Id);
+        }
+        else
+        {
+            var currentOffset = CursorToken.TryReadOffset(cursor, out var prevOff) ? prevOff : 0;
+            nextCursor = CursorToken.BuildOffset(currentOffset + items.Count);
+        }
 
         return Result<CursorPagedResponseDto<Invoice>>.Success(new CursorPagedResponseDto<Invoice>
         {
@@ -166,14 +186,34 @@ public class InvoiceService : IInvoiceService
             .AsNoTracking()
             .Where(i => i.OrganizationId == organizationId);
 
-        var invoiceCount = await baseQuery.CountAsync();
-        var outstanding = await baseQuery
-            .Where(i => i.Status != InvoiceStatus.Paid)
-            .SumAsync(i => (decimal?)(i.TotalAmount - i.AmountPaid)) ?? 0m;
+        var statusCounts = await baseQuery
+            .GroupBy(i => i.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var totals = await baseQuery
+            .Select(i => new { i.TotalAmount, i.AmountPaid, i.Status })
+            .ToListAsync();
+
+        var invoiceCount = totals.Count;
+        var totalBilled = totals.Sum(i => i.TotalAmount);
+        var balanceDue = totals.Sum(i => i.TotalAmount - i.AmountPaid);
+        var outstanding = totals
+            .Where(i => i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Refunded)
+            .Sum(i => i.TotalAmount - i.AmountPaid);
+
+        int CountFor(InvoiceStatus s) => statusCounts.FirstOrDefault(x => x.Status == s)?.Count ?? 0;
 
         return Result<InvoiceAggregateDto>.Success(new InvoiceAggregateDto
         {
             InvoiceCount = invoiceCount,
+            DraftCount = CountFor(InvoiceStatus.Draft),
+            SentCount = CountFor(InvoiceStatus.Sent),
+            PaidCount = CountFor(InvoiceStatus.Paid),
+            OverdueCount = CountFor(InvoiceStatus.Overdue),
+            RefundedCount = CountFor(InvoiceStatus.Refunded),
+            TotalBilled = totalBilled,
+            BalanceDue = balanceDue,
             Outstanding = outstanding
         });
     }
@@ -305,7 +345,7 @@ public class InvoiceService : IInvoiceService
             return Result.Success(invoice);
 
         invoice.Status = InvoiceStatus.Paid;
-        invoice.AmountPaid = amountReceived;
+        invoice.AmountPaid += amountReceived;
         invoice.PaidAt = DateTimeOffset.UtcNow;
         invoice.PaymentProvider = provider;
         invoice.ExternalPaymentId = externalPaymentId;
@@ -354,6 +394,41 @@ public class InvoiceService : IInvoiceService
         {
             await _realtimeNotifier.NotifyInvoicePaidAsync(invoice);
         }
+
+        return Result.Success(invoice);
+    }
+
+    public async Task<Result<Invoice>> RecordRefundAsync(
+        Guid invoiceId,
+        decimal refundAmount)
+    {
+        var invoice = await invoices.Query()
+            .Include(e => e.OrganizationClient)
+            .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+        if (invoice == null)
+            return Result.Failure<Invoice>(InvoiceErrors.NotFound);
+
+        if (refundAmount <= 0)
+            return Result.Failure<Invoice>(InvoiceErrors.InvalidAmount);
+
+        if (invoice.AmountRefunded + refundAmount > invoice.TotalAmount)
+            return Result.Failure<Invoice>(InvoiceErrors.RefundExceedsTotal);
+
+        invoice.AmountRefunded += refundAmount;
+        invoice.AmountPaid = Math.Max(invoice.AmountPaid - refundAmount, 0);
+
+        if (invoice.AmountRefunded >= invoice.TotalAmount)
+        {
+            invoice.Status = InvoiceStatus.Refunded;
+        }
+        else if (invoice.AmountPaid < invoice.TotalAmount)
+        {
+            invoice.Status = InvoiceStatus.Sent;
+        }
+
+        invoices.Update(invoice);
+        await unitOfWork.SaveChangesAsync();
 
         return Result.Success(invoice);
     }
@@ -435,7 +510,7 @@ public class InvoiceService : IInvoiceService
                 Id = Guid.NewGuid(),
                 PriceBookItemId = li.PriceBookItemId,
                 Description = string.IsNullOrWhiteSpace(li.Description) ? li.Name : li.Description,
-                Quantity = (int)Math.Round(li.Quantity, MidpointRounding.AwayFromZero),
+                Quantity = li.Quantity,
                 UnitPrice = li.UnitPrice
             }).ToList()
         };

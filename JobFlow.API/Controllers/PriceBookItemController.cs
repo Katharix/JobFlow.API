@@ -21,8 +21,13 @@ public class PriceBookController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IResult> Get(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
         var result = await _service.GetByIdAsync(id);
-        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+        if (!result.IsSuccess)
+            return result.ToProblemDetails();
+        if (result.Value.OrganizationId != organizationId)
+            return Results.NotFound();
+        return Results.Ok(result.Value);
     }
 
     [HttpGet("category/{categoryId}")]
@@ -75,6 +80,8 @@ public class PriceBookController : ControllerBase
             Description = dto.Description,
             Unit = dto.Unit,
             PricePerUnit = dto.Cost,
+            Price = dto.Price,
+            Cost = dto.Cost,
             ItemType = dto.Type,
             InventoryUnitsPerSale = dto.InventoryUnitsPerSale,
             CategoryId = dto.CategoryId
@@ -86,6 +93,12 @@ public class PriceBookController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IResult> Delete(Guid id)
     {
+        var organizationId = HttpContext.GetOrganizationId();
+        var existing = await _service.GetByIdAsync(id);
+        if (!existing.IsSuccess)
+            return existing.ToProblemDetails();
+        if (existing.Value.OrganizationId != organizationId)
+            return Results.NotFound();
         var result = await _service.DeleteAsync(id);
         return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
     }
