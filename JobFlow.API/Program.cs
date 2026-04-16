@@ -464,8 +464,11 @@ builder.Services.Configure<BrevoSettings>(options =>
     options.ApiKey = builder.Configuration["BrevoSettings-ApiKey"] ?? "";
 });
 
-builder.Services.Configure<JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileOptions>(
-    builder.Configuration.GetSection("Turnstile"));
+builder.Services.Configure<JobFlow.Infrastructure.ExternalServices.Turnstile.TurnstileOptions>(options =>
+{
+    options.SecretKey = builder.Configuration["Turnstile-SecretKey"] ?? "";
+    options.ExpectedHostname = builder.Configuration["Turnstile-ExpectedHostname"] ?? "";
+});
 
 builder.Services.AddHttpClient<
     JobFlow.Infrastructure.ExternalServices.Turnstile.ICaptchaVerificationService,
