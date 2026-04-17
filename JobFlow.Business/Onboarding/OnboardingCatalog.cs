@@ -14,7 +14,6 @@ public static class OnboardingCatalog
     private static readonly Dictionary<string, int> PaidFastOrder = new()
     {
         { OnboardingStepKeys.ChooseTrack, 5 },
-        { OnboardingStepKeys.ChooseIndustryPreset, 8 },
         { OnboardingStepKeys.ConnectStripe, 10 },
         { OnboardingStepKeys.CreateCustomer, 20 },
         { OnboardingStepKeys.CreateJob, 30 },
@@ -27,7 +26,6 @@ public static class OnboardingCatalog
     private static readonly Dictionary<string, int> OrganizedFirstOrder = new()
     {
         { OnboardingStepKeys.ChooseTrack, 5 },
-        { OnboardingStepKeys.ChooseIndustryPreset, 8 },
         { OnboardingStepKeys.CreateCustomer, 10 },
         { OnboardingStepKeys.CreateJob, 20 },
         { OnboardingStepKeys.ScheduleJob, 30 },
@@ -40,7 +38,6 @@ public static class OnboardingCatalog
     public static readonly IReadOnlyList<OnboardingStepDefinition> Steps =
     [
         new(OnboardingStepKeys.ChooseTrack, "Choose your onboarding path", 5, _ => true),
-        new(OnboardingStepKeys.ChooseIndustryPreset, "Select your industry quick-start", 8, _ => true),
         new(OnboardingStepKeys.CreateCustomer, "Create your first customer", 10, _ => true),
         new(OnboardingStepKeys.CreateJob, "Create your first job", 20, _ => true),
         new(OnboardingStepKeys.ScheduleJob, "Schedule the job", 30, _ => true),

@@ -28,6 +28,9 @@ public class OnboardingQuickStartStateDto
     public string? SelectedTrackKey { get; set; }
     public string? SelectedPresetKey { get; set; }
     public bool IsPresetApplied { get; set; }
+    public string? RecommendedPresetKey { get; set; }
+    public string? CurrentPlan { get; set; }
+    public string RequiredPlan { get; set; } = "Go";
     public List<OnboardingQuickStartTrackDto> Tracks { get; set; } = new();
     public List<OnboardingQuickStartPresetDto> Presets { get; set; } = new();
 }
@@ -35,5 +38,5 @@ public class OnboardingQuickStartStateDto
 public class OnboardingQuickStartApplyRequestDto
 {
     public string TrackKey { get; set; } = string.Empty;
-    public string PresetKey { get; set; } = string.Empty;
+    public string? PresetKey { get; set; }
 }

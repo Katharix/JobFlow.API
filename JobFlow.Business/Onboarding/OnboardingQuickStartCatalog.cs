@@ -11,6 +11,7 @@ public record OnboardingQuickStartPresetDefinition(
     string Key,
     string Title,
     string Description,
+    IReadOnlyList<string> RelevantOrgTypeNames,
     IReadOnlyList<OnboardingQuickStartServiceSeed> DefaultServices,
     IReadOnlyList<WorkflowStatusSeed> SuggestedStatuses);
 
@@ -47,6 +48,9 @@ public static class OnboardingQuickStartCatalog
             OnboardingPresetKeys.HomeServices,
             "Home services",
             "HVAC, plumbing, electrical, cleaning, and recurring maintenance teams.",
+            ["Painting", "Plumbing", "Landscaping and Gardening", "Electrical Services",
+             "HVAC Services", "Tree Removal", "Pest Control", "Cleaning Services",
+             "Junk Removal", "Handyman"],
             [
                 new OnboardingQuickStartServiceSeed(
                     "Diagnostic visit",
@@ -80,6 +84,7 @@ public static class OnboardingQuickStartCatalog
             OnboardingPresetKeys.Construction,
             "Construction / contracting",
             "General contracting, remodels, site work, and specialty trades.",
+            ["General Contracting", "Carpentry and Woodworking", "Flooring"],
             [
                 new OnboardingQuickStartServiceSeed(
                     "Site walkthrough",
@@ -113,6 +118,7 @@ public static class OnboardingQuickStartCatalog
             OnboardingPresetKeys.CreativeDesign,
             "Creative / design",
             "Branding, design studios, production, and creative agencies.",
+            [],
             [
                 new OnboardingQuickStartServiceSeed(
                     "Discovery session",
@@ -146,6 +152,7 @@ public static class OnboardingQuickStartCatalog
             OnboardingPresetKeys.TechRepair,
             "Tech repair",
             "Device repair, IT support, and on-site troubleshooting.",
+            ["IT & Network Installation", "Car Detailing"],
             [
                 new OnboardingQuickStartServiceSeed(
                     "Device diagnostics",
@@ -179,6 +186,7 @@ public static class OnboardingQuickStartCatalog
             OnboardingPresetKeys.Consulting,
             "Consulting",
             "Consultants, coaching, and professional service providers.",
+            [],
             [
                 new OnboardingQuickStartServiceSeed(
                     "Strategy call",
@@ -235,6 +243,20 @@ public static class OnboardingQuickStartCatalog
         return Presets.FirstOrDefault(p => p.Key == normalized);
     }
 
+    public static string? ResolvePresetKeyForOrgType(string? orgTypeName)
+    {
+        if (string.IsNullOrWhiteSpace(orgTypeName)
+            || orgTypeName == "Other"
+            || orgTypeName == "Master Account")
+            return null;
+
+        var match = Presets.FirstOrDefault(p =>
+            p.RelevantOrgTypeNames.Any(name =>
+                name.Equals(orgTypeName, StringComparison.OrdinalIgnoreCase)));
+
+        return match?.Key;
+    }
+
     public static List<OnboardingQuickStartTrackDto> BuildTrackDtos()
     {
         return Tracks
@@ -247,9 +269,24 @@ public static class OnboardingQuickStartCatalog
             .ToList();
     }
 
-    public static List<OnboardingQuickStartPresetDto> BuildPresetDtos()
+    public static List<OnboardingQuickStartPresetDto> BuildPresetDtos(string? orgTypeName = null)
     {
-        return Presets
+        var applicable = Presets.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(orgTypeName)
+            && orgTypeName != "Other"
+            && orgTypeName != "Master Account")
+        {
+            var matched = Presets
+                .Where(p => p.RelevantOrgTypeNames
+                    .Any(name => name.Equals(orgTypeName, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (matched.Count > 0)
+                applicable = matched;
+        }
+
+        return applicable
             .Select(preset => new OnboardingQuickStartPresetDto
             {
                 Key = preset.Key,

@@ -116,17 +116,25 @@ public class OnboardingService : IOnboardingService
 
     public async Task<Result<OnboardingQuickStartStateDto>> GetQuickStartStateAsync(Guid organizationId)
     {
-        var org = await orgRepo.GetByIdAsync(organizationId);
+        var org = await orgRepo.Query()
+            .Include(o => o.OrganizationType)
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
         if (org == null)
             return Result.Failure<OnboardingQuickStartStateDto>(OnboardingErrors.OrganizationNotFound);
+
+        var orgTypeName = org.OrganizationType?.TypeName;
+        var recommendedKey = OnboardingQuickStartCatalog.ResolvePresetKeyForOrgType(orgTypeName);
 
         var state = new OnboardingQuickStartStateDto
         {
             SelectedTrackKey = org.OnboardingTrack,
             SelectedPresetKey = org.OnboardingPresetKey,
             IsPresetApplied = org.OnboardingPresetAppliedAt.HasValue,
+            RecommendedPresetKey = recommendedKey,
+            CurrentPlan = org.SubscriptionPlanName,
+            RequiredPlan = "Go",
             Tracks = OnboardingQuickStartCatalog.BuildTrackDtos(),
-            Presets = OnboardingQuickStartCatalog.BuildPresetDtos()
+            Presets = OnboardingQuickStartCatalog.BuildPresetDtos(orgTypeName)
         };
 
         return Result.Success(state);
@@ -143,7 +151,9 @@ public class OnboardingService : IOnboardingService
         }
 
         var normalizedTrack = OnboardingTrackKeys.Normalize(request.TrackKey);
-        var normalizedPreset = OnboardingPresetKeys.Normalize(request.PresetKey);
+        var normalizedPreset = string.IsNullOrWhiteSpace(request.PresetKey)
+            ? null
+            : OnboardingPresetKeys.Normalize(request.PresetKey);
 
         if (!OnboardingQuickStartCatalog.IsKnownTrack(normalizedTrack))
         {
@@ -151,53 +161,58 @@ public class OnboardingService : IOnboardingService
                 Error.Validation("Onboarding.QuickStart.Track", "Unknown onboarding track."));
         }
 
-        if (!OnboardingQuickStartCatalog.IsKnownPreset(normalizedPreset))
+        OnboardingQuickStartPresetDefinition? preset = null;
+        if (normalizedPreset != null)
         {
-            return Result.Failure<OnboardingQuickStartStateDto>(
-                Error.Validation("Onboarding.QuickStart.Preset", "Unknown industry preset."));
+            if (!OnboardingQuickStartCatalog.IsKnownPreset(normalizedPreset))
+            {
+                return Result.Failure<OnboardingQuickStartStateDto>(
+                    Error.Validation("Onboarding.QuickStart.Preset", "Unknown industry preset."));
+            }
+
+            preset = OnboardingQuickStartCatalog.TryGetPreset(normalizedPreset);
         }
 
         var org = await orgRepo.GetByIdAsync(organizationId);
         if (org == null)
             return Result.Failure<OnboardingQuickStartStateDto>(OnboardingErrors.OrganizationNotFound);
 
-        var preset = OnboardingQuickStartCatalog.TryGetPreset(normalizedPreset);
-        if (preset == null)
-        {
-            return Result.Failure<OnboardingQuickStartStateDto>(
-                Error.Validation("Onboarding.QuickStart.Preset", "Unknown industry preset."));
-        }
-
         org.OnboardingTrack = normalizedTrack;
         org.OnboardingTrackSelectedAt ??= DateTimeOffset.UtcNow;
-        org.OnboardingPresetKey = normalizedPreset;
-        org.OnboardingPresetAppliedAt = DateTimeOffset.UtcNow;
+
+        if (preset != null)
+        {
+            org.OnboardingPresetKey = normalizedPreset;
+            org.OnboardingPresetAppliedAt = DateTimeOffset.UtcNow;
+        }
 
         await uow.SaveChangesAsync();
 
-        await SeedPriceBookAsync(organizationId, preset);
-
-        var statusRequest = preset.SuggestedStatuses
-            .OrderBy(s => s.SortOrder)
-            .Select(s => new WorkflowStatusUpsertRequestDto
-            {
-                StatusKey = s.StatusKey,
-                Label = s.Label,
-                SortOrder = s.SortOrder
-            })
-            .ToList();
-
-        var statusResult = await workflowSettings.UpsertJobLifecycleStatusesAsync(
-            organizationId,
-            statusRequest);
-
-        if (statusResult.IsFailure)
+        if (preset != null)
         {
-            return Result.Failure<OnboardingQuickStartStateDto>(statusResult.Error);
+            await SeedPriceBookAsync(organizationId, preset);
+
+            var statusRequest = preset.SuggestedStatuses
+                .OrderBy(s => s.SortOrder)
+                .Select(s => new WorkflowStatusUpsertRequestDto
+                {
+                    StatusKey = s.StatusKey,
+                    Label = s.Label,
+                    SortOrder = s.SortOrder
+                })
+                .ToList();
+
+            var statusResult = await workflowSettings.UpsertJobLifecycleStatusesAsync(
+                organizationId,
+                statusRequest);
+
+            if (statusResult.IsFailure)
+            {
+                return Result.Failure<OnboardingQuickStartStateDto>(statusResult.Error);
+            }
         }
 
         await MarkStepCompleteAsync(organizationId, OnboardingStepKeys.ChooseTrack);
-        await MarkStepCompleteAsync(organizationId, OnboardingStepKeys.ChooseIndustryPreset);
 
         return await GetQuickStartStateAsync(organizationId);
     }

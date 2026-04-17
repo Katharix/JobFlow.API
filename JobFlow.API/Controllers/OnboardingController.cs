@@ -55,7 +55,7 @@ public class OnboardingController : ControllerBase
             return Results.Problem(
                 statusCode: StatusCodes.Status403Forbidden,
                 title: "Subscription Required",
-            detail: "A Go plan is required to apply quick-start presets.");
+                detail: "A Go plan or above is required to apply quick-start presets.");
         }
 
         var result = await onboarding.ApplyQuickStartAsync(organizationId, request);
