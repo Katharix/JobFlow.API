@@ -65,7 +65,7 @@ if (env.IsDevelopment())
 
 // Add Key Vault if configured
 var keyVaultUri = builder.Configuration[ConfigConstants.KEY_VAULT_URI];
-if (!env.IsDevelopment() && !string.IsNullOrWhiteSpace(keyVaultUri))
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
 
 

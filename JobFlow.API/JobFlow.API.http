@@ -1,6 +1,3 @@
 @JobFlow.API_HostAddress = http://localhost:5131
 
-GET {{JobFlow.API_HostAddress}}/weatherforecast/
-Accept: application/json
-
 ###
