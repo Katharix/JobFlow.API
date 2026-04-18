@@ -28,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.6" />
         <ProjectReference Include="..\JobFlow.Business\JobFlow.Business.csproj" />
         <ProjectReference Include="..\JobFlow.Domain\JobFlow.Domain.csproj" />
     </ItemGroup>
