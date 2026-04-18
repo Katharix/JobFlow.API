@@ -1,6 +1,7 @@
 ﻿using JobFlow.API.Extensions;
 using JobFlow.API.Mappings;
 using JobFlow.API.Models;
+using JobFlow.Business.ModelErrors;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using MapsterMapper;
@@ -160,6 +161,32 @@ public class InvoiceController : ControllerBase
             return Task.FromResult<IActionResult>(Unauthorized("Organization context missing."));
 
         return Upsert(organizationId, request);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInvoiceRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        if (organizationId == Guid.Empty)
+            return Unauthorized("Organization context missing.");
+
+        var lineItems = request.LineItems.Select(li => new Domain.Models.InvoiceLineItem
+        {
+            PriceBookItemId = li.PriceBookItemId,
+            Description = li.Description,
+            Quantity = li.Quantity,
+            UnitPrice = li.UnitPrice
+        }).ToList();
+
+        var result = await invoiceService.UpdateInvoiceAsync(id, organizationId, request.InvoiceDate, request.DueDate, lineItems);
+        if (!result.IsSuccess)
+        {
+            if (result.Error == InvoiceErrors.NotFound)
+                return NotFound(result.Error);
+            return BadRequest(result.Error);
+        }
+
+        return Ok(result.Value.ToDto());
     }
 
     [HttpPost("{id:guid}/send")]
