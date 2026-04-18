@@ -173,6 +173,9 @@ public class PaymentController : ControllerBase
             if (request.Amount <= 0)
                 return BadRequest("Payment amount is required.");
 
+            if (request.Amount > 999_999.99m)
+                return BadRequest("Payment amount must be no more than $999,999.99.");
+
             request.OrganizationId = invoice.OrganizationId;
             request.OrganizationClientId = invoice.OrganizationClientId;
             request.ProductName ??= $"Invoice {invoice.InvoiceNumber}";

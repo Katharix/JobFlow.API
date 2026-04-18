@@ -19,6 +19,7 @@ public interface IInvoiceService
         string? sortDirection);
     Task<Result<InvoiceAggregateDto>> GetInvoiceAggregatesByOrganizationAsync(Guid organizationId);
     Task<Result<Invoice>> UpsertInvoiceAsync(Invoice model);
+    Task<Result<Invoice>> UpdateInvoiceAsync(Guid id, Guid organizationId, DateTime? invoiceDate, DateTime dueDate, List<InvoiceLineItem> lineItems);
     Task<Result> DeleteInvoiceAsync(Guid id);
     Task MarkInvoiceSentAsync(Guid invoiceId);
     Task<bool> IsPaidAsync(Guid invoiceId);

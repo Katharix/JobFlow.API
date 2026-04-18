@@ -128,9 +128,9 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
             Name = client.FirstName,
             Email = client.EmailAddress,
             Phone = client.PhoneNumber,
-            Subject = $"Invoice Created: #{invoice.Id}",
-            Body = $"Your invoice #{invoice.Id} for {invoice.TotalAmount:C} is ready.",
-            Sms = $"Invoice #{invoice.Id} ready: {invoice.TotalAmount:C}.",
+            Subject = $"Invoice Created: #{invoice.InvoiceNumber}",
+            Body = $"Your invoice #{invoice.InvoiceNumber} for {invoice.TotalAmount:C} is ready.",
+            Sms = $"Invoice #{invoice.InvoiceNumber} ready: {invoice.TotalAmount:C}.",
             TemplateId = EmailTemplate.InvoiceCreated,
             Link = $"{baseUrl}/invoice/view/{invoice.Id}"
         };

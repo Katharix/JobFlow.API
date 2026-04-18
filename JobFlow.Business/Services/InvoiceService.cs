@@ -259,6 +259,64 @@ public class InvoiceService : IInvoiceService
         return Result<Invoice>.Success(model);
     }
 
+    public async Task<Result<Invoice>> UpdateInvoiceAsync(Guid id, Guid organizationId, DateTime? invoiceDate, DateTime dueDate, List<InvoiceLineItem> lineItems)
+    {
+        var invoice = await invoices.Query()
+            .Include(i => i.LineItems)
+            .Include(i => i.OrganizationClient)
+            .ThenInclude(c => c.Organization)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (invoice == null || invoice.OrganizationId != organizationId)
+            return Result.Failure<Invoice>(InvoiceErrors.NotFound);
+
+        if (invoice.Status == InvoiceStatus.Paid)
+            return Result.Failure<Invoice>(InvoiceErrors.NotEditable);
+
+        if (invoiceDate.HasValue)
+            invoice.InvoiceDate = invoiceDate.Value;
+
+        invoice.DueDate = dueDate;
+
+        var existing = invoice.LineItems.ToList();
+
+        // Update existing line items in place
+        for (var i = 0; i < Math.Min(existing.Count, lineItems.Count); i++)
+        {
+            existing[i].PriceBookItemId = lineItems[i].PriceBookItemId;
+            existing[i].Description = lineItems[i].Description;
+            existing[i].Quantity = lineItems[i].Quantity;
+            existing[i].UnitPrice = lineItems[i].UnitPrice;
+        }
+
+        // Soft-delete extras directly on tracked entities (avoid collection Remove which triggers EF cascade delete)
+        for (var i = lineItems.Count; i < existing.Count; i++)
+        {
+            existing[i].IsActive = false;
+            existing[i].DeactivatedAtUtc = DateTime.UtcNow;
+        }
+
+        // Add new ones if more line items now
+        for (var i = existing.Count; i < lineItems.Count; i++)
+        {
+            invoice.LineItems.Add(new InvoiceLineItem
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = id,
+                PriceBookItemId = lineItems[i].PriceBookItemId,
+                Description = lineItems[i].Description,
+                Quantity = lineItems[i].Quantity,
+                UnitPrice = lineItems[i].UnitPrice
+            });
+        }
+
+        invoice.TotalAmount = invoice.LineItems.Where(li => li.IsActive).Sum(li => li.Quantity * li.UnitPrice);
+
+        await unitOfWork.SaveChangesAsync();
+
+        return Result<Invoice>.Success(invoice);
+    }
+
 
     public async Task<Result> DeleteInvoiceAsync(Guid id)
     {
