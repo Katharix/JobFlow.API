@@ -43,14 +43,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                         name: "FK_SupportChatSession_Users_AssignedRepId",
                         column: x => x.AssignedRepId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_SupportChatSession_Users_CustomerId",
                         column: x => x.CustomerId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(

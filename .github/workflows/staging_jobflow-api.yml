@@ -62,6 +62,33 @@ jobs:
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef --version 10.*
 
+      - name: Install sqlcmd
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update -q
+          sudo ACCEPT_EULA=Y apt-get install -yq mssql-tools18 unixodbc-dev
+          echo "/opt/mssql-tools18/bin" >> $GITHUB_PATH
+
+      - name: Fix migration history for pre-applied SupportChat tables
+        env:
+          CONN: ${{ secrets.STAGING_JOBFLOWDB_CONNECTION_STRING }}
+        run: |
+          DB_SERVER=$(echo "$CONN" | grep -oP 'Server=tcp:\K[^,]+')
+          DB_PORT=$(echo "$CONN" | grep -oP 'Server=tcp:[^,]+,\K[0-9]+' || echo "1433")
+          DB_NAME=$(echo "$CONN" | grep -oP '(?i)Initial Catalog=\K[^;]+')
+          DB_USER=$(echo "$CONN" | grep -oP '(?i)User ID=\K[^;]+')
+          DB_PASS=$(echo "$CONN" | grep -oP '(?i)Password=\K[^;]+')
+
+          sqlcmd -S "${DB_SERVER},${DB_PORT}" -d "$DB_NAME" -U "$DB_USER" -P "$DB_PASS" -N -C -Q "
+          IF OBJECT_ID('support.SupportChatSession') IS NOT NULL
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE MigrationId = '20260420200659_AddSupportChat')
+              INSERT INTO [__EFMigrationsHistory] (MigrationId, ProductVersion) VALUES ('20260420200659_AddSupportChat', '10.0.5');
+            IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE MigrationId = '20260420202038_AddSupportChat')
+              INSERT INTO [__EFMigrationsHistory] (MigrationId, ProductVersion) VALUES ('20260420202038_AddSupportChat', '10.0.5');
+          END"
+
       - name: Apply EF migrations to staging database
         env:
           ConnectionStrings__JobFlowDB: ${{ secrets.STAGING_JOBFLOWDB_CONNECTION_STRING }}
