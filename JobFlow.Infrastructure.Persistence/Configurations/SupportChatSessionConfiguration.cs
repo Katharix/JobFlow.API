@@ -23,13 +23,13 @@ public class SupportChatSessionConfiguration : IEntityTypeConfiguration<SupportC
         builder.HasOne(x => x.Customer)
             .WithMany()
             .HasForeignKey(x => x.CustomerId)
-            .OnDelete(DeleteBehavior.SetNull)
+            .OnDelete(DeleteBehavior.NoAction)
             .IsRequired(false);
 
         builder.HasOne(x => x.AssignedRep)
             .WithMany()
             .HasForeignKey(x => x.AssignedRepId)
-            .OnDelete(DeleteBehavior.SetNull)
+            .OnDelete(DeleteBehavior.NoAction)
             .IsRequired(false);
 
         builder.HasMany(x => x.Messages)

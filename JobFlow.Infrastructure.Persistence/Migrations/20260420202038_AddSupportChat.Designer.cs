@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    [Migration("20260420200659_AddSupportChat")]
+    [Migration("20260420202038_AddSupportChat")]
     partial class AddSupportChat
     {
         /// <inheritdoc />
@@ -5997,12 +5997,12 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasOne("JobFlow.Domain.Models.User", "AssignedRep")
                         .WithMany()
                         .HasForeignKey("AssignedRepId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("JobFlow.Domain.Models.User", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("AssignedRep");
 
