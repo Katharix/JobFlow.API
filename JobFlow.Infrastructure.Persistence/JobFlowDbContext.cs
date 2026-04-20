@@ -43,6 +43,8 @@ public class JobFlowDbContext : DbContext
     public DbSet<DataExportJob> DataExportJobs { get; set; }
     public DbSet<HelpArticle> HelpArticles { get; set; }
     public DbSet<ChangelogEntry> ChangelogEntries { get; set; }
+    public DbSet<SupportChatSession> SupportChatSessions { get; set; }
+    public DbSet<SupportChatMessage> SupportChatMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

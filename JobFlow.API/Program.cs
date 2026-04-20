@@ -499,6 +499,7 @@ builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOpti
 
 builder.Services.AddMapsterConfiguration();
 builder.Services.AddScoped<IUnitOfWork, JobFlowUnitOfWork>();
+builder.Services.AddSingleton<IWebHostEnvironmentAccessor, WebHostEnvironmentAccessor>();
 builder.Services.AddScoped<IInvoiceRealtimeNotifier, InvoiceRealtimeNotifier>();
 builder.Services.AddScoped<IOrganizationRealtimeNotifier, OrganizationRealtimeNotifier>();
 builder.Services.AddScoped<IFollowUpJobScheduler, FollowUpJobScheduler>();
@@ -615,5 +616,6 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<ClientChatHub>("/hubs/client-chat");
 app.MapHub<NotifierHub>("/hubs/notifier");
 app.MapHub<ClientPortalHub>("/hubs/client-portal");
+app.MapHub<SupportChatHub>("/hubs/support-chat");
 
 app.Run();
