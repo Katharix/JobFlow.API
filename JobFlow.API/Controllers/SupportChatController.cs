@@ -142,6 +142,15 @@ public class SupportChatController : ControllerBase
         return Results.Ok();
     }
 
+    /// <summary>Returns a single session by ID. Accessible without authentication (customer view).</summary>
+    [HttpGet("sessions/{sessionId}")]
+    [AllowAnonymous]
+    public async Task<IResult> GetSession(Guid sessionId)
+    {
+        var result = await _chatService.GetSessionAsync(sessionId);
+        return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
+    }
+
     /// <summary>Validates a customer email before allowing chat access.</summary>
     [HttpGet("auth/validate")]
     [AllowAnonymous]
