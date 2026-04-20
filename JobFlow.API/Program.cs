@@ -189,6 +189,20 @@ builder.Services
             ValidAudience = firebaseProjectId,
             ValidateLifetime = true
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrWhiteSpace(accessToken)
+                    && path.StartsWithSegments("/hubs/support-chat"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     })
     .AddJwtBearer("ClientPortalJwt", options =>
     {
@@ -616,6 +630,6 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<ClientChatHub>("/hubs/client-chat");
 app.MapHub<NotifierHub>("/hubs/notifier");
 app.MapHub<ClientPortalHub>("/hubs/client-portal");
-app.MapHub<SupportChatHub>("/hubs/support-chat");
+app.MapHub<SupportChatHub>("/hubs/support-chat").AllowAnonymous();
 
 app.Run();
