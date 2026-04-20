@@ -3,8 +3,8 @@ using JobFlow.Domain.Enums;
 namespace JobFlow.Business.Models.DTOs;
 
 public record SupportChatJoinQueueRequest(
-    string CustomerName,
-    string CustomerEmail);
+    string? CustomerName,
+    string? CustomerEmail);
 
 public record SupportChatJoinQueueResponse(
     Guid SessionId,
