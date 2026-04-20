@@ -32,7 +32,26 @@ public class SupportChatController : ControllerBase
     [AllowAnonymous]
     public async Task<IResult> JoinQueue([FromBody] SupportChatJoinQueueRequest request)
     {
-        var result = await _chatService.JoinQueueAsync(request.CustomerName, request.CustomerEmail);
+        Guid? customerId = null;
+        string? customerName = request.CustomerName;
+        string? customerEmail = request.CustomerEmail;
+
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var parsedId))
+                customerId = parsedId;
+
+            if (string.IsNullOrWhiteSpace(customerName))
+                customerName = HttpContext.User.FindFirst("name")?.Value
+                    ?? HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrWhiteSpace(customerEmail))
+                customerEmail = HttpContext.User.FindFirst("email")?.Value
+                    ?? HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        }
+
+        var result = await _chatService.JoinQueueAsync(customerName ?? string.Empty, customerEmail ?? string.Empty, customerId);
         if (result.IsFailure) return result.ToProblemDetails();
 
         await _hubContext.Clients.Group("reps").SendAsync("QueueUpdated");
