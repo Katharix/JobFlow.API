@@ -354,6 +354,22 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
+    c.MapType<Microsoft.AspNetCore.Http.IResult>(() => new Microsoft.OpenApi.OpenApiSchema { Type = Microsoft.OpenApi.JsonSchemaType.Object });
+
+    // Fix SchemaId conflicts from same class names across namespaces
+    c.CustomSchemaIds(type => type.FullName!.Replace("+", "."));
+
+    // Fix CancellationToken being treated as a query parameter
+    c.OperationFilter<RemoveCancellationTokenOperationFilter>();
+
+    // Fix duplicate OperationIds across controllers
+    c.CustomOperationIds(e =>
+    {
+        e.ActionDescriptor.RouteValues.TryGetValue("controller", out var controller);
+        e.ActionDescriptor.RouteValues.TryGetValue("action", out var action);
+        var id = $"{controller}_{action}_{e.HttpMethod}".Trim('_');
+        return string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString() : id;
+    });
 });
 
 // ============================================================
