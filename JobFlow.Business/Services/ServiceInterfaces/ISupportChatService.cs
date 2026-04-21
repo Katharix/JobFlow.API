@@ -14,4 +14,5 @@ public interface ISupportChatService
     Task<Result<SupportChatFileUploadResponse>> UploadFileAsync(Stream stream, string fileName, string contentType);
     Task<Result<SupportChatValidateCustomerResponse>> ValidateCustomerAsync(string email);
     Task<Result<SupportChatSessionDto>> GetSessionAsync(Guid sessionId);
+    Task<Result> RemoveFromQueueAsync(Guid sessionId);
 }

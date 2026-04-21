@@ -229,6 +229,22 @@ public class SupportChatService : ISupportChatService
         return Result.Success(MapToSessionDto(session, position));
     }
 
+    public async Task<Result> RemoveFromQueueAsync(Guid sessionId)
+    {
+        var session = await _sessions.Query()
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.Status == SupportChatSessionStatus.Queued);
+
+        if (session is null)
+            return Result.Failure(Error.NotFound("SupportChat.SessionNotFound", "Session not found or not in queue."));
+
+        session.Status = SupportChatSessionStatus.Closed;
+        session.ClosedAt = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
     private async Task<Result<SupportChatSessionDto>> AssignSession(
         SupportChatSession session, Guid repId, string repName)
     {
