@@ -51,6 +51,10 @@ public class SupportChatController : ControllerBase
                     ?? HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
         }
 
+        var queueResult = await _chatService.GetQueueAsync();
+        if (queueResult.IsSuccess && queueResult.Value.Count >= 5)
+            return Results.BadRequest(new { error = "Queue is full. Please try again later." });
+
         var result = await _chatService.JoinQueueAsync(customerName ?? string.Empty, customerEmail ?? string.Empty, customerId);
         if (result.IsFailure) return result.ToProblemDetails();
 
@@ -89,6 +93,20 @@ public class SupportChatController : ControllerBase
         await _hubContext.Clients.Group("reps").SendAsync("QueueUpdated");
 
         return Results.Ok(result.Value);
+    }
+
+    /// <summary>Removes a customer from the queue and notifies participants.</summary>
+    [HttpDelete("sessions/{sessionId}/queue")]
+    [Authorize(Roles = $"{UserRoles.KatharixAdmin},{UserRoles.KatharixEmployee}")]
+    public async Task<IResult> RemoveFromQueue(Guid sessionId)
+    {
+        var result = await _chatService.RemoveFromQueueAsync(sessionId);
+        if (result.IsFailure) return result.ToProblemDetails();
+
+        await _hubContext.Clients.Group("reps").SendAsync("QueueUpdated");
+        await _hubContext.Clients.Group($"session-{sessionId}").SendAsync("SessionClosed");
+
+        return Results.Ok();
     }
 
     /// <summary>Returns all messages for a session. Accessible without authentication (customer view).</summary>
