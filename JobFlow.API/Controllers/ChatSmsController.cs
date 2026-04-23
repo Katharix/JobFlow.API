@@ -3,10 +3,12 @@ using JobFlow.API.Models;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Twilio.AspNet.Core;
 
 namespace JobFlow.API.Controllers;
 
@@ -18,23 +20,29 @@ public class ChatSmsController : ControllerBase
     private readonly IHubContext<ChatHub> _hubContext;
     private readonly IHubContext<ClientChatHub> _clientHubContext;
     private readonly IFollowUpAutomationService? _followUpAutomation;
+    private readonly ITwilioSettings _twilioSettings;
 
     public ChatSmsController(
         IUnitOfWork unitOfWork,
         IHubContext<ChatHub> hubContext,
         IHubContext<ClientChatHub> clientHubContext,
+        ITwilioSettings twilioSettings,
         IFollowUpAutomationService? followUpAutomation = null)
     {
         _unitOfWork = unitOfWork;
         _hubContext = hubContext;
         _clientHubContext = clientHubContext;
         _followUpAutomation = followUpAutomation;
+        _twilioSettings = twilioSettings;
     }
 
     [HttpPost("inbound")]
     [AllowAnonymous]
     public async Task<IActionResult> Inbound([FromForm] TwilioInboundSmsRequest request)
     {
+        if (!await RequestValidationHelper.IsValidRequestAsync(HttpContext, _twilioSettings.AuthToken))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(request.From))
             return TwilioOk();
 

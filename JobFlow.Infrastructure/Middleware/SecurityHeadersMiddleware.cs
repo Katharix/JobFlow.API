@@ -20,7 +20,7 @@ public class SecurityHeadersMiddleware
             headers["X-Frame-Options"] = "DENY";
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-            headers["Content-Security-Policy"] = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'";
+            headers["Content-Security-Policy"] = "default-src 'self'; base-uri 'none'; frame-ancestors 'none'";
             return Task.CompletedTask;
         });
 

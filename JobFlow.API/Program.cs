@@ -187,7 +187,8 @@ builder.Services
             ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}",
             ValidateAudience = true,
             ValidAudience = firebaseProjectId,
-            ValidateLifetime = true
+            ValidateLifetime = true,
+            ValidAlgorithms = new[] { "RS256" }
         };
         options.Events = new JwtBearerEvents
         {
@@ -217,14 +218,11 @@ builder.Services
         {
             OnMessageReceived = context =>
             {
-                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
-                var path = context.HttpContext.Request.Path;
-
-                if (!string.IsNullOrWhiteSpace(accessToken)
-                    && (path.StartsWithSegments("/hubs/client-chat")
-                        || path.StartsWithSegments("/hubs/client-portal")))
+                // Read JWT from HttpOnly cookie for client portal requests
+                var cookieToken = context.HttpContext.Request.Cookies["jobflow.clientHub.token"];
+                if (!string.IsNullOrWhiteSpace(cookieToken))
                 {
-                    context.Token = accessToken;
+                    context.Token = cookieToken;
                 }
 
                 return Task.CompletedTask;

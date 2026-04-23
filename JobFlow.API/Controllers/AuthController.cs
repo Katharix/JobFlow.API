@@ -17,13 +17,16 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly IUserService _userService;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IUserService userService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<AuthController> logger)
     {
         _userService = userService;
         _configuration = configuration;
+        _logger = logger;
     }
 
     // ============================================================
@@ -61,6 +64,12 @@ public class AuthController : ControllerBase
                 user = userInfo.Value;
 
             var organizationDto = user.Organization?.Adapt<OrganizationDto>();
+
+            _logger.LogInformation(
+                "[AUTH] Login success. Uid={FirebaseUid} Email={Email}",
+                firebaseUid,
+                email);
+
             return Ok(new { organization = organizationDto });
         }
         catch (Exception ex)
@@ -183,6 +192,11 @@ public class AuthController : ControllerBase
 
             var updatedUser = await FirebaseAuth.DefaultInstance.UpdateUserAsync(args);
 
+            if (model.Disabled == true)
+            {
+                await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(uid);
+            }
+
             return Ok(new
             {
                 Message = "User updated successfully.",
@@ -206,6 +220,7 @@ public class AuthController : ControllerBase
     {
         try
         {
+            await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(uid);
             await FirebaseAuth.DefaultInstance.DeleteUserAsync(uid);
             return Ok(new { Message = "Firebase user deleted successfully." });
         }

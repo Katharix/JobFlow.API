@@ -48,10 +48,17 @@ public class OrganizationClientPortalController : ControllerBase
         var client = result.Value;
         var (accessToken, expiresAt) = IssueClientPortalJwt(client.OrganizationId, client.Id, signingKey);
 
+        HttpContext.Response.Cookies.Append("jobflow.clientHub.token", accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = expiresAt,
+            Path = "/"
+        });
+
         return Results.Ok(new
         {
-            accessToken,
-            tokenType = "Bearer",
             expiresAt,
             client = new
             {
@@ -61,6 +68,21 @@ public class OrganizationClientPortalController : ControllerBase
                 emailAddress = client.EmailAddress
             }
         });
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public IResult Logout()
+    {
+        HttpContext.Response.Cookies.Delete("jobflow.clientHub.token", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/"
+        });
+
+        return Results.Ok();
     }
 
     private bool TryGetClientPortalSigningKey(out string signingKey, out IResult? errorResult)
