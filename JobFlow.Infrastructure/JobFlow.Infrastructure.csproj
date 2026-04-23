@@ -8,23 +8,23 @@
 
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
-        <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
+        <PackageReference Include="FirebaseAdmin" Version="3.5.0" />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.6">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.7">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Polly" Version="8.6.5" />
-        <PackageReference Include="QuestPDF" Version="2026.2.0" />
+        <PackageReference Include="Polly" Version="8.6.6" />
+        <PackageReference Include="QuestPDF" Version="2026.2.4" />
         <PackageReference Include="Square" Version="43.0.0" />
         <PackageReference Include="Stripe.net" Version="50.3.0" />
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
-        <PackageReference Include="Twilio" Version="7.14.3" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
+        <PackageReference Include="Twilio" Version="7.14.7" />
     </ItemGroup>
 
     <ItemGroup>
