@@ -12,6 +12,7 @@ public class OrganizationClient : Entity
     public string? PhoneNumber { get; set; }
     public string? EmailAddress { get; set; }
     public string? ZipCode { get; set; }
+    public bool SmsConsentGiven { get; set; } = false;
 
     public virtual Organization Organization { get; set; } = null!;
 

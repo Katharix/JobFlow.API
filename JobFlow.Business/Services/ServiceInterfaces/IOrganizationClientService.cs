@@ -24,4 +24,5 @@ public interface IOrganizationClientService
     Task<Result<OrganizationClient>> UpsertClient(OrganizationClient model);
     Task<Result<IEnumerable<OrganizationClient>>> UpsertMultipleClients(IEnumerable<OrganizationClient> modelList);
     Task<Result> RestoreClient(Guid clientId, Guid organizationId);
+    Task<Result> AnonymizeClientAsync(Guid clientId, Guid organizationId);
 }

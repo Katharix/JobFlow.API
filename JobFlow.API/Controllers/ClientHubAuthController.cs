@@ -122,7 +122,7 @@ public class ClientHubAuthController : ControllerBase
 
     private (string accessToken, DateTimeOffset expiresAt) IssueClientPortalJwt(Guid organizationId, Guid organizationClientId, string signingKey)
     {
-        var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(2);
 
         var claims = new List<Claim>
         {
