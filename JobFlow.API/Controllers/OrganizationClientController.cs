@@ -175,6 +175,14 @@ public class OrganizationClientController : ControllerBase
         return result.IsSuccess ? Results.Ok(result) : result.ToProblemDetails();
     }
 
+    [HttpPost("{clientId:guid}/anonymize")]
+    public async Task<IResult> AnonymizeClient(Guid clientId)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await organizationClientService.AnonymizeClientAsync(clientId, organizationId);
+        return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
+    }
+
     [HttpPost("import/preview")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     [Consumes("multipart/form-data")]

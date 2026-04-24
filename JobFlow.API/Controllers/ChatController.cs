@@ -706,7 +706,7 @@ public class ChatController : ControllerBase
             .Query()
             .FirstOrDefaultAsync(c => c.Id == conversation.OrganizationClientId.Value);
 
-        if (client is null || string.IsNullOrWhiteSpace(client.PhoneNumber))
+        if (client is null || string.IsNullOrWhiteSpace(client.PhoneNumber) || !client.SmsConsentGiven)
             return;
 
         var smsBody = BuildSmsBody(content, attachmentUrl);

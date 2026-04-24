@@ -311,4 +311,29 @@ public class OrganizationClientService : IOrganizationClientService
         return Result.Success($"{clientToRestore.ClientFullName()} was successfully restored.");
     }
 
+    public async Task<Result> AnonymizeClientAsync(Guid clientId, Guid organizationId)
+    {
+        var client = await organizationClient.Query()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.OrganizationId == organizationId);
+
+        if (client is null)
+            return Result.Failure(OrganizationClientErrors.NoClientFound);
+
+        client.FirstName = "Deleted";
+        client.LastName = "User";
+        client.EmailAddress = null;
+        client.PhoneNumber = null;
+        client.Address1 = null;
+        client.Address2 = null;
+        client.City = null;
+        client.State = null;
+        client.ZipCode = null;
+        client.SmsConsentGiven = false;
+
+        organizationClient.Update(client);
+        await unitOfWork.SaveChangesAsync();
+
+        return Result.Success("Client PII anonymized successfully.");
+    }
+
 }
