@@ -330,6 +330,71 @@ public class EstimateService : IEstimateService
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
+    public async Task<Result<EstimateDto>> CreateFirstWinAsync(Guid organizationId)
+    {
+        var org = await unitOfWork.RepositoryOf<Organization>()
+            .Query()
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+
+        if (org == null)
+            return Result.Failure<EstimateDto>(EstimateErrors.NotFound);
+
+        var ownerEmail = org.EmailAddress ?? string.Empty;
+
+        // Find or create a self-client record for the org owner
+        var selfClient = await clients.Query()
+            .FirstOrDefaultAsync(c => c.OrganizationId == organizationId && c.EmailAddress == ownerEmail);
+
+        if (selfClient == null)
+        {
+            selfClient = new OrganizationClient
+            {
+                OrganizationId = organizationId,
+                FirstName = org.ContactFirstName ?? "Business",
+                LastName = org.ContactLastName ?? "Owner",
+                EmailAddress = ownerEmail
+            };
+            await clients.AddAsync(selfClient);
+            await unitOfWork.SaveChangesAsync();
+        }
+
+        var estimateNumber = await _numberGenerator.GenerateAsync(organizationId);
+
+        var demoLineItems = new List<EstimateLineItem>
+        {
+            new() { Name = "Initial Consultation", Description = "On-site assessment and project evaluation", Quantity = 1m, UnitPrice = 150m, Total = 150m },
+            new() { Name = "Labor", Description = "Professional service — 2 hours", Quantity = 2m, UnitPrice = 75m, Total = 150m },
+            new() { Name = "Materials & Supplies", Description = "Standard supplies for the project", Quantity = 1m, UnitPrice = 85m, Total = 85m }
+        };
+
+        var estimate = new Estimate
+        {
+            OrganizationId = organizationId,
+            OrganizationClientId = selfClient.Id,
+            EstimateNumber = estimateNumber,
+            Title = "Sample Estimate — First Win",
+            Status = EstimateStatus.Sent,
+            PublicToken = GeneratePublicToken(),
+            PublicTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(30),
+            SentAt = DateTimeOffset.UtcNow,
+            LineItems = demoLineItems
+        };
+
+        RecalculateTotals(estimate);
+        await estimates.AddAsync(estimate);
+        await unitOfWork.SaveChangesAsync();
+
+        selfClient.Organization = org;
+        await notificationService.SendClientEstimateSentNotificationAsync(selfClient, estimate);
+
+        var full = await estimates.Query()
+            .Include(x => x.OrganizationClient)
+            .Include(x => x.LineItems)
+            .FirstOrDefaultAsync(x => x.Id == estimate.Id);
+
+        return Result<EstimateDto>.Success(ToDto(full!));
+    }
+
     private static EstimateDto ToDto(Estimate e) =>
         new(
             e.Id,

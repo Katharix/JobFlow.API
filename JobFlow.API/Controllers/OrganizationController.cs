@@ -333,4 +333,14 @@ public class OrganizationController : ControllerBase
                 model.Id, user.Id);
         }
     }
+
+    [HttpPost]
+    [Route("milestones")]
+    [Authorize]
+    public async Task<IResult> MarkMilestone([FromBody] MarkMilestoneRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _organizationService.MarkMilestoneAsync(organizationId, request.Milestone);
+        return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
+    }
 }

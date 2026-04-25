@@ -17,4 +17,5 @@ public interface IOrganizationService
     Task<Result> UpdateSubscriptionStateAsync(Guid organizationId, string? subscriptionStatus, string? subscriptionPlanName = null, DateTime? subscriptionExpiresAt = null);
     Task<Result> DeleteOrganization(Guid organizationId);
     Task<Result> SetOrgSizeAsync(Guid organizationId, string? orgSizeValue);
+    Task<Result> MarkMilestoneAsync(Guid organizationId, string milestone);
 }

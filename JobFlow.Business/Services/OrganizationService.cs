@@ -248,4 +248,28 @@ public class OrganizationService : IOrganizationService
         await _unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
+
+    public async Task<Result> MarkMilestoneAsync(Guid organizationId, string milestone)
+    {
+        var org = await _unitOfWork.RepositoryOf<Organization>().GetByIdAsync(organizationId);
+        if (org == null)
+            return Result.Failure(OrganizationErrors.OrganizationNotFound);
+
+        var now = DateTimeOffset.UtcNow;
+        switch (milestone.Trim().ToLowerInvariant())
+        {
+            case "firstrealestimatesentat":
+                org.FirstRealEstimateSentAt ??= now;
+                break;
+            case "referralctashownat":
+                org.ReferralCtaShownAt ??= now;
+                break;
+            default:
+                return Result.Failure(Error.Failure("Organization.Milestone", $"Unknown milestone: {milestone}"));
+        }
+
+        _unitOfWork.RepositoryOf<Organization>().Update(org);
+        await _unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
 }

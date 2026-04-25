@@ -35,6 +35,10 @@ public class Organization : Entity
     public DateTimeOffset? PaymentSetupSkippedAt { get; set; }
     public OrgSize OrgSize { get; set; } = OrgSize.Solo;
 
+    // Sprint 4 milestones
+    public DateTimeOffset? FirstRealEstimateSentAt { get; set; }
+    public DateTimeOffset? ReferralCtaShownAt { get; set; }
+
     public bool CanAcceptPayments =>
         (PaymentProvider == PaymentProvider.Stripe &&
          !string.IsNullOrWhiteSpace(StripeConnectAccountId)) ||
