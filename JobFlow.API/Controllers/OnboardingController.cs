@@ -98,6 +98,26 @@ public class OnboardingController : ControllerBase
             : result.ToProblemDetails();
     }
 
+    [HttpGet("defaults")]
+    public async Task<IResult> GetIndustryDefaults()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await onboarding.GetIndustryDefaultsAsync(organizationId);
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : result.ToProblemDetails();
+    }
+
+    [HttpPost("seed-defaults")]
+    public async Task<IResult> SeedIndustryDefaults()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await onboarding.SeedIndustryDefaultsAsync(organizationId);
+        return result.IsSuccess
+            ? Results.Ok()
+            : result.ToProblemDetails();
+    }
+
     private static bool HasMinPlan(string? planName, string required)
     {
         static int Rank(string? plan)

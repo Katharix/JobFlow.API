@@ -16,6 +16,7 @@ public class OnboardingService : IOnboardingService
     private readonly IRepository<Organization> orgRepo;
     private readonly IRepository<PriceBookItem> priceBookItems;
     private readonly IRepository<OrganizationOnboardingStep> stepRepo;
+    private readonly IRepository<OrganizationInvoicingSettings> invoicingSettingsRepo;
     private readonly IWorkflowSettingsService workflowSettings;
     private readonly IUnitOfWork uow;
 
@@ -26,6 +27,7 @@ public class OnboardingService : IOnboardingService
         orgRepo = uow.RepositoryOf<Organization>();
         stepRepo = uow.RepositoryOf<OrganizationOnboardingStep>();
         priceBookItems = uow.RepositoryOf<PriceBookItem>();
+        invoicingSettingsRepo = uow.RepositoryOf<OrganizationInvoicingSettings>();
     }
 
     public async Task<Result<IEnumerable<OnboardingStepDto>>> GetChecklistAsync(Guid orgId)
@@ -270,6 +272,95 @@ public class OnboardingService : IOnboardingService
             StepName = stepName.Trim().ToLowerInvariant(),
             EventType = eventType.Trim().ToLowerInvariant()
         });
+
+        await uow.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    public async Task<Result<OnboardingIndustryDefaultsDto>> GetIndustryDefaultsAsync(Guid organizationId)
+    {
+        var org = await orgRepo.Query()
+            .Include(o => o.OrganizationType)
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+
+        if (org == null)
+            return Result.Failure<OnboardingIndustryDefaultsDto>(OnboardingErrors.OrganizationNotFound);
+
+        var defaults = OnboardingIndustryDefaultsCatalog.TryGetByOrgTypeName(org.OrganizationType?.TypeName)
+                       ?? OnboardingIndustryDefaultsCatalog.GetGeneralDefaults();
+
+        var dto = new OnboardingIndustryDefaultsDto
+        {
+            OrgTypeName = defaults.OrgTypeName,
+            TemplateSuggestionName = defaults.TemplateSuggestionName,
+            PaymentTermsDays = defaults.PaymentTermsDays,
+            Services = defaults.Services
+                .Select(s => new OnboardingIndustryServiceDto
+                {
+                    Name = s.Name,
+                    Description = s.Description,
+                    Unit = s.Unit,
+                    Price = s.Price
+                })
+                .ToList()
+        };
+
+        return Result.Success(dto);
+    }
+
+    public async Task<Result> SeedIndustryDefaultsAsync(Guid organizationId)
+    {
+        var org = await orgRepo.Query()
+            .Include(o => o.OrganizationType)
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+
+        if (org == null)
+            return Result.Failure(OnboardingErrors.OrganizationNotFound);
+
+        var defaults = OnboardingIndustryDefaultsCatalog.TryGetByOrgTypeName(org.OrganizationType?.TypeName)
+                       ?? OnboardingIndustryDefaultsCatalog.GetGeneralDefaults();
+
+        var existingNames = await priceBookItems.Query()
+            .Where(x => x.OrganizationId == organizationId)
+            .Select(x => x.Name)
+            .ToListAsync();
+
+        foreach (var service in defaults.Services)
+        {
+            if (existingNames.Any(name =>
+                    string.Equals(name, service.Name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            await priceBookItems.AddAsync(new PriceBookItem
+            {
+                OrganizationId = organizationId,
+                Name = service.Name,
+                Description = service.Description,
+                Unit = service.Unit,
+                Price = service.Price,
+                Cost = 0m,
+                PricePerUnit = service.Price,
+                ItemType = PriceBookItemType.Service
+            });
+        }
+
+        // Apply industry payment terms to invoicing settings
+        var invoicingSettings = await invoicingSettingsRepo.Query()
+            .FirstOrDefaultAsync(x => x.OrganizationId == organizationId);
+
+        if (invoicingSettings == null)
+        {
+            await invoicingSettingsRepo.AddAsync(new OrganizationInvoicingSettings
+            {
+                OrganizationId = organizationId,
+                PaymentTermsDays = defaults.PaymentTermsDays
+            });
+        }
+        else
+        {
+            invoicingSettings.PaymentTermsDays = defaults.PaymentTermsDays;
+            invoicingSettingsRepo.Update(invoicingSettings);
+        }
 
         await uow.SaveChangesAsync();
         return Result.Success();

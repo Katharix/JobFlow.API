@@ -12,4 +12,6 @@ public interface IOnboardingService
         Guid organizationId,
         OnboardingQuickStartApplyRequestDto request);
     Task<Result> RecordAnalyticsEventAsync(Guid organizationId, string stepName, string eventType);
+    Task<Result<OnboardingIndustryDefaultsDto>> GetIndustryDefaultsAsync(Guid organizationId);
+    Task<Result> SeedIndustryDefaultsAsync(Guid organizationId);
 }
