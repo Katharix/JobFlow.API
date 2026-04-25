@@ -125,6 +125,10 @@ public class OrganizationController : ControllerBase
             // Auto-create an Employee record linked to the new user
             await CreateOwnerEmployeeAsync(model, userResult.Value);
 
+            // Apply org size from registration payload
+            if (!string.IsNullOrWhiteSpace(model.OrgSize))
+                await _organizationService.SetOrgSizeAsync(model.Id.Value, model.OrgSize);
+
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
         }

@@ -11,4 +11,6 @@ public static class OnboardingStepKeys
     public const string SendInvoice = "send_invoice";
     public const string ReceivePayment = "receive_payment";
     public const string ConnectStripe = "connect_stripe";
+    public const string InviteTeam = "invite_team";
+    public const string AssignRoles = "assign_roles";
 }

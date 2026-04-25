@@ -16,4 +16,5 @@ public class OrganizationRegisterDto
     public string? City { get; set; }
     public string? State { get; set; }
     public string? PhoneNumber { get; set; }
+    public string? OrgSize { get; set; }
 }

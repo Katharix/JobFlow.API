@@ -33,6 +33,7 @@ public class Organization : Entity
     public DateTime? SubscriptionExpiresAt { get; set; }
 
     public DateTimeOffset? PaymentSetupSkippedAt { get; set; }
+    public OrgSize OrgSize { get; set; } = OrgSize.Solo;
 
     public bool CanAcceptPayments =>
         (PaymentProvider == PaymentProvider.Stripe &&
