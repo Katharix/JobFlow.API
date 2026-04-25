@@ -3,6 +3,7 @@ using JobFlow.Business.Extensions;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace JobFlow.API.Controllers;
 
@@ -30,9 +31,30 @@ public class SetupCompanionController : ControllerBase
 
         return result.IsSuccess ? Results.Ok() : result.ToProblemDetails();
     }
+
+    [HttpPost("ask")]
+    [EnableRateLimiting("companion-ask")]
+    public async Task<IResult> Ask([FromBody] AskSetupCompanionRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _setupCompanionService.AskAsync(
+            organizationId,
+            request.SessionId,
+            request.Question,
+            request.CurrentRoute);
+
+        return result.IsSuccess
+            ? Results.Ok(new { answer = result.Value })
+            : result.ToProblemDetails();
+    }
 }
 
 public sealed record TrackSetupCompanionEventRequest(
     string SessionId,
     string QuestionKey,
     string? AnswerKey);
+
+public sealed record AskSetupCompanionRequest(
+    string SessionId,
+    string Question,
+    string CurrentRoute);
