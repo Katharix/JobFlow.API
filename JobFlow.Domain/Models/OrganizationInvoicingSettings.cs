@@ -9,4 +9,7 @@ public class OrganizationInvoicingSettings : Entity
 
     public bool DepositRequired { get; set; }
     public decimal DepositPercentage { get; set; }
+
+    /// <summary>Net payment terms in days. 0 = due on receipt.</summary>
+    public int PaymentTermsDays { get; set; } = 0;
 }
