@@ -247,4 +247,31 @@ public class OnboardingService : IOnboardingService
 
         await uow.SaveChangesAsync();
     }
+
+    public async Task<Result> RecordAnalyticsEventAsync(Guid organizationId, string stepName, string eventType)
+    {
+        if (string.IsNullOrWhiteSpace(stepName) || string.IsNullOrWhiteSpace(eventType))
+            return Result.Failure(Error.Validation("Onboarding.Analytics.Invalid", "StepName and EventType are required."));
+
+        var allowedEventTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "onboarding_step_started",
+            "onboarding_step_completed",
+            "onboarding_step_skipped"
+        };
+
+        if (!allowedEventTypes.Contains(eventType))
+            return Result.Failure(Error.Validation("Onboarding.Analytics.UnknownEventType", $"Unknown event type: {eventType}."));
+
+        var eventsRepo = uow.RepositoryOf<OrganizationOnboardingEvent>();
+        await eventsRepo.AddAsync(new OrganizationOnboardingEvent
+        {
+            OrganizationId = organizationId,
+            StepName = stepName.Trim().ToLowerInvariant(),
+            EventType = eventType.Trim().ToLowerInvariant()
+        });
+
+        await uow.SaveChangesAsync();
+        return Result.Success();
+    }
 }
