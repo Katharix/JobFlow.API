@@ -4,6 +4,7 @@ using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
+using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
@@ -229,5 +230,22 @@ public class OrganizationService : IOrganizationService
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success(organization);
+    }
+
+    public async Task<Result> SetOrgSizeAsync(Guid organizationId, string? orgSizeValue)
+    {
+        var org = await _unitOfWork.RepositoryOf<Organization>().GetByIdAsync(organizationId);
+        if (org == null)
+            return Result.Failure(OrganizationErrors.OrganizationNotFound);
+
+        var size = (orgSizeValue ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "small_team" or "team" => OrgSize.SmallTeam,
+            _ => OrgSize.Solo
+        };
+
+        org.OrgSize = size;
+        await _unitOfWork.SaveChangesAsync();
+        return Result.Success();
     }
 }

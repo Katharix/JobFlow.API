@@ -16,4 +16,5 @@ public interface IOrganizationService
     Task MarkSquareDisconnectedAsync(string squareMerchantId);
     Task<Result> UpdateSubscriptionStateAsync(Guid organizationId, string? subscriptionStatus, string? subscriptionPlanName = null, DateTime? subscriptionExpiresAt = null);
     Task<Result> DeleteOrganization(Guid organizationId);
+    Task<Result> SetOrgSizeAsync(Guid organizationId, string? orgSizeValue);
 }

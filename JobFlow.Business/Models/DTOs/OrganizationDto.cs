@@ -53,4 +53,5 @@ public class OrganizationDto
     public string? SquareMerchantId { get; set; }
     public bool IsSquareConnected { get; set; }
     public bool PaymentSetupDeferred { get; set; }
+    public OrgSize OrgSize { get; set; }
 }

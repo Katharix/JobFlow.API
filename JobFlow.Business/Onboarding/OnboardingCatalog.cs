@@ -1,4 +1,5 @@
-﻿using JobFlow.Domain.Models;
+﻿using JobFlow.Domain.Enums;
+using JobFlow.Domain.Models;
 
 namespace JobFlow.Business.Onboarding;
 
@@ -49,7 +50,9 @@ public static class OnboardingCatalog
             "Get paid",
             70,
             org => org.IsStripeConnected
-        )
+        ),
+        new(OnboardingStepKeys.InviteTeam, "Invite your team", 75, org => org.OrgSize == OrgSize.SmallTeam),
+        new(OnboardingStepKeys.AssignRoles, "Assign roles", 80, org => org.OrgSize == OrgSize.SmallTeam)
     ];
 
     public static bool IsKnown(string key)
