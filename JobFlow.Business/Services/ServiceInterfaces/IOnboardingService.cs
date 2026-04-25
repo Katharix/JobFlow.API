@@ -14,4 +14,5 @@ public interface IOnboardingService
     Task<Result> RecordAnalyticsEventAsync(Guid organizationId, string stepName, string eventType);
     Task<Result<OnboardingIndustryDefaultsDto>> GetIndustryDefaultsAsync(Guid organizationId);
     Task<Result> SeedIndustryDefaultsAsync(Guid organizationId);
+    Task<Result> DeferPaymentSetupAsync(Guid organizationId);
 }

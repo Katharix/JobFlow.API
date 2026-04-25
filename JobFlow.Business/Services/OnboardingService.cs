@@ -365,4 +365,20 @@ public class OnboardingService : IOnboardingService
         await uow.SaveChangesAsync();
         return Result.Success();
     }
+
+    public async Task<Result> DeferPaymentSetupAsync(Guid organizationId)
+    {
+        var org = await orgRepo.GetByIdAsync(organizationId);
+        if (org == null)
+            return Result.Failure(OnboardingErrors.OrganizationNotFound);
+
+        if (org.CanAcceptPayments)
+            return Result.Failure(Error.Validation(
+                "Onboarding.Payment.AlreadyConnected",
+                "Payment provider is already connected and cannot be deferred."));
+
+        org.PaymentSetupSkippedAt = DateTimeOffset.UtcNow;
+        await uow.SaveChangesAsync();
+        return Result.Success();
+    }
 }
