@@ -97,6 +97,15 @@ public class EstimateController : ControllerBase
         return File(result.Value, "application/pdf", $"estimate-{token}.pdf");
     }
 
+    [HttpPost("first-win")]
+    [Authorize]
+    public async Task<IActionResult> CreateFirstWin()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await estimateService.CreateFirstWinAsync(organizationId);
+        return result.IsSuccess ? Ok(result.Value) : ProblemFrom(result);
+    }
+
     private ObjectResult ProblemFrom(Result result)
     {
         var problem = result.ToProblemDetails() as Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult;

@@ -54,4 +54,6 @@ public class OrganizationDto
     public bool IsSquareConnected { get; set; }
     public bool PaymentSetupDeferred { get; set; }
     public OrgSize OrgSize { get; set; }
+    public DateTimeOffset? FirstRealEstimateSentAt { get; set; }
+    public DateTimeOffset? ReferralCtaShownAt { get; set; }
 }

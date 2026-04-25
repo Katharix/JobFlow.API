@@ -459,6 +459,21 @@ builder.Services.AddRateLimiter(options =>
             AutoReplenishment = true
         });
     });
+
+    // LLM-backed setup companion — 20 requests per hour per org to control OpenAI spend
+    options.AddPolicy("companion-ask", context =>
+    {
+        var orgId = context.User?.FindFirst("org_id")?.Value
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter($"companion:{orgId}", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
 });
 
 // ============================================================
@@ -520,6 +535,12 @@ builder.Services.AddSingleton<ITwilioSettings>(sp => sp.GetRequiredService<IOpti
 builder.Services.AddSingleton<IStripeSettings>(sp => sp.GetRequiredService<IOptions<StripeSettings>>().Value);
 builder.Services.AddSingleton<IBrevoSettings>(sp => sp.GetRequiredService<IOptions<BrevoSettings>>().Value);
 builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOptions<SquareSettings>>().Value);
+
+builder.Services.Configure<OpenAiSettings>(options =>
+{
+    options.ApiKey = builder.Configuration["OpenAI-ApiKey"] ?? "";
+    options.Model = builder.Configuration["OpenAI-Model"] ?? "gpt-4o-mini";
+});
 
 // ============================================================
 // DEPENDENCY INJECTION, MAPPINGS, AUTHORIZATION

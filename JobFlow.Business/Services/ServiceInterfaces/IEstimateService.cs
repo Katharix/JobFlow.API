@@ -19,4 +19,5 @@ public interface IEstimateService
 
     Task<Result<EstimateDto>> AcceptAsync(Guid id, Guid organizationId, Guid organizationClientId);
     Task<Result<EstimateDto>> DeclineAsync(Guid id, Guid organizationId, Guid organizationClientId);
+    Task<Result<EstimateDto>> CreateFirstWinAsync(Guid organizationId);
 }
