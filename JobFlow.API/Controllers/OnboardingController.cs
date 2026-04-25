@@ -88,6 +88,16 @@ public class OnboardingController : ControllerBase
             : orgResult.ToProblemDetails();
     }
 
+    [HttpPost("events")]
+    public async Task<IResult> RecordEvent([FromBody] OnboardingAnalyticsEventRequestDto request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await onboarding.RecordAnalyticsEventAsync(organizationId, request.StepName, request.EventType);
+        return result.IsSuccess
+            ? Results.Ok()
+            : result.ToProblemDetails();
+    }
+
     private static bool HasMinPlan(string? planName, string required)
     {
         static int Rank(string? plan)

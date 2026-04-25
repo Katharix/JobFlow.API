@@ -11,4 +11,5 @@ public interface IOnboardingService
     Task<Result<OnboardingQuickStartStateDto>> ApplyQuickStartAsync(
         Guid organizationId,
         OnboardingQuickStartApplyRequestDto request);
+    Task<Result> RecordAnalyticsEventAsync(Guid organizationId, string stepName, string eventType);
 }

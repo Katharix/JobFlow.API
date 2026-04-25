@@ -45,6 +45,7 @@ public class JobFlowDbContext : DbContext
     public DbSet<ChangelogEntry> ChangelogEntries { get; set; }
     public DbSet<SupportChatSession> SupportChatSessions { get; set; }
     public DbSet<SupportChatMessage> SupportChatMessages { get; set; }
+    public DbSet<OrganizationOnboardingEvent> OrganizationOnboardingEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
