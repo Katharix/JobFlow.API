@@ -1,10 +1,11 @@
-using JobFlow.Business.ConfigurationSettings;
+﻿using JobFlow.Business.ConfigurationSettings;
 using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain;
 using JobFlow.Domain.Models;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using System.ClientModel;
 
 namespace JobFlow.Business.Services;
 
@@ -45,7 +46,6 @@ public class SetupCompanionService : ISetupCompanionService
         if (org is null)
             return Result.Failure<string>(Error.NotFound("Organization.NotFound", "Organization not found."));
 
-        // Track the free-text ask as an analytics event
         var ev = new SetupCompanionEvent
         {
             OrganizationId = organizationId,
@@ -59,22 +59,35 @@ public class SetupCompanionService : ISetupCompanionService
 
         var systemPrompt = BuildSystemPrompt(org, currentRoute);
 
-        var client = new ChatClient(_openAiSettings.Model, _openAiSettings.ApiKey);
-
-        var messages = new List<ChatMessage>
+        try
         {
-            new SystemChatMessage(systemPrompt),
-            new UserChatMessage(question)
-        };
+            var client = new ChatClient(_openAiSettings.Model, _openAiSettings.ApiKey);
 
-        var response = await client.CompleteChatAsync(messages, new ChatCompletionOptions
+            var messages = new List<ChatMessage>
+            {
+                new SystemChatMessage(systemPrompt),
+                new UserChatMessage(question)
+            };
+
+            var response = await client.CompleteChatAsync(messages, new ChatCompletionOptions
+            {
+                MaxOutputTokenCount = 400,
+                Temperature = 0.3f
+            });
+
+            var answer = response.Value.Content[0].Text;
+            return Result.Success(answer);
+        }
+        catch (ClientResultException ex)
         {
-            MaxOutputTokenCount = 400,
-            Temperature = 0.3f
-        });
-
-        var answer = response.Value.Content[0].Text;
-        return Result.Success(answer);
+            return Result.Failure<string>(Error.Failure("Companion.ApiError",
+                $"The AI service returned an error (HTTP {ex.Status}). Check that your API key and model are configured correctly."));
+        }
+        catch (Exception)
+        {
+            return Result.Failure<string>(Error.Failure("Companion.Unavailable",
+                "The AI service is temporarily unavailable. Please try again."));
+        }
     }
 
     private static string BuildSystemPrompt(Organization org, string currentRoute)
