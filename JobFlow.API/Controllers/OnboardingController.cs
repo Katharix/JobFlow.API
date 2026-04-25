@@ -118,6 +118,16 @@ public class OnboardingController : ControllerBase
             : result.ToProblemDetails();
     }
 
+    [HttpPost("defer-payment")]
+    public async Task<IResult> DeferPayment()
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await onboarding.DeferPaymentSetupAsync(organizationId);
+        return result.IsSuccess
+            ? Results.Ok()
+            : result.ToProblemDetails();
+    }
+
     private static bool HasMinPlan(string? planName, string required)
     {
         static int Rank(string? plan)

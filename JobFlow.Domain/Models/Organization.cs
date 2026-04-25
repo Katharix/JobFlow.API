@@ -32,12 +32,16 @@ public class Organization : Entity
     public string? SubscriptionPlanName { get; set; }
     public DateTime? SubscriptionExpiresAt { get; set; }
 
+    public DateTimeOffset? PaymentSetupSkippedAt { get; set; }
+
     public bool CanAcceptPayments =>
         (PaymentProvider == PaymentProvider.Stripe &&
          !string.IsNullOrWhiteSpace(StripeConnectAccountId)) ||
         (PaymentProvider == PaymentProvider.Square &&
          IsSquareConnected &&
          !string.IsNullOrWhiteSpace(SquareMerchantId));
+
+    public bool PaymentSetupDeferred => PaymentSetupSkippedAt.HasValue && !CanAcceptPayments;
 
     public PaymentProvider PaymentProvider { get; set; } = PaymentProvider.Stripe;
     public ICollection<CustomerPaymentProfile> PaymentProfiles { get; set; } = new List<CustomerPaymentProfile>();
