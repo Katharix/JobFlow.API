@@ -3,6 +3,7 @@ using JobFlow.Business.DI;
 using JobFlow.Business.Services.ServiceInterfaces;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using System.ClientModel;
 
 namespace JobFlow.Business.Services;
 
@@ -39,20 +40,33 @@ public class AiWriterService : IAiWriterService
             Output only the notes text — no headers, no labels, no extra commentary.
             """;
 
-        var client = new ChatClient(_openAiSettings.Model, _openAiSettings.ApiKey);
-
-        var messages = new List<ChatMessage>
+        try
         {
-            new UserChatMessage(prompt)
-        };
+            var client = new ChatClient(_openAiSettings.Model, _openAiSettings.ApiKey);
 
-        var response = await client.CompleteChatAsync(messages, new ChatCompletionOptions
+            var messages = new List<ChatMessage>
+            {
+                new UserChatMessage(prompt)
+            };
+
+            var response = await client.CompleteChatAsync(messages, new ChatCompletionOptions
+            {
+                MaxOutputTokenCount = 200,
+                Temperature = 0.5f
+            });
+
+            var notes = response.Value.Content[0].Text.Trim();
+            return Result.Success(notes);
+        }
+        catch (ClientResultException ex)
         {
-            MaxOutputTokenCount = 200,
-            Temperature = 0.5f
-        });
-
-        var notes = response.Value.Content[0].Text.Trim();
-        return Result.Success(notes);
+            return Result.Failure<string>(Error.Failure("AiWriter.ApiError",
+                $"The AI service returned an error (HTTP {ex.Status}). Check that your API key and model are configured correctly."));
+        }
+        catch (Exception)
+        {
+            return Result.Failure<string>(Error.Failure("AiWriter.Unavailable",
+                "The AI service is temporarily unavailable. Please try again."));
+        }
     }
 }
