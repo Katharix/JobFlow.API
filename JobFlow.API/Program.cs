@@ -474,6 +474,21 @@ builder.Services.AddRateLimiter(options =>
             AutoReplenishment = true
         });
     });
+
+    // AI Writer (estimate draft) — 10 requests per hour per org
+    options.AddPolicy("ai-writer", context =>
+    {
+        var orgId = context.User?.FindFirst("org_id")?.Value
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter($"ai-writer:{orgId}", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
 });
 
 // ============================================================

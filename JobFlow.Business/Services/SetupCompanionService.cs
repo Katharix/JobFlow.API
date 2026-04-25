@@ -93,7 +93,7 @@ public class SetupCompanionService : ISetupCompanionService
         var plan = string.IsNullOrWhiteSpace(org.SubscriptionPlanName) ? "Go" : org.SubscriptionPlanName;
 
         return $"""
-            You are the JobFlow Setup Companion — a friendly, concise assistant embedded inside the JobFlow app.
+            You are Flow, the JobFlow Setup Companion — a friendly, concise assistant embedded inside the JobFlow app.
             JobFlow is a field service management platform for small businesses (contractors, cleaning companies, landscapers, IT services, HVAC, and similar trades).
 
             Your sole purpose is to help users understand and set up JobFlow. You answer ONLY questions about:
