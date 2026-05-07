@@ -62,7 +62,8 @@ public class SubscriptionRecordService : ISubscriptionRecordService
             ProviderPriceId = providerPriceId,
             Status = status,
             StartDate = DateTime.UtcNow,
-            PlanName = planName
+            PlanName = planName,
+            SeatLimit = ResolveDefaultSeatLimit(planName)
         };
 
         unitOfWork.RepositoryOf<SubscriptionRecord>().Add(subscription);
@@ -140,4 +141,35 @@ public class SubscriptionRecordService : ISubscriptionRecordService
         await unitOfWork.SaveChangesAsync();
         return Result.Success();
     }
+
+    public async Task<Result> SetSeatLimitAsync(Guid organizationId, int? seatLimit)
+    {
+        var profileIds = await paymentProfiles.Query()
+            .Where(p => p.OwnerId == organizationId && p.OwnerType == PaymentEntityType.Organization)
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        if (profileIds.Count == 0)
+            return Result.Failure(SubscriptionErrors.NotFound);
+
+        var latest = await subscriptions.Query()
+            .Where(s => profileIds.Contains(s.PaymentProfileId))
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefaultAsync();
+
+        if (latest is null)
+            return Result.Failure(SubscriptionErrors.NotFound);
+
+        latest.SeatLimit = seatLimit;
+        await unitOfWork.SaveChangesAsync();
+        return Result.Success();
+    }
+
+    private static int? ResolveDefaultSeatLimit(string planName) =>
+        (planName ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "go" => 5,
+            "flow" => 15,
+            _ => null   // Max and unknown plans: unlimited
+        };
 }

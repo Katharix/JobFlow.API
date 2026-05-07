@@ -5,4 +5,6 @@ namespace JobFlow.Business.Services.ServiceInterfaces;
 public interface IAiWriterService
 {
     Task<Result<string>> DraftEstimateNotesAsync(Guid organizationId, string[] lineItemNames);
+    Task<Result<string>> DraftInvoiceNotesAsync(Guid organizationId, string[] lineItemDescriptions);
+    Task<Result<string>> DraftJobSummaryAsync(Guid organizationId, string jobTitle, string[] serviceNames);
 }
