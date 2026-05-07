@@ -12,6 +12,7 @@ public class SubscriptionRecord : Entity
     public string Status { get; set; } = "active";
     public DateTime StartDate { get; set; }
     public DateTime? CanceledAt { get; set; }
+    public int? SeatLimit { get; set; }
 
     public virtual CustomerPaymentProfile PaymentProfile { get; set; } = null!;
 }

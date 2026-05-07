@@ -178,7 +178,7 @@ public class InvoiceController : ControllerBase
             UnitPrice = li.UnitPrice
         }).ToList();
 
-        var result = await invoiceService.UpdateInvoiceAsync(id, organizationId, request.InvoiceDate, request.DueDate, lineItems);
+        var result = await invoiceService.UpdateInvoiceAsync(id, organizationId, request.InvoiceDate, request.DueDate, lineItems, request.Notes);
         if (!result.IsSuccess)
         {
             if (result.Error == InvoiceErrors.NotFound)

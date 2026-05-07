@@ -50,8 +50,7 @@ public static class OnboardingCatalog
             "Get paid",
             70,
             org => org.IsStripeConnected
-        ),
-        new(OnboardingStepKeys.InviteTeam, "Invite your team", 75, org => org.OrgSize == OrgSize.SmallTeam),
+        ),        new(OnboardingStepKeys.ChooseTeamSize, "Set up your team", 73, IsFlowOrMax),        new(OnboardingStepKeys.InviteTeam, "Invite your team", 75, org => org.OrgSize == OrgSize.SmallTeam),
         new(OnboardingStepKeys.AssignRoles, "Assign roles", 80, org => org.OrgSize == OrgSize.SmallTeam)
     ];
 
@@ -82,5 +81,11 @@ public static class OnboardingCatalog
         return normalized == OnboardingTrackKeys.GetOrganizedFirst
             ? OrganizedFirstOrder
             : PaidFastOrder;
+    }
+
+    private static bool IsFlowOrMax(Organization org)
+    {
+        var plan = (org.SubscriptionPlanName ?? string.Empty).Trim().ToLowerInvariant();
+        return plan is "flow" or "max";
     }
 }

@@ -30,6 +30,32 @@ public class AiWriterController : ControllerBase
             ? Results.Ok(new { notes = result.Value })
             : result.ToProblemDetails();
     }
+
+    [HttpPost("invoice-notes")]
+    [EnableRateLimiting("ai-writer")]
+    public async Task<IResult> DraftInvoiceNotes([FromBody] DraftInvoiceNotesRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _aiWriterService.DraftInvoiceNotesAsync(organizationId, request.LineItemDescriptions);
+
+        return result.IsSuccess
+            ? Results.Ok(new { notes = result.Value })
+            : result.ToProblemDetails();
+    }
+
+    [HttpPost("job-summary")]
+    [EnableRateLimiting("ai-writer")]
+    public async Task<IResult> DraftJobSummary([FromBody] DraftJobSummaryRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+        var result = await _aiWriterService.DraftJobSummaryAsync(organizationId, request.JobTitle, request.ServiceNames);
+
+        return result.IsSuccess
+            ? Results.Ok(new { summary = result.Value })
+            : result.ToProblemDetails();
+    }
 }
 
 public record DraftEstimateNotesRequest(string[] LineItemNames);
+public record DraftInvoiceNotesRequest(string[] LineItemDescriptions);
+public record DraftJobSummaryRequest(string JobTitle, string[] ServiceNames);

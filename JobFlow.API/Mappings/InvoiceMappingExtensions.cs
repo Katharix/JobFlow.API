@@ -18,6 +18,7 @@ public static class InvoiceMappingExtensions
             InvoiceNumber = invoiceNumber,
             InvoiceDate = DateTime.UtcNow,
             DueDate = request.DueDate,
+            Notes = request.Notes,
             LineItems = request.LineItems.Select(li => new InvoiceLineItem
             {
                 Id = Guid.NewGuid(),
@@ -52,6 +53,7 @@ public static class InvoiceMappingExtensions
             Status = invoice.Status,
             PaymentProvider = invoice.PaymentProvider,
             ExternalPaymentId = invoice.ExternalPaymentId,
+            Notes = invoice.Notes,
             PaidAt = invoice.PaidAt,
             OrganizationClient = invoice.OrganizationClient == null
                 ? new OrganizationClientDto { Id = invoice.OrganizationClientId }

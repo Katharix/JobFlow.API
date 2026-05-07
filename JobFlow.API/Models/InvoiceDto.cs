@@ -18,6 +18,7 @@ public class InvoiceDto
     public decimal BalanceDue { get; set; }
     public InvoiceStatus Status { get; set; }
     public PaymentProvider PaymentProvider { get; set; }
+    public string? Notes { get; set; }
     public string? ExternalPaymentId { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
 
