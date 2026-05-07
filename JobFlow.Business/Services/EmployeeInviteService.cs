@@ -21,6 +21,7 @@ public class EmployeeInviteService : IEmployeeInviteService
     private readonly ILogger<EmployeeInviteService> _logger;
     private readonly IMapper _mapper;
     private readonly INotificationService _notifications;
+    private readonly ISubscriptionRecordService _subscriptions;
     private readonly IUnitOfWork _unitOfWork;
 
     public EmployeeInviteService(
@@ -28,13 +29,15 @@ public class EmployeeInviteService : IEmployeeInviteService
         IUnitOfWork unitOfWork,
         INotificationService notifications,
         IFrontendSettings frontendSettings,
-        IMapper mapper)
+        IMapper mapper,
+        ISubscriptionRecordService subscriptions)
     {
         _logger = logger;
         _unitOfWork = unitOfWork;
         _notifications = notifications;
         _frontendSettings = frontendSettings;
         _mapper = mapper;
+        _subscriptions = subscriptions;
         _invites = unitOfWork.RepositoryOf<EmployeeInvite>();
     }
 
@@ -48,6 +51,18 @@ public class EmployeeInviteService : IEmployeeInviteService
 
             if (string.IsNullOrWhiteSpace(invite.Email))
                 return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InvalidEmail(invite.Email ?? "unknown"));
+
+            // Enforce seat limit (grandfathered orgs with SeatLimit = null are exempt)
+            var subscriptionResult = await _subscriptions.GetLatestForOrganizationAsync(invite.OrganizationId);
+            if (subscriptionResult.IsSuccess && subscriptionResult.Value.SeatLimit is int seatLimit)
+            {
+                var activeEmployeeCount = await _unitOfWork.RepositoryOf<Employee>()
+                    .Query()
+                    .CountAsync(e => e.OrganizationId == invite.OrganizationId && e.IsActive);
+
+                if (activeEmployeeCount >= seatLimit)
+                    return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.SeatLimitReached(seatLimit));
+            }
 
             // Check for existing active invite
             var existingInvite = await _invites.Query()
