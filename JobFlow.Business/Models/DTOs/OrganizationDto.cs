@@ -45,6 +45,7 @@ public class OrganizationDto
     public string? SubscriptionPlanName { get; set; }
     public string? SubscriptionStatus { get; set; }
     public DateTime? SubscriptionExpiresAt { get; set; }
+    public int? SeatLimit { get; set; }
     public string? IndustryKey { get; set; }
     public Guid OrganizationTypeId { get; set; }
     public PaymentProvider PaymentProvider { get; set; }
