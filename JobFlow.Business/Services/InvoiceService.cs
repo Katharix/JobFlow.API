@@ -259,7 +259,7 @@ public class InvoiceService : IInvoiceService
         return Result<Invoice>.Success(model);
     }
 
-    public async Task<Result<Invoice>> UpdateInvoiceAsync(Guid id, Guid organizationId, DateTime? invoiceDate, DateTime dueDate, List<InvoiceLineItem> lineItems)
+    public async Task<Result<Invoice>> UpdateInvoiceAsync(Guid id, Guid organizationId, DateTime? invoiceDate, DateTime dueDate, List<InvoiceLineItem> lineItems, string? notes = null)
     {
         var invoice = await invoices.Query()
             .Include(i => i.LineItems)
@@ -277,6 +277,7 @@ public class InvoiceService : IInvoiceService
             invoice.InvoiceDate = invoiceDate.Value;
 
         invoice.DueDate = dueDate;
+        invoice.Notes = notes;
 
         var existing = invoice.LineItems.ToList();
 

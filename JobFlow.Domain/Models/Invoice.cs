@@ -18,6 +18,7 @@ public class Invoice : Entity
     public decimal BalanceDue => TotalAmount - AmountPaid;
     public InvoiceStatus Status { get; set; }
 
+    public string? Notes { get; set; }
     public PaymentProvider PaymentProvider { get; set; }
     public string? ExternalPaymentId { get; set; }
     public DateTimeOffset? PaidAt { get; set; }

@@ -1,7 +1,10 @@
 ﻿using JobFlow.API.Extensions;
+using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.Onboarding;
 using JobFlow.Business.Services.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +16,13 @@ public class OnboardingController : ControllerBase
 {
     private readonly IOnboardingService onboarding;
     private readonly IOrganizationService organizations;
+    private readonly ISubscriptionRecordService subscriptions;
 
-    public OnboardingController(IOnboardingService onboarding, IOrganizationService organizations)
+    public OnboardingController(IOnboardingService onboarding, IOrganizationService organizations, ISubscriptionRecordService subscriptions)
     {
         this.onboarding = onboarding;
         this.organizations = organizations;
+        this.subscriptions = subscriptions;
     }
 
     [HttpGet("{organizationId:guid}")]
@@ -126,6 +131,24 @@ public class OnboardingController : ControllerBase
         return result.IsSuccess
             ? Results.Ok()
             : result.ToProblemDetails();
+    }
+
+    [HttpPost("team-size")]
+    public async Task<IResult> SetTeamSize([FromBody] SetTeamSizeRequest request)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+
+        var orgResult = await organizations.SetOrgSizeAsync(organizationId, request.OrgSize);
+        if (orgResult.IsFailure)
+            return orgResult.ToProblemDetails();
+
+        var subResult = await subscriptions.SetSeatLimitAsync(organizationId, request.SeatLimit);
+        if (subResult.IsFailure)
+            return subResult.ToProblemDetails();
+
+        await onboarding.MarkStepCompleteAsync(organizationId, OnboardingStepKeys.ChooseTeamSize);
+
+        return Results.Ok();
     }
 
     private static bool HasMinPlan(string? planName, string required)

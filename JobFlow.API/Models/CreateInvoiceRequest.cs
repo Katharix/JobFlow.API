@@ -6,6 +6,7 @@ public class CreateInvoiceRequest
     public Guid? OrganizationClientId { get; set; }
     public Guid JobId { get; set; }
     public DateTime DueDate { get; set; }
+    public string? Notes { get; set; }
     public List<InvoiceLineItemDto> LineItems { get; set; } = new();
 }
 
