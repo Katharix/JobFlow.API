@@ -12,5 +12,4 @@ public interface ISubscriptionRecordService
     Task<Result<SubscriptionRecord>> GetLatestForOrganizationAsync(Guid organizationId, PaymentProvider? provider = null);
     Task<Result> CancelAsync(string providerSubscriptionId, DateTime canceledAt);
     Task<Result> UpdateAsync(SubscriptionRecord subscriptionRecord);
-    Task<Result> SetSeatLimitAsync(Guid organizationId, int? seatLimit);
 }

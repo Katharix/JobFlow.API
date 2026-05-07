@@ -32,10 +32,4 @@ public static class EmployeeInviteErrors
             "EmployeeInvites", $"Failed to send invite notification to {recipient}.");
     }
 
-    public static Error SeatLimitReached(int limit)
-    {
-        return Error.Conflict(
-            "EmployeeInvites.SeatLimitReached",
-            $"Your plan allows up to {limit} team member{(limit == 1 ? "" : "s")}. Upgrade your plan to add more.");
-    }
 }
