@@ -24,6 +24,7 @@ public class JobService : IJobService
     private readonly IUnitOfWork unitOfWork;
     private readonly IMapper _mapper;
     private readonly IOrganizationRealtimeNotifier? _realtimeNotifier;
+    private readonly ITrialTrackingService? _trialTracking;
 
     public JobService(
         ILogger<JobService> logger,
@@ -32,7 +33,8 @@ public class JobService : IJobService
         IInvoicingSettingsService invoicingSettings,
         IInvoiceService invoiceService,
         IMapper mapper,
-        IOrganizationRealtimeNotifier? realtimeNotifier = null)
+        IOrganizationRealtimeNotifier? realtimeNotifier = null,
+        ITrialTrackingService? trialTracking = null)
     {
         this.logger = logger;
         this.unitOfWork = unitOfWork;
@@ -42,6 +44,7 @@ public class JobService : IJobService
         _invoiceService = invoiceService;
         _mapper = mapper;
         _realtimeNotifier = realtimeNotifier;
+        _trialTracking = trialTracking;
     }
 
     /// <summary>
@@ -368,6 +371,9 @@ public class JobService : IJobService
                 organizationId,
                 OnboardingStepKeys.CreateJob
             );
+
+            // Trial activation tracking (fire-and-forget)
+            _ = _trialTracking?.TrackAsync(organizationId, TrialActivationEvents.JobCreated);
         }
 
         await unitOfWork.SaveChangesAsync();

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 using JobFlow.Business.DI;
 using JobFlow.Business.Models;
@@ -10,6 +11,12 @@ using Microsoft.Extensions.Options;
 using Polly;
 
 namespace JobFlow.Infrastructure.ExternalServices.Brevo;
+
+internal static class BrevoListIds
+{
+    public const int Newsletter = 3;
+    public const int TrialUsers = 4;
+}
 
 [SingletonService]
 public class BrevoService : IBrevoService
@@ -86,5 +93,56 @@ public class BrevoService : IBrevoService
         });
 
         return response is not null && response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> AddTrialContactAsync(string email, string firstName, string lastName, string orgName, DateTimeOffset trialStartDate)
+    {
+        var payload = new
+        {
+            email,
+            listIds = new[] { BrevoListIds.TrialUsers },
+            updateEnabled = true,
+            attributes = new Dictionary<string, object>
+            {
+                ["FIRSTNAME"] = firstName,
+                ["LASTNAME"] = lastName,
+                ["ORG_NAME"] = orgName,
+                ["TRIAL_START_DATE"] = trialStartDate.ToString("yyyy-MM-dd")
+            }
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(payload),
+            Encoding.UTF8,
+            "application/json");
+
+        HttpResponseMessage? response = null;
+
+        await _policy.ExecuteAsync(async () =>
+        {
+            response = await _client.PostAsync("contacts", content);
+            response.EnsureSuccessStatusCode();
+        });
+
+        return response is not null && response.IsSuccessStatusCode;
+    }
+
+    public async Task TrackActivationEventAsync(string email, string eventKey)
+    {
+        var payload = new
+        {
+            attributes = new Dictionary<string, object> { [eventKey] = true }
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(payload),
+            Encoding.UTF8,
+            "application/json");
+
+        await _policy.ExecuteAsync(async () =>
+        {
+            var response = await _client.PutAsync($"contacts/{Uri.EscapeDataString(email)}", content);
+            response.EnsureSuccessStatusCode();
+        });
     }
 }

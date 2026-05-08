@@ -22,6 +22,7 @@ public class OrganizationController : ControllerBase
     private readonly IUserService _userService;
     private readonly IEmployeeService _employeeService;
     private readonly IEmployeeRoleService _employeeRoleService;
+    private readonly IBrevoService _brevoService;
     private readonly ILogger<OrganizationController> _logger;
 
     public OrganizationController(
@@ -31,6 +32,7 @@ public class OrganizationController : ControllerBase
         IOrganizationBrandingService organizationBrandingService,
         IEmployeeService employeeService,
         IEmployeeRoleService employeeRoleService,
+        IBrevoService brevoService,
         ILogger<OrganizationController> logger
     )
     {
@@ -40,6 +42,7 @@ public class OrganizationController : ControllerBase
         _organizationBrandingService = organizationBrandingService;
         _employeeService = employeeService;
         _employeeRoleService = employeeRoleService;
+        _brevoService = brevoService;
         _logger = logger;
     }
 
@@ -128,6 +131,14 @@ public class OrganizationController : ControllerBase
             // Apply org size from registration payload
             if (!string.IsNullOrWhiteSpace(model.OrgSize))
                 await _organizationService.SetOrgSizeAsync(model.Id.Value, model.OrgSize);
+
+            // Enroll in Brevo trial drip sequence (fire-and-forget; failure is non-fatal)
+            _ = _brevoService.AddTrialContactAsync(
+                model.EmailAddress ?? string.Empty,
+                model.FirstName ?? string.Empty,
+                model.LastName ?? string.Empty,
+                model.OrganizationName ?? string.Empty,
+                DateTimeOffset.UtcNow);
 
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
