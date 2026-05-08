@@ -551,6 +551,16 @@ builder.Services.AddSingleton<IStripeSettings>(sp => sp.GetRequiredService<IOpti
 builder.Services.AddSingleton<IBrevoSettings>(sp => sp.GetRequiredService<IOptions<BrevoSettings>>().Value);
 builder.Services.AddSingleton<ISquareSettings>(sp => sp.GetRequiredService<IOptions<SquareSettings>>().Value);
 
+builder.Services.Configure<QuickBooksSettings>(options =>
+{
+    var section = builder.Configuration.GetSection("QuickBooksSettings");
+    options.ClientId = section["ClientId"] ?? builder.Configuration["QuickBooksSettings-ClientId"];
+    options.ClientSecret = section["ClientSecret"] ?? builder.Configuration["QuickBooksSettings-ClientSecret"];
+    options.RedirectUrl = section["RedirectUrl"] ?? builder.Configuration["QuickBooksSettings-RedirectUrl"];
+    options.UseSandbox = bool.TryParse(section["UseSandbox"] ?? builder.Configuration["QuickBooksSettings-UseSandbox"], out var useSandbox) && useSandbox;
+});
+builder.Services.AddSingleton<IQuickBooksSettings>(sp => sp.GetRequiredService<IOptions<QuickBooksSettings>>().Value);
+
 builder.Services.Configure<OpenAiSettings>(options =>
 {
     options.ApiKey = builder.Configuration["OpenAI-ApiKey"] ?? "";
