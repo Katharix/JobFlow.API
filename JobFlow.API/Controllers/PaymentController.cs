@@ -48,6 +48,7 @@ public class PaymentController : ControllerBase
     private readonly IStripeSettings _stripeSettings;
     private readonly ISquareSettings _squareSettings;
     private readonly ISquareWebhookService _squareWebhookService;
+    private readonly IFeatureUsageService _featureUsageService;
     private readonly ISquareTokenEncryptionService _squareTokenEncryption;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IFrontendSettings _frontEndSettings;
@@ -73,6 +74,7 @@ public class PaymentController : ControllerBase
         IOnboardingService onboardingService,
         IDataProtectionProvider dataProtectionProvider,
         IDistributedCache distributedCache,
+        IFeatureUsageService featureUsageService,
         ILogger<PaymentController> logger)
     {
         _processorFactory = processorFactory;
@@ -91,6 +93,7 @@ public class PaymentController : ControllerBase
         _onboardingService = onboardingService;
         _squareStateProtector = dataProtectionProvider.CreateProtector(SquareStatePurpose);
         _distributedCache = distributedCache;
+        _featureUsageService = featureUsageService;
         _logger = logger;
     }
 
@@ -799,6 +802,15 @@ public class PaymentController : ControllerBase
             return NotFound(subscriptionResult.Error);
 
         return Ok(subscriptionResult.Value);
+    }
+
+    [HttpGet("subscription/feature-usage")]
+    [Authorize(Policy = "OrganizationAdminOnly")]
+    public async Task<IActionResult> GetFeatureUsage()
+    {
+        var orgId = HttpContext.GetOrganizationId();
+        var summary = await _featureUsageService.GetAsync(orgId);
+        return Ok(summary);
     }
 
     [HttpGet("subscription/plans")]
