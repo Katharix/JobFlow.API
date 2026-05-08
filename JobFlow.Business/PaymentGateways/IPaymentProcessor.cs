@@ -6,6 +6,7 @@ public interface IPaymentProcessor
 {
     Task<PaymentSessionResult> CreatePaymentIntentAsync(PaymentSessionRequest request);
     Task<string> CreateSubscriptionCheckoutSessionAsync(PaymentSessionRequest request);
+    Task<PaymentOperationResult> CreateTrialSubscriptionAsync(string email, Guid orgId, string planPriceId, int trialDays = 14);
 }
 
 public interface IPaymentOperationsProcessor

@@ -139,6 +139,11 @@ public class SquarePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         return CreateCheckoutSessionAsync(request);
     }
 
+    public Task<PaymentOperationResult> CreateTrialSubscriptionAsync(string email, Guid orgId, string planPriceId, int trialDays = 14)
+    {
+        throw new NotSupportedException("Trial subscriptions are not supported by the Square payment processor.");
+    }
+
     public Task<PaymentSessionResult> CreateDepositPaymentAsync(PaymentSessionRequest request)
     {
         request.Amount = request.DepositAmount ?? request.Amount;

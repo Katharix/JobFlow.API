@@ -335,6 +335,56 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
         return customer.Id;
     }
 
+    public async Task<PaymentOperationResult> CreateTrialSubscriptionAsync(string email, Guid orgId, string planPriceId, int trialDays = 14)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new InvalidOperationException("Customer email is required for trial subscription.");
+
+        if (orgId == Guid.Empty)
+            throw new InvalidOperationException("Organization id is required for trial subscription.");
+
+        if (string.IsNullOrWhiteSpace(planPriceId))
+            throw new InvalidOperationException("Plan price id is required for trial subscription.");
+
+        var customerId = await CreateStripeCustomerAsync(email);
+        var ownerId = orgId.ToString();
+
+        var subscriptionService = new SubscriptionService();
+        var subscription = await subscriptionService.CreateAsync(new SubscriptionCreateOptions
+        {
+            Customer = customerId,
+            Items = new List<SubscriptionItemOptions>
+            {
+                new() { Price = planPriceId.Trim() }
+            },
+            TrialEnd = DateTime.UtcNow.AddDays(trialDays),
+            Metadata = new Dictionary<string, string>
+            {
+                { "ownerId", ownerId },
+                { "ownerType", PaymentEntityType.Organization.ToString() }
+            }
+        });
+
+        return new PaymentOperationResult
+        {
+            Success = !string.IsNullOrWhiteSpace(subscription.Id),
+            ProviderPaymentId = subscription.Id,
+            ProviderCustomerId = customerId,
+            ProviderPriceId = planPriceId.Trim(),
+            SubscriptionStatus = subscription.Status,
+            SubscriptionPlanName = ResolvePlanName(planPriceId),
+            SubscriptionExpiresAtUtc = subscription.TrialEnd?.ToUniversalTime()
+        };
+    }
+
+    private string ResolvePlanName(string priceId)
+    {
+        if (priceId == _stripeSettings.GoMonthlyPrice || priceId == _stripeSettings.GoYearlyPrice) return "Go";
+        if (priceId == _stripeSettings.FlowMonthlyPrice || priceId == _stripeSettings.FlowYearlyPrice) return "Flow";
+        if (priceId == _stripeSettings.MaxMonthlyPrice || priceId == _stripeSettings.MaxYearlyPrice) return "Max";
+        return priceId;
+    }
+
     private static string BuildSubscriptionSuccessUrl(
         string? baseUrl,
         string organizationId,

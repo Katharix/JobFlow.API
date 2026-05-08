@@ -4,9 +4,11 @@ using JobFlow.API.Extensions;
 using JobFlow.API.Models;
 using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
+using JobFlow.Business.PaymentGateways;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Enums;
 using JobFlow.Domain.Models;
+using JobFlow.Infrastructure.ExternalServices.ConfigurationInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +21,9 @@ public class OrganizationController : ControllerBase
     private readonly IOrganizationBrandingService _organizationBrandingService;
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
+    private readonly ISubscriptionRecordService _subscriptionRecordService;
+    private readonly IPaymentProcessor _paymentProcessor;
+    private readonly IStripeSettings _stripeSettings;
     private readonly IUserService _userService;
     private readonly IEmployeeService _employeeService;
     private readonly IEmployeeRoleService _employeeRoleService;
@@ -28,6 +33,9 @@ public class OrganizationController : ControllerBase
         IOrganizationService organizationService,
         IUserService userService,
         IPaymentProfileService paymentProfileService,
+        ISubscriptionRecordService subscriptionRecordService,
+        IPaymentProcessor paymentProcessor,
+        IStripeSettings stripeSettings,
         IOrganizationBrandingService organizationBrandingService,
         IEmployeeService employeeService,
         IEmployeeRoleService employeeRoleService,
@@ -37,6 +45,9 @@ public class OrganizationController : ControllerBase
         _organizationService = organizationService;
         _userService = userService;
         _paymentProfileService = paymentProfileService;
+        _subscriptionRecordService = subscriptionRecordService;
+        _paymentProcessor = paymentProcessor;
+        _stripeSettings = stripeSettings;
         _organizationBrandingService = organizationBrandingService;
         _employeeService = employeeService;
         _employeeRoleService = employeeRoleService;
@@ -128,6 +139,40 @@ public class OrganizationController : ControllerBase
             // Apply org size from registration payload
             if (!string.IsNullOrWhiteSpace(model.OrgSize))
                 await _organizationService.SetOrgSizeAsync(model.Id.Value, model.OrgSize);
+
+            // Provision a 14-day free trial subscription on the Go plan (no payment method required)
+            var trialResult = await _paymentProcessor.CreateTrialSubscriptionAsync(
+                model.EmailAddress!, model.Id.Value, _stripeSettings.GoMonthlyPrice);
+
+            if (trialResult.Success
+                && !string.IsNullOrWhiteSpace(trialResult.ProviderCustomerId)
+                && !string.IsNullOrWhiteSpace(trialResult.ProviderPaymentId))
+            {
+                var profileResult = await _paymentProfileService.CreateAsync(
+                    model.Id.Value, PaymentEntityType.Organization, PaymentProvider.Stripe, trialResult.ProviderCustomerId!);
+
+                if (profileResult.IsSuccess)
+                {
+                    await _subscriptionRecordService.CreateAsync(
+                        profileResult.Value.Id,
+                        trialResult.ProviderPaymentId!,
+                        trialResult.ProviderPriceId ?? _stripeSettings.GoMonthlyPrice,
+                        "trialing",
+                        trialResult.SubscriptionPlanName ?? "Go");
+                }
+
+                await _organizationService.UpdateSubscriptionStateAsync(
+                    model.Id.Value,
+                    "trialing",
+                    trialResult.SubscriptionPlanName ?? "Go",
+                    trialResult.SubscriptionExpiresAtUtc);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Trial Stripe subscription was not created for OrgId={OrganizationId}. Message={Message}",
+                    model.Id.Value, trialResult.Message);
+            }
 
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
