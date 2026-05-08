@@ -6,6 +6,7 @@ public interface INotificationService
 {
     // Organization notifications
     Task SendOrganizationWelcomeNotificationAsync(Organization organization);
+    Task SendOrganizationTrialWillEndNotificationAsync(Organization organization, int daysRemaining);
     Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization);
     Task SendOrganizationPaymentReceivedNotificationAsync(Organization organization);
 

@@ -32,6 +32,12 @@ public partial class NotificationService : INotificationService
     }
 
     // Organization notifications
+    public async Task SendOrganizationTrialWillEndNotificationAsync(Organization org, int daysRemaining)
+    {
+        var message = _builder.BuildOrganizationTrialWillEnd(org, daysRemaining);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendOrganizationWelcomeNotificationAsync(Organization org)
     {
         var message = _builder.BuildOrganizationWelcome(org);

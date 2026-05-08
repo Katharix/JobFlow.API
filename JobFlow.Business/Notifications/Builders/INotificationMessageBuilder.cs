@@ -6,6 +6,7 @@ namespace JobFlow.Business.Notifications.Builders;
 public interface INotificationMessageBuilder
 {
     NotificationMessage BuildOrganizationWelcome(Organization org);
+    NotificationMessage BuildOrganizationTrialWillEnd(Organization org, int daysRemaining);
     NotificationMessage BuildOrganizationSubscriptionFailed(Organization org);
     NotificationMessage BuildOrganizationPaymentReceived(Organization org);
 

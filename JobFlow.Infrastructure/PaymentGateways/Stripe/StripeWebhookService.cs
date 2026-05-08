@@ -701,7 +701,33 @@ public class StripeWebhookService : IStripeWebhookService
 
     private async Task HandleSubscriptionTrialWillEndAsync(Subscription subscription)
     {
-        // Notify user trial is ending
+        if (!TryGetSubscriptionOwnerMetadata(subscription, out var ownerId, out var ownerType))
+        {
+            _logger.LogWarning("SubscriptionTrialWillEnd: missing ownerId/ownerType metadata. SubscriptionId={SubId}", subscription.Id);
+            return;
+        }
+
+        if (!ownerType.Equals(PaymentEntityType.Organization.ToString(), StringComparison.OrdinalIgnoreCase)
+            || !Guid.TryParse(ownerId, out var orgId))
+        {
+            _logger.LogWarning("SubscriptionTrialWillEnd: unsupported ownerType or invalid ownerId. OwnerType={OwnerType}, OwnerId={OwnerId}", ownerType, ownerId);
+            return;
+        }
+
+        var orgResult = await _organizationService.GetOrganiztionById(orgId);
+        if (!orgResult.IsSuccess || orgResult.Value == null)
+        {
+            _logger.LogWarning("SubscriptionTrialWillEnd: organization not found. OrgId={OrgId}", orgId);
+            return;
+        }
+
+        var daysRemaining = subscription.TrialEnd.HasValue
+            ? Math.Max(0, (int)Math.Ceiling((subscription.TrialEnd.Value - DateTime.UtcNow).TotalDays))
+            : 3;
+
+        await _notificationService.SendOrganizationTrialWillEndNotificationAsync(orgResult.Value, daysRemaining);
+
+        _logger.LogInformation("SubscriptionTrialWillEnd: notification sent. OrgId={OrgId}, DaysRemaining={Days}", orgId, daysRemaining);
     }
 
     private async Task HandleCustomerCreatedAsync(Customer customer)
