@@ -20,6 +20,7 @@ public class EstimateService : IEstimateService
     private readonly IFollowUpAutomationService? _followUpAutomation;
     private readonly IJobService _jobService;
     private readonly IEstimateNumberGenerator _numberGenerator;
+    private readonly ITrialTrackingService? _trialTracking;
 
     private readonly IRepository<Estimate> estimates;
     private readonly IRepository<OrganizationClient> clients;
@@ -31,7 +32,8 @@ public class EstimateService : IEstimateService
         IOrganizationClientPortalService clientPortalService,
         IJobService jobService,
         IEstimateNumberGenerator numberGenerator,
-        IFollowUpAutomationService? followUpAutomation = null)
+        IFollowUpAutomationService? followUpAutomation = null,
+        ITrialTrackingService? trialTracking = null)
     {
         this.unitOfWork = unitOfWork;
         this.notificationService = notificationService;
@@ -40,6 +42,7 @@ public class EstimateService : IEstimateService
         _jobService = jobService;
         _numberGenerator = numberGenerator;
         _followUpAutomation = followUpAutomation;
+        _trialTracking = trialTracking;
 
         estimates = unitOfWork.RepositoryOf<Estimate>();
         clients = unitOfWork.RepositoryOf<OrganizationClient>();
@@ -111,6 +114,9 @@ public class EstimateService : IEstimateService
 
         await estimates.AddAsync(estimate);
         await unitOfWork.SaveChangesAsync();
+
+        // Trial activation tracking (fire-and-forget)
+        _ = _trialTracking?.TrackAsync(request.OrganizationId, TrialActivationEvents.EstimateCreated);
 
         return Result<EstimateDto>.Success(ToDto(estimate));
     }
