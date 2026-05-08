@@ -46,6 +46,22 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildOrganizationTrialWillEnd(Organization org, int daysRemaining)
+    {
+        var dayWord = daysRemaining == 1 ? "day" : "days";
+        return new NotificationMessage
+        {
+            Name = org.OrganizationName,
+            Email = org.EmailAddress,
+            Phone = org.PhoneNumber,
+            Subject = $"Your JobFlow trial ends in {daysRemaining} {dayWord}",
+            TemplateId = EmailTemplate.OrganizationWelcome,
+            Body = $"Hello {org.OrganizationName}, your free 14-day trial ends in {daysRemaining} {dayWord}. Add a payment method to keep access to all features.",
+            Link = $"{baseUrl}/subscribe",
+            Sms = $"JobFlow: your free trial ends in {daysRemaining} {dayWord}. Visit {baseUrl}/subscribe to upgrade."
+        };
+    }
+
     public NotificationMessage BuildOrganizationPaymentReceived(Organization org)
     {
         return new NotificationMessage

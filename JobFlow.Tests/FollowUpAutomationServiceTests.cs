@@ -260,6 +260,7 @@ public class FollowUpAutomationServiceTests
     private sealed class NoOpNotificationService : INotificationService
     {
         public Task SendOrganizationWelcomeNotificationAsync(Organization organization) => Task.CompletedTask;
+        public Task SendOrganizationTrialWillEndNotificationAsync(Organization organization, int daysRemaining) => Task.CompletedTask;
         public Task SendOrganizationSubsciptionPaymentFailedNotificationAsync(Organization organization) => Task.CompletedTask;
         public Task SendOrganizationPaymentReceivedNotificationAsync(Organization organization) => Task.CompletedTask;
         public Task SendClientWelcomeNotificationAsync(OrganizationClient client) => Task.CompletedTask;
