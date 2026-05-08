@@ -89,7 +89,6 @@ public class OrganizationService : IOrganizationService
 
             dto.SubscriptionPlanName = latestSubscription?.PlanName;
             dto.SubscriptionStatus = latestSubscription?.Status;
-            dto.SeatLimit = latestSubscription?.SeatLimit;
             dto.SubscriptionExpiresAt = org.SubscriptionExpiresAt;
         }
         else

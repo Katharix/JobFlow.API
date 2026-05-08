@@ -16,13 +16,11 @@ public class OnboardingController : ControllerBase
 {
     private readonly IOnboardingService onboarding;
     private readonly IOrganizationService organizations;
-    private readonly ISubscriptionRecordService subscriptions;
 
-    public OnboardingController(IOnboardingService onboarding, IOrganizationService organizations, ISubscriptionRecordService subscriptions)
+    public OnboardingController(IOnboardingService onboarding, IOrganizationService organizations)
     {
         this.onboarding = onboarding;
         this.organizations = organizations;
-        this.subscriptions = subscriptions;
     }
 
     [HttpGet("{organizationId:guid}")]
@@ -141,10 +139,6 @@ public class OnboardingController : ControllerBase
         var orgResult = await organizations.SetOrgSizeAsync(organizationId, request.OrgSize);
         if (orgResult.IsFailure)
             return orgResult.ToProblemDetails();
-
-        var subResult = await subscriptions.SetSeatLimitAsync(organizationId, request.SeatLimit);
-        if (subResult.IsFailure)
-            return subResult.ToProblemDetails();
 
         await onboarding.MarkStepCompleteAsync(organizationId, OnboardingStepKeys.ChooseTeamSize);
 
