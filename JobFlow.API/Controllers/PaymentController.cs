@@ -837,7 +837,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("subscription/plans")]
-    [Authorize(Policy = "OrganizationAdminOnly")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetSubscriptionPlans()
     {
         var configuredPlans = new[]
