@@ -115,7 +115,7 @@ public class EstimateService : IEstimateService
         await estimates.AddAsync(estimate);
         await unitOfWork.SaveChangesAsync();
 
-        // Trial activation tracking (fire-and-forget)
+        // Trial activation tracking (fire-and-forget; TrackAsync catches all exceptions internally)
         _ = _trialTracking?.TrackAsync(request.OrganizationId, TrialActivationEvents.EstimateCreated);
 
         return Result<EstimateDto>.Success(ToDto(estimate));

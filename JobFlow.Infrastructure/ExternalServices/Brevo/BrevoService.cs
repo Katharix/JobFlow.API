@@ -127,7 +127,7 @@ public class BrevoService : IBrevoService
         return response is not null && response.IsSuccessStatusCode;
     }
 
-    public async Task TrackActivationEventAsync(string email, string eventKey)
+    public async Task<bool> TrackActivationEventAsync(string email, string eventKey)
     {
         var payload = new
         {
@@ -139,10 +139,19 @@ public class BrevoService : IBrevoService
             Encoding.UTF8,
             "application/json");
 
-        await _policy.ExecuteAsync(async () =>
+        try
         {
-            var response = await _client.PutAsync($"contacts/{Uri.EscapeDataString(email)}", content);
-            response.EnsureSuccessStatusCode();
-        });
+            await _policy.ExecuteAsync(async () =>
+            {
+                var response = await _client.PutAsync($"contacts/{Uri.EscapeDataString(email)}", content);
+                response.EnsureSuccessStatusCode();
+            });
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

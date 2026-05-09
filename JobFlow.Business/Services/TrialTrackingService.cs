@@ -36,7 +36,11 @@ public class TrialTrackingService : ITrialTrackingService
 
             if (string.IsNullOrWhiteSpace(email)) return;
 
-            await _brevoService.TrackActivationEventAsync(email, eventKey);
+            var success = await _brevoService.TrackActivationEventAsync(email, eventKey);
+            if (!success)
+                _logger.LogWarning(
+                    "Trial activation tracking returned false for org {OrgId}, event {EventKey}",
+                    organizationId, eventKey);
         }
         catch (Exception ex)
         {

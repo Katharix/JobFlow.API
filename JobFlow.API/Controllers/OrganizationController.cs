@@ -133,12 +133,22 @@ public class OrganizationController : ControllerBase
                 await _organizationService.SetOrgSizeAsync(model.Id.Value, model.OrgSize);
 
             // Enroll in Brevo trial drip sequence (fire-and-forget; failure is non-fatal)
-            _ = _brevoService.AddTrialContactAsync(
-                model.EmailAddress ?? string.Empty,
-                model.FirstName ?? string.Empty,
-                model.LastName ?? string.Empty,
-                model.OrganizationName ?? string.Empty,
-                DateTimeOffset.UtcNow);
+            var orgId = model.Id.Value;
+            var email = model.EmailAddress ?? string.Empty;
+            var firstName = model.FirstName ?? string.Empty;
+            var lastName = model.LastName ?? string.Empty;
+            var orgName = model.OrganizationName ?? string.Empty;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _brevoService.AddTrialContactAsync(email, firstName, lastName, orgName, DateTimeOffset.UtcNow);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to enroll trial contact in Brevo for org {OrgId}", orgId);
+                }
+            });
 
             var orgResults = await _organizationService.GetOrganizationDtoById(model.Id.Value);
             return orgResults.IsSuccess ? Results.Ok(orgResults.Value) : orgResults.ToProblemDetails();
