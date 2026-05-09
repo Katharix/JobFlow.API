@@ -41,9 +41,9 @@ public class PaymentController : ControllerBase
     private static readonly IReadOnlyDictionary<string, string[]> PlanFeatures =
         new Dictionary<string, string[]>
         {
-            ["go"]   = ["Jobs, invoices & estimates", "Client Hub — no client login required", "Stripe & Square payments"],
-            ["flow"]  = ["Everything in Go", "Employee management + dispatch board", "Pricebook & custom branding"],
-            ["max"]  = ["Everything in Flow", "Advanced dispatch & reporting", "Priority support"]
+            ["go"] = ["Jobs, invoices & estimates", "Client Hub — no client login required", "Stripe & Square payments"],
+            ["flow"] = ["Everything in Go", "Employee management + dispatch board", "Pricebook & custom branding"],
+            ["max"] = ["Everything in Flow", "Advanced dispatch & reporting", "Priority support"],
         };
 
     private readonly IOrganizationService _organizationService;
