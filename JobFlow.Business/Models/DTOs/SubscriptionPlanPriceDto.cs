@@ -7,4 +7,5 @@ public class SubscriptionPlanPriceDto
     public string ProviderPriceId { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "usd";
+    public List<string> Features { get; set; } = [];
 }

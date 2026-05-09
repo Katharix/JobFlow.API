@@ -38,6 +38,14 @@ public class PaymentController : ControllerBase
     private static readonly TimeSpan WebhookTimestampTolerance = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan WebhookReplayWindow = TimeSpan.FromHours(24);
 
+    private static readonly IReadOnlyDictionary<string, string[]> PlanFeatures =
+        new Dictionary<string, string[]>
+        {
+            ["go"]   = ["Jobs, invoices & estimates", "Client Hub — no client login required", "Stripe & Square payments"],
+            ["flow"]  = ["Everything in Go", "Employee management + dispatch board", "Pricebook & custom branding"],
+            ["max"]  = ["Everything in Flow", "Advanced dispatch & reporting", "Priority support"]
+        };
+
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentProfileService _paymentProfileService;
     private readonly IPaymentProcessorFactory _processorFactory;
@@ -801,7 +809,22 @@ public class PaymentController : ControllerBase
         if (subscriptionResult.IsFailure)
             return NotFound(subscriptionResult.Error);
 
-        return Ok(subscriptionResult.Value);
+        var record = subscriptionResult.Value;
+        var dto = new SubscriptionCurrentDto
+        {
+            Id = record.Id,
+            ProviderSubscriptionId = record.ProviderSubscriptionId,
+            ProviderPriceId = record.ProviderPriceId,
+            PlanName = record.PlanName,
+            Status = record.Status,
+            StartDate = record.StartDate,
+            CanceledAt = record.CanceledAt,
+            SeatLimit = record.SeatLimit,
+            ResolvedPlanKey = ResolvePlanKey(record.ProviderPriceId),
+            ResolvedBillingCycle = ResolveBillingCycle(record.ProviderPriceId)
+        };
+
+        return Ok(dto);
     }
 
     [HttpGet("subscription/feature-usage")]
@@ -848,7 +871,10 @@ public class PaymentController : ControllerBase
                     Cycle = configuredPlan.Cycle,
                     ProviderPriceId = configuredPlan.PriceId.Trim(),
                     Amount = amount,
-                    Currency = string.IsNullOrWhiteSpace(stripePrice.Currency) ? "usd" : stripePrice.Currency
+                    Currency = string.IsNullOrWhiteSpace(stripePrice.Currency) ? "usd" : stripePrice.Currency,
+                    Features = PlanFeatures.TryGetValue(configuredPlan.PlanKey, out var features)
+                        ? [.. features]
+                        : []
                 };
             });
 
@@ -860,6 +886,27 @@ public class PaymentController : ControllerBase
             _logger.LogWarning(ex, "Unable to retrieve live Stripe subscription plan pricing.");
             return Ok(Array.Empty<SubscriptionPlanPriceDto>());
         }
+    }
+
+    private string ResolvePlanKey(string? priceId)
+    {
+        if (string.IsNullOrWhiteSpace(priceId)) return string.Empty;
+        if (priceId == _stripeSettings.GoMonthlyPrice || priceId == _stripeSettings.GoYearlyPrice) return "go";
+        if (priceId == _stripeSettings.FlowMonthlyPrice || priceId == _stripeSettings.FlowYearlyPrice) return "flow";
+        if (priceId == _stripeSettings.MaxMonthlyPrice || priceId == _stripeSettings.MaxYearlyPrice) return "max";
+        return string.Empty;
+    }
+
+    private string ResolveBillingCycle(string? priceId)
+    {
+        if (string.IsNullOrWhiteSpace(priceId)) return string.Empty;
+        if (priceId == _stripeSettings.GoMonthlyPrice ||
+            priceId == _stripeSettings.FlowMonthlyPrice ||
+            priceId == _stripeSettings.MaxMonthlyPrice) return "monthly";
+        if (priceId == _stripeSettings.GoYearlyPrice ||
+            priceId == _stripeSettings.FlowYearlyPrice ||
+            priceId == _stripeSettings.MaxYearlyPrice) return "yearly";
+        return string.Empty;
     }
 
     private static string? NormalizeSubscriptionStatus(string? status)
