@@ -372,7 +372,7 @@ public class JobService : IJobService
                 OnboardingStepKeys.CreateJob
             );
 
-            // Trial activation tracking (fire-and-forget)
+            // Trial activation tracking (fire-and-forget; TrackAsync catches all exceptions internally)
             _ = _trialTracking?.TrackAsync(organizationId, TrialActivationEvents.JobCreated);
         }
 
