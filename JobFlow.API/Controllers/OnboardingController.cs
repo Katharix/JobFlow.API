@@ -47,18 +47,20 @@ public class OnboardingController : ControllerBase
     {
         var organizationId = HttpContext.GetOrganizationId();
 
-        var orgResult = await organizations.GetOrganizationDtoById(organizationId);
-        if (orgResult.IsFailure)
+        // A plan is only required when seeding an industry preset (pricebook + workflow)
+        if (!string.IsNullOrWhiteSpace(request.PresetKey))
         {
-            return orgResult.ToProblemDetails();
-        }
+            var orgResult = await organizations.GetOrganizationDtoById(organizationId);
+            if (orgResult.IsFailure)
+                return orgResult.ToProblemDetails();
 
-        if (!HasMinPlan(orgResult.Value.SubscriptionPlanName, "Go"))
-        {
-            return Results.Problem(
-                statusCode: StatusCodes.Status403Forbidden,
-                title: "Subscription Required",
-                detail: "A Go plan or above is required to apply quick-start presets.");
+            if (!HasMinPlan(orgResult.Value.SubscriptionPlanName, "Go"))
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "Subscription Required",
+                    detail: "A Go plan or above is required to apply quick-start presets.");
+            }
         }
 
         var result = await onboarding.ApplyQuickStartAsync(organizationId, request);
