@@ -132,6 +132,13 @@ public class OrganizationController : ControllerBase
             if (!string.IsNullOrWhiteSpace(model.OrgSize))
                 await _organizationService.SetOrgSizeAsync(model.Id.Value, model.OrgSize);
 
+            // Provision a 14-day free trial subscription for every new org
+            await _organizationService.UpdateSubscriptionStateAsync(
+                model.Id.Value,
+                subscriptionStatus: "Trialing",
+                subscriptionPlanName: "Go",
+                subscriptionExpiresAt: DateTime.UtcNow.AddDays(14));
+
             // Enroll in Brevo trial drip sequence (fire-and-forget; failure is non-fatal)
             var orgId = model.Id.Value;
             var email = model.EmailAddress ?? string.Empty;
