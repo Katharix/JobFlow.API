@@ -963,7 +963,8 @@ public class PaymentController : ControllerBase
                 json,
                 Request.Headers["Stripe-Signature"],
                 _stripeSettings.WebhookKey,
-                (long)WebhookTimestampTolerance.TotalSeconds
+                (long)WebhookTimestampTolerance.TotalSeconds,
+                throwOnApiVersionMismatch: false
             );
 
             if (string.IsNullOrWhiteSpace(stripeEvent.Id))
