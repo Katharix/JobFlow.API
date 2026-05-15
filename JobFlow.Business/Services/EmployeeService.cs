@@ -14,6 +14,7 @@ namespace JobFlow.Business.Services;
 public class EmployeeService : IEmployeeService
 {
     private readonly IRepository<Employee> _employeeRepo;
+    private readonly IRepository<EmployeeRoleAssignment> _roleAssignmentRepo;
     private readonly ILogger<EmployeeService> _logger;
     private readonly IRepository<Organization> _orgRepo;
     private readonly IUnitOfWork _unitOfWork;
@@ -25,7 +26,22 @@ public class EmployeeService : IEmployeeService
         _unitOfWork = unitOfWork;
         _employeeRepo = unitOfWork.RepositoryOf<Employee>();
         _orgRepo = unitOfWork.RepositoryOf<Organization>();
+        _roleAssignmentRepo = unitOfWork.RepositoryOf<EmployeeRoleAssignment>();
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Resolves the effective set of role ids from a Create/Update request.
+    /// Falls back to legacy single <c>RoleId</c> when <c>RoleIds</c> is null/empty.
+    /// First entry is treated as the primary.
+    /// </summary>
+    private static IReadOnlyList<Guid> ResolveRoleIds(IReadOnlyList<Guid>? roleIds, Guid legacyRoleId)
+    {
+        if (roleIds is { Count: > 0 })
+            return roleIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        return legacyRoleId == Guid.Empty
+            ? Array.Empty<Guid>()
+            : new[] { legacyRoleId };
     }
 
     public async Task<Result<EmployeeDto>> CreateAsync(CreateEmployeeRequest request)
@@ -34,6 +50,12 @@ public class EmployeeService : IEmployeeService
             .FirstOrDefaultAsync(e => e.Id == request.OrganizationId);
         if (org == null)
             return Result.Failure<EmployeeDto>(EmployeeErrors.InvalidOrganization);
+
+        var roleIds = ResolveRoleIds(request.RoleIds, request.RoleId);
+        if (roleIds.Count == 0)
+            return Result.Failure<EmployeeDto>(EmployeeErrors.InvalidRequest);
+
+        var primaryRoleId = roleIds[0];
 
         var employee = new Employee
         {
@@ -44,33 +66,81 @@ public class EmployeeService : IEmployeeService
             LastName = request.LastName,
             Email = request.Email,
             PhoneNumber = request.PhoneNumber,
-            RoleId = request.RoleId,
+            RoleId = primaryRoleId,
             IsActive = true
         };
+
+        foreach (var rid in roleIds)
+        {
+            employee.RoleAssignments.Add(new EmployeeRoleAssignment
+            {
+                EmployeeId = employee.Id,
+                EmployeeRoleId = rid
+            });
+        }
 
         await _employeeRepo.AddAsync(employee);
         await _unitOfWork.SaveChangesAsync();
 
-        return employee.ToDto();
+        var reloaded = await _employeeRepo.Query()
+            .AsNoTracking()
+            .Include(e => e.Role)
+            .Include(e => e.RoleAssignments).ThenInclude(ra => ra.Role)
+            .FirstAsync(e => e.Id == employee.Id);
+
+        return reloaded.ToDto();
     }
 
     public async Task<Result<EmployeeDto>> UpdateAsync(Guid employeeId, UpdateEmployeeRequest request)
     {
-        var employee = await _employeeRepo.Query().Include(e => e.Role).FirstOrDefaultAsync(e => e.Id == employeeId);
+        var employee = await _employeeRepo.Query()
+            .Include(e => e.Role)
+            .Include(e => e.RoleAssignments)
+            .FirstOrDefaultAsync(e => e.Id == employeeId);
         if (employee == null)
             return Result.Failure<EmployeeDto>(EmployeeErrors.NotFound);
+
+        var roleIds = ResolveRoleIds(request.RoleIds, request.RoleId);
+        if (roleIds.Count == 0)
+            return Result.Failure<EmployeeDto>(EmployeeErrors.InvalidRequest);
+
+        var primaryRoleId = roleIds[0];
 
         employee.FirstName = request.FirstName;
         employee.LastName = request.LastName;
         employee.Email = request.Email;
         employee.PhoneNumber = request.PhoneNumber;
-        employee.RoleId = request.RoleId;
+        employee.RoleId = primaryRoleId;
         employee.IsActive = request.IsActive;
+
+        var existing = employee.RoleAssignments.ToList();
+        var toRemove = existing.Where(ra => !roleIds.Contains(ra.EmployeeRoleId)).ToList();
+        foreach (var ra in toRemove)
+        {
+            employee.RoleAssignments.Remove(ra);
+            _roleAssignmentRepo.Remove(ra);
+        }
+
+        var existingIds = existing.Select(ra => ra.EmployeeRoleId).ToHashSet();
+        foreach (var rid in roleIds.Where(id => !existingIds.Contains(id)))
+        {
+            employee.RoleAssignments.Add(new EmployeeRoleAssignment
+            {
+                EmployeeId = employee.Id,
+                EmployeeRoleId = rid
+            });
+        }
 
         _employeeRepo.Update(employee);
         await _unitOfWork.SaveChangesAsync();
 
-        return employee.ToDto();
+        var reloaded = await _employeeRepo.Query()
+            .AsNoTracking()
+            .Include(e => e.Role)
+            .Include(e => e.RoleAssignments).ThenInclude(ra => ra.Role)
+            .FirstAsync(e => e.Id == employee.Id);
+
+        return reloaded.ToDto();
     }
 
     public async Task<Result> DeleteAsync(Guid employeeId)
@@ -90,6 +160,7 @@ public class EmployeeService : IEmployeeService
         var employee = await _employeeRepo.Query()
             .AsNoTracking()
             .Include(e => e.Role)
+            .Include(e => e.RoleAssignments).ThenInclude(ra => ra.Role)
             .FirstOrDefaultAsync(e => e.Id == employeeId);
 
         return employee is null
@@ -102,6 +173,7 @@ public class EmployeeService : IEmployeeService
         var employees = await _employeeRepo.Query()
             .AsNoTracking()
             .Include(e => e.Role)
+            .Include(e => e.RoleAssignments).ThenInclude(ra => ra.Role)
             .Where(e => e.OrganizationId == organizationId)
             .ToListAsync();
 
@@ -134,6 +206,12 @@ public class EmployeeService : IEmployeeService
         var created = new List<Employee>();
         foreach (var request in requests)
         {
+            var roleIds = ResolveRoleIds(request.RoleIds, request.RoleId);
+            if (roleIds.Count == 0)
+                return Result.Failure<List<EmployeeDto>>(EmployeeErrors.InvalidRequest);
+
+            var primaryRoleId = roleIds[0];
+
             var employee = new Employee
             {
                 Id = Guid.NewGuid(),
@@ -143,15 +221,33 @@ public class EmployeeService : IEmployeeService
                 LastName = request.LastName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
-                RoleId = request.RoleId,
+                RoleId = primaryRoleId,
                 IsActive = true
             };
+
+            foreach (var rid in roleIds)
+            {
+                employee.RoleAssignments.Add(new EmployeeRoleAssignment
+                {
+                    EmployeeId = employee.Id,
+                    EmployeeRoleId = rid
+                });
+            }
 
             await _employeeRepo.AddAsync(employee);
             created.Add(employee);
         }
 
         await _unitOfWork.SaveChangesAsync();
-        return created.Select(e => e.ToDto()).ToList();
+
+        var ids = created.Select(c => c.Id).ToList();
+        var reloaded = await _employeeRepo.Query()
+            .AsNoTracking()
+            .Include(e => e.Role)
+            .Include(e => e.RoleAssignments).ThenInclude(ra => ra.Role)
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync();
+
+        return reloaded.Select(e => e.ToDto()).ToList();
     }
 }

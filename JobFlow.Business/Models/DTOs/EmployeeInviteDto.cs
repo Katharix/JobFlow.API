@@ -5,6 +5,8 @@ public class EmployeeInviteDto
     public Guid? Id { get; set; }
     public Guid OrganizationId { get; set; }
     public Guid RoleId { get; set; }
+    /// <summary>All roles to assign on acceptance. Includes <see cref="RoleId"/> as the primary.</summary>
+    public IReadOnlyList<Guid>? RoleIds { get; set; }
 
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;

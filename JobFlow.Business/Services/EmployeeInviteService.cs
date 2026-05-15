@@ -64,7 +64,6 @@ public class EmployeeInviteService : IEmployeeInviteService
 
             await _invites.AddAsync(invite);
             await _unitOfWork.SaveChangesAsync();
-
             var createdInvite = await _invites.Query()
                 .Include(i => i.Organization)
                 .Include(i => i.Role)
@@ -155,6 +154,21 @@ public class EmployeeInviteService : IEmployeeInviteService
             CreatedAt = DateTime.UtcNow
         };
 
+        // Resolve full role set from the invite. RoleIdsCsv is the multi-role
+        // expansion; the legacy single RoleId remains the primary fallback.
+        var roleIds = ParseRoleIds(invite.RoleIdsCsv);
+        if (roleIds.Count == 0 && invite.RoleId != Guid.Empty)
+            roleIds = new List<Guid> { invite.RoleId };
+
+        foreach (var rid in roleIds)
+        {
+            employee.RoleAssignments.Add(new EmployeeRoleAssignment
+            {
+                EmployeeId = employee.Id,
+                EmployeeRoleId = rid
+            });
+        }
+
         invite.Status = EmployeeInviteStatus.Accepted;
 
         await _unitOfWork.RepositoryOf<Employee>().AddAsync(employee);
@@ -166,6 +180,18 @@ public class EmployeeInviteService : IEmployeeInviteService
             employee.OrganizationId);
 
         return Result.Success(employeeDto);
+    }
+
+    private static List<Guid> ParseRoleIds(string? csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv))
+            return new List<Guid>();
+
+        return csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => Guid.TryParse(s, out var g) ? g : Guid.Empty)
+            .Where(g => g != Guid.Empty)
+            .Distinct()
+            .ToList();
     }
 
     public async Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null)

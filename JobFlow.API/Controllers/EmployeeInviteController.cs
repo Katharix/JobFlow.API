@@ -22,13 +22,23 @@ public class EmployeeInviteController : ControllerBase
     public async Task<IResult> Invite([FromBody] EmployeeInviteDto invite)
     {
         var organizationId = HttpContext.GetOrganizationId();
+
+        // Normalize roles: prefer RoleIds[] when present, fall back to legacy single RoleId.
+        var roleIds = (invite.RoleIds is { Count: > 0 } ? invite.RoleIds : new[] { invite.RoleId })
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+        var primaryRoleId = roleIds.Count > 0 ? roleIds[0] : invite.RoleId;
+        var roleIdsCsv = roleIds.Count > 1 ? string.Join(',', roleIds) : null;
+
         var employeeInvite = new EmployeeInvite
         {
             OrganizationId = organizationId,
             Email = invite.Email,
             FirstName = invite.FirstName,
             LastName = invite.LastName,
-            RoleId = invite.RoleId,
+            RoleId = primaryRoleId,
+            RoleIdsCsv = roleIdsCsv,
             PhoneNumber = invite.PhoneNumber,
             ExpiresAt = invite.ExpiresAt
         };
