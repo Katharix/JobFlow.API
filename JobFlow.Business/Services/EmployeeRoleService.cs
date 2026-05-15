@@ -72,9 +72,11 @@ public class EmployeeRoleService : IEmployeeRoleService
             return Result<IEnumerable<EmployeeRoleUsageDto>>.Success(Enumerable.Empty<EmployeeRoleUsageDto>());
         }
 
-        var counts = await employees.Query()
-            .Where(employee => employee.OrganizationId == organizationId)
-            .GroupBy(employee => employee.RoleId)
+        // Count via the EmployeeRoleAssignment join so employees with multiple
+        // roles are counted under each one they hold.
+        var counts = await unitOfWork.RepositoryOf<EmployeeRoleAssignment>().Query()
+            .Where(ra => ra.Employee.OrganizationId == organizationId)
+            .GroupBy(ra => ra.EmployeeRoleId)
             .Select(group => new EmployeeRoleUsageDto
             {
                 RoleId = group.Key,

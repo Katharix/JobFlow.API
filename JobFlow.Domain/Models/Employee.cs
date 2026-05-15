@@ -20,4 +20,11 @@ public class Employee : Entity
     public EmployeeRole Role { get; set; } = null!;
     public Organization Organization { get; set; } = null!;
     public User? User { get; set; }
+
+    /// <summary>
+    /// All roles assigned to this employee. <see cref="RoleId"/> remains the
+    /// primary role for back-compat; <see cref="RoleAssignments"/> is the
+    /// full set including the primary.
+    /// </summary>
+    public ICollection<EmployeeRoleAssignment> RoleAssignments { get; set; } = new List<EmployeeRoleAssignment>();
 }

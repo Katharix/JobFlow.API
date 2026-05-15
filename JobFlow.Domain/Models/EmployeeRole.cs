@@ -9,4 +9,5 @@ public class EmployeeRole
     public Organization Organization { get; set; } = null!;
 
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+    public ICollection<EmployeeRoleAssignment> EmployeeAssignments { get; set; } = new List<EmployeeRoleAssignment>();
 }

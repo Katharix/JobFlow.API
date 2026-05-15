@@ -9,6 +9,11 @@ public class EmployeeInvite : Entity
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public Guid RoleId { get; set; }
+    /// <summary>
+    /// CSV of EmployeeRole GUIDs to assign on acceptance. Includes
+    /// <see cref="RoleId"/> as the primary. Null = single-role legacy invite.
+    /// </summary>
+    public string? RoleIdsCsv { get; set; }
     public string? PhoneNumber { get; set; }
     public Guid InviteToken { get; set; }
     public DateTime ExpiresAt { get; set; }
