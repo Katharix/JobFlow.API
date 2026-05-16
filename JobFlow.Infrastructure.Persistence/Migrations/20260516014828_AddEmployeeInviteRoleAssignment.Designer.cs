@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JobFlow.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(JobFlowDbContext))]
-    [Migration("20260515211514_AddEmployeeRoleAssignment")]
-    partial class AddEmployeeRoleAssignment
+    [Migration("20260516014828_AddEmployeeInviteRoleAssignment")]
+    partial class AddEmployeeInviteRoleAssignment
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1112,6 +1112,21 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status", "ExpiresAt");
 
                     b.ToTable("EmployeeInvites", (string)null);
+                });
+
+            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeInviteRoleAssignment", b =>
+                {
+                    b.Property<Guid>("EmployeeInviteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeRoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("EmployeeInviteId", "EmployeeRoleId");
+
+                    b.HasIndex("EmployeeRoleId");
+
+                    b.ToTable("EmployeeInviteRoleAssignments", (string)null);
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRole", b =>
@@ -5772,6 +5787,25 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeInviteRoleAssignment", b =>
+                {
+                    b.HasOne("JobFlow.Domain.Models.EmployeeInvite", "EmployeeInvite")
+                        .WithMany("RoleAssignments")
+                        .HasForeignKey("EmployeeInviteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobFlow.Domain.Models.EmployeeRole", "Role")
+                        .WithMany("InviteAssignments")
+                        .HasForeignKey("EmployeeRoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmployeeInvite");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRole", b =>
                 {
                     b.HasOne("JobFlow.Domain.Models.Organization", "Organization")
@@ -6319,11 +6353,18 @@ namespace JobFlow.Infrastructure.Persistence.Migrations
                     b.Navigation("Rows");
                 });
 
+            modelBuilder.Entity("JobFlow.Domain.Models.EmployeeInvite", b =>
+                {
+                    b.Navigation("RoleAssignments");
+                });
+
             modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRole", b =>
                 {
                     b.Navigation("EmployeeAssignments");
 
                     b.Navigation("Employees");
+
+                    b.Navigation("InviteAssignments");
                 });
 
             modelBuilder.Entity("JobFlow.Domain.Models.EmployeeRolePreset", b =>

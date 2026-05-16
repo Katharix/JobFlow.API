@@ -29,7 +29,6 @@ public class EmployeeInviteController : ControllerBase
             .Distinct()
             .ToList();
         var primaryRoleId = roleIds.Count > 0 ? roleIds[0] : invite.RoleId;
-        var roleIdsCsv = roleIds.Count > 1 ? string.Join(',', roleIds) : null;
 
         var employeeInvite = new EmployeeInvite
         {
@@ -38,10 +37,18 @@ public class EmployeeInviteController : ControllerBase
             FirstName = invite.FirstName,
             LastName = invite.LastName,
             RoleId = primaryRoleId,
-            RoleIdsCsv = roleIdsCsv,
             PhoneNumber = invite.PhoneNumber,
             ExpiresAt = invite.ExpiresAt
         };
+
+        foreach (var rid in roleIds)
+        {
+            employeeInvite.RoleAssignments.Add(new EmployeeInviteRoleAssignment
+            {
+                EmployeeRoleId = rid
+            });
+        }
+
         var result = await _inviteService.InviteAsync(employeeInvite);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
