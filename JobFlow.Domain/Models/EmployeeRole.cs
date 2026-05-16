@@ -10,4 +10,5 @@ public class EmployeeRole
 
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<EmployeeRoleAssignment> EmployeeAssignments { get; set; } = new List<EmployeeRoleAssignment>();
+    public ICollection<EmployeeInviteRoleAssignment> InviteAssignments { get; set; } = new List<EmployeeInviteRoleAssignment>();
 }

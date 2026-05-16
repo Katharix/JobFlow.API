@@ -67,6 +67,7 @@ public class EmployeeInviteService : IEmployeeInviteService
             var createdInvite = await _invites.Query()
                 .Include(i => i.Organization)
                 .Include(i => i.Role)
+                .Include(i => i.RoleAssignments)
                 .FirstOrDefaultAsync(i => i.Id == invite.Id);
             var dto = _mapper.Map<EmployeeInviteDto>(invite);
             if (createdInvite is not null)
@@ -89,6 +90,7 @@ public class EmployeeInviteService : IEmployeeInviteService
         var invites = await _invites.Query()
             .Include(i => i.Organization)
             .Include(i => i.Role)
+            .Include(i => i.RoleAssignments)
             .Where(i => i.OrganizationId == organizationId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
@@ -126,6 +128,7 @@ public class EmployeeInviteService : IEmployeeInviteService
         var invite = await _invites.Query()
             .Include(i => i.Organization)
             .Include(i => i.Role)
+            .Include(i => i.RoleAssignments)
             .FirstOrDefaultAsync(i => i.InviteToken == inviteToken);
 
         if (invite is null)
@@ -154,9 +157,9 @@ public class EmployeeInviteService : IEmployeeInviteService
             CreatedAt = DateTime.UtcNow
         };
 
-        // Resolve full role set from the invite. RoleIdsCsv is the multi-role
-        // expansion; the legacy single RoleId remains the primary fallback.
-        var roleIds = ParseRoleIds(invite.RoleIdsCsv);
+        // Resolve full role set from the invite's join rows.
+        // The legacy single RoleId remains the primary fallback.
+        var roleIds = invite.RoleAssignments.Select(a => a.EmployeeRoleId).Distinct().ToList();
         if (roleIds.Count == 0 && invite.RoleId != Guid.Empty)
             roleIds = new List<Guid> { invite.RoleId };
 
@@ -180,18 +183,6 @@ public class EmployeeInviteService : IEmployeeInviteService
             employee.OrganizationId);
 
         return Result.Success(employeeDto);
-    }
-
-    private static List<Guid> ParseRoleIds(string? csv)
-    {
-        if (string.IsNullOrWhiteSpace(csv))
-            return new List<Guid>();
-
-        return csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(s => Guid.TryParse(s, out var g) ? g : Guid.Empty)
-            .Where(g => g != Guid.Empty)
-            .Distinct()
-            .ToList();
     }
 
     public async Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null)
@@ -221,6 +212,7 @@ public class EmployeeInviteService : IEmployeeInviteService
         var invite = await _invites.Query()
             .Include(i => i.Organization)
             .Include(i => i.Role)
+            .Include(i => i.RoleAssignments)
             .FirstOrDefaultAsync(i => i.ShortCode == code && i.Status == EmployeeInviteStatus.Pending);
 
         if (invite is null)
@@ -235,6 +227,8 @@ public class EmployeeInviteService : IEmployeeInviteService
         var dto = _mapper.Map<EmployeeInviteDto>(invite);
         dto.OrganizationName = invite.Organization?.OrganizationName;
         dto.RoleName = invite.Role?.Name;
+        dto.RoleIds = invite.RoleAssignments?.Select(a => a.EmployeeRoleId).ToList()
+                      ?? new List<Guid>();
         dto.IsAccepted = invite.Status == EmployeeInviteStatus.Accepted;
         dto.IsRevoked = invite.Status == EmployeeInviteStatus.Revoked;
         return dto;
