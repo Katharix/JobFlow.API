@@ -3,6 +3,7 @@ using JobFlow.Business.Extensions;
 using JobFlow.Business.Models.DTOs;
 using JobFlow.Business.Services.ServiceInterfaces;
 using JobFlow.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobFlow.API.Controllers;
@@ -54,6 +55,7 @@ public class EmployeeInviteController : ControllerBase
     }
 
     [HttpPost("accept/{token}")]
+    [AllowAnonymous]
     public async Task<IResult> AcceptInvite(Guid token)
     {
         var result = await _inviteService.AcceptInviteAsync(token);
@@ -77,6 +79,7 @@ public class EmployeeInviteController : ControllerBase
     }
 
     [HttpGet("{code}")]
+    [AllowAnonymous]
     public async Task<IResult> GetInviteByCode(string code)
     {
         var result = await _inviteService.GetInviteByCode(code);
