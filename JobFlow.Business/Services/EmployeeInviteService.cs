@@ -51,7 +51,7 @@ public class EmployeeInviteService : IEmployeeInviteService
 
             // Check for existing active invite
             var existingInvite = await _invites.Query()
-                .FirstOrDefaultAsync(e => e.Email == invite.Email && invite.Status == EmployeeInviteStatus.Pending);
+                .FirstOrDefaultAsync(e => e.Email == invite.Email && e.Status == EmployeeInviteStatus.Pending);
 
             if (existingInvite is not null)
                 return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.AlreadyInvited(invite.Email));
@@ -61,6 +61,7 @@ public class EmployeeInviteService : IEmployeeInviteService
             invite.InviteToken = Guid.NewGuid();
             invite.ExpiresAt = DateTime.UtcNow.AddDays(7);
             invite.ShortCode = ShortCodeGenerator.Generate();
+            invite.Status = EmployeeInviteStatus.Pending;
 
             await _invites.AddAsync(invite);
             await _unitOfWork.SaveChangesAsync();

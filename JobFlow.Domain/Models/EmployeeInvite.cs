@@ -12,7 +12,7 @@ public class EmployeeInvite : Entity
     public string? PhoneNumber { get; set; }
     public Guid InviteToken { get; set; }
     public DateTime ExpiresAt { get; set; }
-    public EmployeeInviteStatus Status { get; set; }
+    public EmployeeInviteStatus Status { get; set; } = EmployeeInviteStatus.Pending;
     public string FullName => $"{FirstName} {LastName}".Trim();
     public string ShortCode { get; set; } = string.Empty;
     public DateTime? AccessedAt { get; set; }
