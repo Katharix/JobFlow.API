@@ -151,16 +151,28 @@ public class StripePaymentProcessor : IPaymentProcessor, IPaymentOperationsProce
             requestOptions = new RequestOptions { StripeAccount = request.ConnectedAccountId };
         }
 
-        var refund = await refundService.CreateAsync(options, requestOptions);
-
-        return new PaymentOperationResult
+        try
         {
-            Success = refund.Status == "succeeded",
-            ProviderPaymentId = refund.Id,
-            Amount = request.Amount,
-            Currency = request.Currency,
-            Message = refund.Status
-        };
+            var refund = await refundService.CreateAsync(options, requestOptions);
+            return new PaymentOperationResult
+            {
+                Success = refund.Status == "succeeded",
+                ProviderPaymentId = refund.Id,
+                Amount = request.Amount,
+                Currency = request.Currency,
+                Message = refund.Status
+            };
+        }
+        catch (StripeException ex)
+        {
+            return new PaymentOperationResult
+            {
+                Success = false,
+                Amount = request.Amount,
+                Currency = request.Currency,
+                Message = ex.StripeError?.Message ?? ex.Message
+            };
+        }
     }
 
     public async Task<PaymentOperationResult> AdjustPaymentAsync(PaymentAdjustmentRequest request)
