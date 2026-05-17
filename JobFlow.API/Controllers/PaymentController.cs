@@ -454,6 +454,12 @@ public class PaymentController : ControllerBase
             return BadRequest("Provider payment id does not match the selected invoice.");
         }
 
+        if (request.Provider == PaymentProvider.Stripe
+            && string.IsNullOrWhiteSpace(orgResult.Value.StripeConnectAccountId))
+        {
+            return BadRequest("Stripe is not fully configured for this organization. Please complete Stripe Connect onboarding before issuing refunds.");
+        }
+
         var processor = request.Provider == PaymentProvider.Square
             ? await _processorFactory.GetProcessorForOrgAsync(orgId, request.Provider)
             : _processorFactory.GetProcessor(request.Provider);
