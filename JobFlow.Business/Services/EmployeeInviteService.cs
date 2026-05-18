@@ -203,20 +203,33 @@ public class EmployeeInviteService : IEmployeeInviteService
             return Result.Failure<EmployeeDto>(EmployeeInviteErrors.AccountLinkFailed(ex.Message));
         }
 
-        // Create the Employee record linked to the new User.
-        var employee = new Employee
+        // Create the Employee record linked to the new User. If an Employee row
+        // already exists for this email in the org (e.g. an earlier orphaned
+        // accept that never linked a Firebase user), update it in place rather
+        // than creating a duplicate.
+        var employeeRepo = _unitOfWork.RepositoryOf<Employee>();
+        var existingEmployee = await employeeRepo.Query()
+            .Include(e => e.RoleAssignments)
+            .FirstOrDefaultAsync(e =>
+                e.OrganizationId == invite.OrganizationId &&
+                e.Email == invite.Email);
+
+        var employee = existingEmployee ?? new Employee
         {
             Id = Guid.NewGuid(),
+            OrganizationId = invite.OrganizationId,
             FirstName = firstName,
             LastName = lastName,
-            Email = invite.Email,
-            PhoneNumber = invite.PhoneNumber,
-            RoleId = invite.RoleId,
-            OrganizationId = invite.OrganizationId,
-            UserId = userResult.Value.Id,
-            IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
+
+        employee.FirstName = firstName;
+        employee.LastName = lastName;
+        employee.Email = invite.Email;
+        employee.PhoneNumber = invite.PhoneNumber;
+        employee.RoleId = invite.RoleId;
+        employee.UserId = userResult.Value.Id;
+        employee.IsActive = true;
 
         // Resolve full role set from the invite's join rows.
         // The legacy single RoleId remains the primary fallback.
@@ -224,6 +237,7 @@ public class EmployeeInviteService : IEmployeeInviteService
         if (roleIds.Count == 0 && invite.RoleId != Guid.Empty)
             roleIds = new List<Guid> { invite.RoleId };
 
+        employee.RoleAssignments.Clear();
         foreach (var rid in roleIds)
         {
             employee.RoleAssignments.Add(new EmployeeRoleAssignment
@@ -235,7 +249,8 @@ public class EmployeeInviteService : IEmployeeInviteService
 
         invite.Status = EmployeeInviteStatus.Accepted;
 
-        await _unitOfWork.RepositoryOf<Employee>().AddAsync(employee);
+        if (existingEmployee is null)
+            await employeeRepo.AddAsync(employee);
         await _unitOfWork.SaveChangesAsync();
 
         var employeeDto = _mapper.Map<EmployeeDto>(employee);
