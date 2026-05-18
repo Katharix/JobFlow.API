@@ -32,4 +32,10 @@ public static class EmployeeInviteErrors
             "EmployeeInvites", $"Failed to send invite notification to {recipient}.");
     }
 
+    public static Error FirebaseUidRequired => Error.Failure(
+        "EmployeeInvites", "A Firebase account is required to accept this invitation.");
+
+    public static Error AccountLinkFailed(string detail) => Error.Failure(
+        "EmployeeInvites", $"Could not link your account to this invitation: {detail}");
+
 }

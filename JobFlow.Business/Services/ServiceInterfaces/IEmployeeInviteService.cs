@@ -9,6 +9,6 @@ public interface IEmployeeInviteService
     Task<Result<List<EmployeeInviteDto>>> GetByOrganizationAsync(Guid organizationId);
     Task<Result> RevokeAsync(Guid inviteId, Guid organizationId);
     Task<Result<EmployeeInviteDto>> GetInviteByCode(string code);
-    Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken);
+    Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken, AcceptInviteRequest request);
     Task<Result<string>> ResolveShortCodeAsync(string code, string? ipAddress = null);
 }

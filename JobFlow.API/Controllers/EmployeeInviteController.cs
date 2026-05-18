@@ -56,9 +56,9 @@ public class EmployeeInviteController : ControllerBase
 
     [HttpPost("accept/{token}")]
     [AllowAnonymous]
-    public async Task<IResult> AcceptInvite(Guid token)
+    public async Task<IResult> AcceptInvite(Guid token, [FromBody] AcceptInviteRequest request)
     {
-        var result = await _inviteService.AcceptInviteAsync(token);
+        var result = await _inviteService.AcceptInviteAsync(token, request);
         return result.IsSuccess ? Results.Ok(result.Value) : result.ToProblemDetails();
     }
 
