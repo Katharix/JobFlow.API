@@ -49,12 +49,15 @@ public class EmployeeInviteService : IEmployeeInviteService
             if (string.IsNullOrWhiteSpace(invite.Email))
                 return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.InvalidEmail(invite.Email ?? "unknown"));
 
-            // Check for existing active invite
+            // Revoke any existing pending invite so a fresh one can be created (resend scenario)
             var existingInvite = await _invites.Query()
                 .FirstOrDefaultAsync(e => e.Email == invite.Email && e.Status == EmployeeInviteStatus.Pending);
 
             if (existingInvite is not null)
-                return Result.Failure<EmployeeInviteDto>(EmployeeInviteErrors.AlreadyInvited(invite.Email));
+            {
+                existingInvite.Status = EmployeeInviteStatus.Revoked;
+                _invites.Update(existingInvite);
+            }
 
             // Create invite
             invite.Id = Guid.NewGuid();
@@ -201,7 +204,7 @@ public class EmployeeInviteService : IEmployeeInviteService
         _invites.Update(invite);
         await _unitOfWork.SaveChangesAsync();
 
-        var redirectUrl = $"{_frontendSettings.BaseUrl}/invite/{invite.InviteToken}";
+        var redirectUrl = $"{_frontendSettings.BaseUrl}/i/{invite.ShortCode}";
         return Result.Success(redirectUrl);
     }
 
