@@ -132,6 +132,12 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendClientJobTrackingEnRouteNotificationAsync(OrganizationClient client, Job job)
+    {
+        var message = _builder.BuildClientJobTrackingEnRoute(client, job);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite)
     {
         var message = _builder.BuildEmployeeInvite(invite);

@@ -272,6 +272,7 @@ public class FollowUpAutomationServiceTests
         public Task SendClientPaymentReceivedNotificationAsync(OrganizationClient client, Invoice invoice) => Task.CompletedTask;
         public Task SendClientJobTrackingEtaNotificationAsync(OrganizationClient client, Job job, int etaMinutes) => Task.CompletedTask;
         public Task SendClientJobTrackingArrivalNotificationAsync(OrganizationClient client, Job job) => Task.CompletedTask;
+        public Task SendClientJobTrackingEnRouteNotificationAsync(OrganizationClient client, Job job) => Task.CompletedTask;
         public Task SendClientEstimateSentNotificationAsync(OrganizationClient client, Estimate estimate) => Task.CompletedTask;
         public Task SendClientEstimateFollowUpNotificationAsync(OrganizationClient client, Estimate estimate, string message) => Task.CompletedTask;
         public Task SendOrganizationEstimateRevisionRequestedNotificationAsync(Organization organization, OrganizationClient client, Estimate estimate, string revisionMessage) => Task.CompletedTask;

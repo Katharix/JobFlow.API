@@ -346,6 +346,26 @@ public class AssignmentService : IAssignmentService
         return Result.Success(await MapToDtoAsync(organizationId, assignment));
     }
 
+    public async Task<Result> NotifyEnRouteAsync(Guid organizationId, Guid assignmentId)
+    {
+        var assignment = await _assignments.Query()
+            .Include(a => a.Job)
+            .ThenInclude(j => j.OrganizationClient)
+            .FirstOrDefaultAsync(a =>
+                a.Id == assignmentId &&
+                a.Job.OrganizationClient.OrganizationId == organizationId);
+
+        if (assignment == null)
+            return Result.Failure(AssignmentErrors.NotFound);
+
+        var job = assignment.Job;
+        if (job?.OrganizationClient == null)
+            return Result.Failure(Error.NotFound("Client.NotFound", "The client for this assignment could not be found."));
+
+        await _notificationService.SendClientJobTrackingEnRouteNotificationAsync(job.OrganizationClient, job);
+        return Result.Success();
+    }
+
     private async Task<AssignmentDto> MapToDtoAsync(Guid organizationId, Assignment assignment)
     {
         var labelMapResult = await _workflowSettings.GetJobLifecycleLabelMapAsync(organizationId);
@@ -397,6 +417,16 @@ public class AssignmentService : IAssignmentService
         dto.ClientName = assignment.Job?.OrganizationClient != null
             ? $"{assignment.Job.OrganizationClient.FirstName} {assignment.Job.OrganizationClient.LastName}"
             : null;
+
+        // Fall back to the client's address when the assignment-level override is empty.
+        var client = assignment.Job?.OrganizationClient;
+        if (client != null)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Address1)) dto.Address1 = client.Address1;
+            if (string.IsNullOrWhiteSpace(dto.City)) dto.City = client.City;
+            if (string.IsNullOrWhiteSpace(dto.State)) dto.State = client.State;
+            if (string.IsNullOrWhiteSpace(dto.ZipCode)) dto.ZipCode = client.ZipCode;
+        }
         dto.JobLifecycleStatus = assignment.Job?.LifecycleStatus ?? JobLifecycleStatus.Draft;
         if (labelMap.TryGetValue(dto.JobLifecycleStatus, out var label))
         {
