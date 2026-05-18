@@ -213,25 +213,29 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
     public NotificationMessage BuildEmployeeInvite(EmployeeInvite invite)
     {
         var link = $"{baseUrl}/i/{invite.ShortCode}";
+        var orgName = invite.Organization?.OrganizationName ?? "JobFlow";
+        var roleName = invite.Role?.Name ?? "team member";
         return new NotificationMessage
         {
             Email = invite.Email,
             Name = invite.FirstName,
             Phone = invite.PhoneNumber,
-            Subject = $"You're invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}",
+            Subject = $"You're invited to join {orgName} on JobFlow",
             Body = $"""
-                        Hello {invite.FullName},
+                        Hi {invite.FirstName},
 
-                        You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}.
-                        Click below to accept your invitation:
+                        You've been invited to join {orgName} on JobFlow as a {roleName}.
+
+                        Click the link below to accept your invitation and set up your account:
                         {link}
 
-                        This link will expire on {invite.ExpiresAt:MMM dd, yyyy}.
+                        This invitation expires on {invite.ExpiresAt:MMM dd, yyyy}. If you weren't expecting this email, you can safely ignore it.
+
+                        — The JobFlow Team
                     """,
-            Sms =
-                $"You’ve been invited to join {invite.Organization?.OrganizationName ?? "JobFlow"}! Accept your invite: ",
+            Sms = $"You're invited to join {orgName} on JobFlow. Accept here: ",
             Link = $"{link}",
-            TemplateId = EmailTemplate.OrganizationWelcome
+            TemplateId = EmailTemplate.EmployeeInvite
         };
     }
 

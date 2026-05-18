@@ -16,25 +16,31 @@ namespace JobFlow.Business.Services;
 [ScopedService]
 public class EmployeeInviteService : IEmployeeInviteService
 {
+    private readonly IFirebaseUserManager _firebaseUserManager;
     private readonly IFrontendSettings _frontendSettings;
     private readonly IRepository<EmployeeInvite> _invites;
     private readonly ILogger<EmployeeInviteService> _logger;
     private readonly IMapper _mapper;
     private readonly INotificationService _notifications;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserService _userService;
 
     public EmployeeInviteService(
         ILogger<EmployeeInviteService> logger,
         IUnitOfWork unitOfWork,
         INotificationService notifications,
         IFrontendSettings frontendSettings,
-        IMapper mapper)
+        IMapper mapper,
+        IUserService userService,
+        IFirebaseUserManager firebaseUserManager)
     {
         _logger = logger;
         _unitOfWork = unitOfWork;
         _notifications = notifications;
         _frontendSettings = frontendSettings;
         _mapper = mapper;
+        _userService = userService;
+        _firebaseUserManager = firebaseUserManager;
         _invites = unitOfWork.RepositoryOf<EmployeeInvite>();
     }
 
@@ -124,10 +130,13 @@ public class EmployeeInviteService : IEmployeeInviteService
         return Result.Success();
     }
 
-    public async Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken)
+    public async Task<Result<EmployeeDto>> AcceptInviteAsync(Guid inviteToken, AcceptInviteRequest request)
     {
         if (inviteToken == Guid.Empty)
             return Result.Failure<EmployeeDto>(EmployeeInviteErrors.NullOrEmptyId);
+
+        if (string.IsNullOrWhiteSpace(request.FirebaseUid))
+            return Result.Failure<EmployeeDto>(EmployeeInviteErrors.FirebaseUidRequired);
 
         var invite = await _invites.Query()
             .Include(i => i.Organization)
@@ -148,15 +157,63 @@ public class EmployeeInviteService : IEmployeeInviteService
         if (invite.ExpiresAt < DateTime.UtcNow)
             return Result.Failure<EmployeeDto>(Error.Failure("EmployeeInvites", "This invitation has expired."));
 
-        // Create new Employee from invite info
+        var firstName = !string.IsNullOrWhiteSpace(request.FirstName)
+            ? request.FirstName!.Trim()
+            : invite.FirstName ?? string.Empty;
+        var lastName = !string.IsNullOrWhiteSpace(request.LastName)
+            ? request.LastName!.Trim()
+            : invite.LastName ?? string.Empty;
+
+        // Create the JobFlow User row linked to the Firebase account the
+        // invitee just signed up with on the client.
+        var user = new User
+        {
+            FirstName = firstName,
+            LastName = lastName,
+            Email = invite.Email,
+            PhoneNumber = invite.PhoneNumber,
+            OrganizationId = invite.OrganizationId,
+            FirebaseUid = request.FirebaseUid
+        };
+
+        var userResult = await _userService.UpsertUser(user);
+        if (userResult.IsFailure)
+            return Result.Failure<EmployeeDto>(userResult.Error);
+
+        var roleAssignResult = await _userService.AssignRole(userResult.Value.Id, UserRoles.OrganizationEmployee);
+        if (roleAssignResult.IsFailure)
+            return Result.Failure<EmployeeDto>(roleAssignResult.Error);
+
+        // Mirror DisplayName + custom claims onto the Firebase user so the
+        // existing auth pipeline (FirebaseAuthMiddleware) picks up the role.
+        try
+        {
+            await _firebaseUserManager.SetCustomClaimsAsync(
+                request.FirebaseUid,
+                UserRoles.OrganizationEmployee,
+                invite.OrganizationId);
+
+            await _firebaseUserManager.SetDisplayNameAsync(
+                request.FirebaseUid,
+                $"{firstName} {lastName}".Trim());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Firebase claim/profile update failed for invite {InviteId}", invite.Id);
+            return Result.Failure<EmployeeDto>(EmployeeInviteErrors.AccountLinkFailed(ex.Message));
+        }
+
+        // Create the Employee record linked to the new User.
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
-            FirstName = invite.FirstName ?? string.Empty,
-            LastName = invite.LastName ?? string.Empty,
+            FirstName = firstName,
+            LastName = lastName,
             Email = invite.Email,
+            PhoneNumber = invite.PhoneNumber,
             RoleId = invite.RoleId,
             OrganizationId = invite.OrganizationId,
+            UserId = userResult.Value.Id,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -181,10 +238,12 @@ public class EmployeeInviteService : IEmployeeInviteService
         await _unitOfWork.RepositoryOf<Employee>().AddAsync(employee);
         await _unitOfWork.SaveChangesAsync();
 
-
         var employeeDto = _mapper.Map<EmployeeDto>(employee);
-        _logger.LogInformation("Employee {Email} accepted invite for Org {OrgId}", employee.Email,
-            employee.OrganizationId);
+        _logger.LogInformation(
+            "Employee {Email} accepted invite for Org {OrgId} (UID={FirebaseUid})",
+            employee.Email,
+            employee.OrganizationId,
+            request.FirebaseUid);
 
         return Result.Success(employeeDto);
     }
