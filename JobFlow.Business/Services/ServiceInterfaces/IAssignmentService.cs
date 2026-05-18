@@ -17,4 +17,6 @@ public interface IAssignmentService
     Task<Result<List<AssignmentDto>>> GetAssignmentsAsync(Guid organizationId, DateTime start, DateTime end);
 
     Task<Result<AssignmentDto>> GetAssignmentByIdAsync(Guid organizationId, Guid assignmentId);
+
+    Task<Result> NotifyEnRouteAsync(Guid organizationId, Guid assignmentId);
 }

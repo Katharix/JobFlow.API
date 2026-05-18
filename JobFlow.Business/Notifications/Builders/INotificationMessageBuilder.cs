@@ -26,6 +26,7 @@ public interface INotificationMessageBuilder
 
     NotificationMessage BuildClientJobTrackingEta(OrganizationClient client, Job job, int etaMinutes);
     NotificationMessage BuildClientJobTrackingArrival(OrganizationClient client, Job job);
+    NotificationMessage BuildClientJobTrackingEnRoute(OrganizationClient client, Job job);
 
     NotificationMessage BuildEmployeeInvite(EmployeeInvite invite);
 

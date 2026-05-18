@@ -210,6 +210,21 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
         };
     }
 
+    public NotificationMessage BuildClientJobTrackingEnRoute(OrganizationClient client, Job job)
+    {
+        return new NotificationMessage
+        {
+            Email = client.EmailAddress,
+            Phone = client.PhoneNumber,
+            Name = client.FirstName,
+            Subject = $"Your worker is on the way for {job.Title}",
+            Body =
+                $"Hello {client.ClientFullName()},\n\nYour JobFlow worker is on the way for your job: {job.Title}.",
+            Sms = $"Your JobFlow worker is on the way for {job.Title}. ",
+            TemplateId = EmailTemplate.Default
+        };
+    }
+
     public NotificationMessage BuildEmployeeInvite(EmployeeInvite invite)
     {
         var link = $"{baseUrl}/i/{invite.ShortCode}";

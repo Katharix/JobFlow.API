@@ -122,5 +122,18 @@ public class AssignmentController : ControllerBase
         return Ok(result.Value);
     }
 
+    // Notify the client that the worker is en route
+    [HttpPost("{id:guid}/en-route")]
+    public async Task<IActionResult> NotifyEnRoute(Guid id)
+    {
+        var organizationId = HttpContext.GetOrganizationId();
+
+        var result = await _assignmentService.NotifyEnRouteAsync(organizationId, id);
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(new { success = true });
+    }
+
 
 }
