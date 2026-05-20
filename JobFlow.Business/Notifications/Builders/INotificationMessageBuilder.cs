@@ -40,4 +40,6 @@ public interface INotificationMessageBuilder
     NotificationMessage BuildOrganizationClientJobUpdate(Organization organization, OrganizationClient client, Job job, string updateMessage);
 
     NotificationMessage BuildOrganizationClientPortalMagicLink(OrganizationClient client, string magicLink);
+
+    NotificationMessage BuildWaitlistSignup(string email);
 }

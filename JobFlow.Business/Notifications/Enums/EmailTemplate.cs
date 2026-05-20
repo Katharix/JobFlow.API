@@ -8,5 +8,6 @@ public enum EmailTemplate
     InvoiceReminder = 6,
     OnTheWayNotification = 4,
     ArrivalNotification = 5,
-    EmployeeInvite = 7
+    EmployeeInvite = 7,
+    WaitlistConfirmation = 8
 }

@@ -283,5 +283,6 @@ public class FollowUpAutomationServiceTests
         public Task SendOrganizationClientJobUpdateNotificationAsync(Organization organization, OrganizationClient client, Job job, string updateMessage) => Task.CompletedTask;
         public Task SendOrganizationClientPortalMagicLinkAsync(OrganizationClient client, string magicLink) => Task.CompletedTask;
         public Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite) => Task.CompletedTask;
+        public Task SendWaitlistSignupNotificationAsync(string email) => Task.CompletedTask;
     }
 }

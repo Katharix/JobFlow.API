@@ -76,4 +76,41 @@ public class EmailController : ControllerBase
             ? Ok(new { message = "Contact form submitted." })
             : StatusCode(500, new { message = "Failed to submit." });
     }
+
+    [HttpPost]
+    [Route("waitlist-signup")]
+    public async Task<IActionResult> WaitlistSignup(
+        [FromBody] NewsletterSubscriptionRequest request,
+        [FromServices] IBrevoService brevoService,
+        [FromServices] INotificationService notificationService,
+        [FromServices] ICaptchaVerificationService captchaService,
+        CancellationToken cancellationToken)
+    {
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var verification = await captchaService.VerifyAsync(
+            request.CaptchaToken,
+            "waitlist-signup",
+            remoteIp,
+            cancellationToken);
+
+        if (!verification.IsValid)
+        {
+            return BadRequest(new
+            {
+                message = "Turnstile validation failed.",
+                errors = verification.ErrorCodes
+            });
+        }
+
+        var added = await brevoService.AddContactAsync(request.Email, 5 /* BrevoListIds.Waitlist */);
+        if (!added)
+            return StatusCode(500, new { message = "Failed to join waitlist." });
+
+        // Fire-and-forget confirmation email — use CancellationToken.None so the task
+        // is not cancelled when the HTTP response completes.
+        _ = Task.Run(() => notificationService.SendWaitlistSignupNotificationAsync(request.Email), CancellationToken.None);
+
+        return Ok(new { message = "Added to waitlist." });
+    }
 }

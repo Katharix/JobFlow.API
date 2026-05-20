@@ -39,4 +39,7 @@ public interface INotificationService
 
     // Employee notifications
     Task SendEmployeeInviteNotificationAsync(EmployeeInvite invite);
+
+    // Public / marketing notifications
+    Task SendWaitlistSignupNotificationAsync(string email);
 }
