@@ -457,4 +457,28 @@ public class NotificationMessageBuilder : INotificationMessageBuilder
 
         return $"{localStart:MMM dd, yyyy h:mm tt} - {localEnd:MMM dd, yyyy h:mm tt}";
     }
+
+    public NotificationMessage BuildWaitlistSignup(string email)
+    {
+        return new NotificationMessage
+        {
+            Name = "Founding Member",
+            Email = email,
+            Subject = "You're on the JobFlow waitlist — your rate is reserved",
+            Body = """
+                       Hi there,
+
+                       You're officially on the JobFlow early-access waitlist.
+
+                       As a founding member, your $19/mo rate on the Go plan is reserved for you —
+                       locked in for life, even when pricing increases at general availability.
+
+                       We'll reach out as soon as your spot is ready. In the meantime, feel free to
+                       reply to this email with any questions.
+
+                       — The JobFlow Team
+                   """,
+            TemplateId = EmailTemplate.WaitlistConfirmation
+        };
+    }
 }

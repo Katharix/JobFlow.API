@@ -150,6 +150,12 @@ public partial class NotificationService : INotificationService
         await SendNotificationAsync(message);
     }
 
+    public async Task SendWaitlistSignupNotificationAsync(string email)
+    {
+        var message = _builder.BuildWaitlistSignup(email);
+        await SendNotificationAsync(message);
+    }
+
     public async Task SendOrganizationSubscriptionPaymentFailedNotificationAsync(Organization org)
     {
         var message = _builder.BuildOrganizationSubscriptionFailed(org);

@@ -16,6 +16,7 @@ internal static class BrevoListIds
 {
     public const int Newsletter = 3;
     public const int TrialUsers = 4;
+    public const int Waitlist = 5;
 }
 
 [SingletonService]
